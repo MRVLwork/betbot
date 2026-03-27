@@ -1,15 +1,8 @@
+import os
 from datetime import datetime, timedelta
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
-
-from config import (
-    POSTGRES_HOST,
-    POSTGRES_PORT,
-    POSTGRES_DB,
-    POSTGRES_USER,
-    POSTGRES_PASSWORD,
-)
 
 TRIAL_SCREEN_LIMIT = 3
 
@@ -66,13 +59,11 @@ class PostgresConnectionWrapper:
 
 
 def get_conn():
-    raw_conn = psycopg2.connect(
-        host=POSTGRES_HOST,
-        port=POSTGRES_PORT,
-        dbname=POSTGRES_DB,
-        user=POSTGRES_USER,
-        password=POSTGRES_PASSWORD,
-    )
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url:
+        raise RuntimeError("DATABASE_URL is not set")
+
+    raw_conn = psycopg2.connect(database_url)
     return PostgresConnectionWrapper(raw_conn)
 
 

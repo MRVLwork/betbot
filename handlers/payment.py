@@ -1,4 +1,4 @@
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler
 
 from config import ADMIN_ID
@@ -17,6 +17,17 @@ from db import (
 from keyboards import usdt_plans_keyboard, payment_check_keyboard
 from services.payment_service import get_usdt_plan
 from states import WAITING_PAYMENT_SCREEN
+
+
+def _payment_action_keyboard(lang: str):
+    base_keyboard = payment_check_keyboard(lang)
+    cancel_text = "❌ Скасувати" if lang == "ua" else "❌ Отменить"
+    cancel_button = [InlineKeyboardButton(cancel_text, callback_data="cancel_payment")]
+
+    if base_keyboard and getattr(base_keyboard, "inline_keyboard", None):
+        return InlineKeyboardMarkup(base_keyboard.inline_keyboard + [cancel_button])
+
+    return InlineKeyboardMarkup([cancel_button])
 
 
 async def payment_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -90,7 +101,7 @@ async def payment_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.message.reply_text(
         text,
-        reply_markup=payment_check_keyboard(lang),
+        reply_markup=_payment_action_keyboard(lang),
         parse_mode="Markdown"
     )
     return WAITING_PAYMENT_SCREEN
@@ -108,13 +119,31 @@ async def handle_payment_screenshot(update: Update, context: ContextTypes.DEFAUL
         )
         return WAITING_PAYMENT_SCREEN
 
+    if payment.get("status") == "submitted":
+        await update.message.reply_text(
+            "✅ Заявку вже відправлено адміну. Очікуй промокод або натисни /start."
+            if lang == "ua" else
+            "✅ Заявка уже отправлена администратору. Ожидай промокод или нажми /start."
+        )
+        return ConversationHandler.END
+
+    if payment.get("screenshot_file_id"):
+        await update.message.reply_text(
+            "❗ Ти вже надіслав скрін оплати. Натисни «Я оплатив» або «Скасувати»."
+            if lang == "ua" else
+            "❗ Ты уже отправил скрин оплаты. Нажми «Я оплатил» или «Отменить».",
+            reply_markup=_payment_action_keyboard(lang)
+        )
+        return WAITING_PAYMENT_SCREEN
+
     file_id = update.message.photo[-1].file_id
     set_payment_screenshot(payment["id"], file_id)
 
     await update.message.reply_text(
         "✅ Скрін збережено. Тепер натисни «Я оплатив»."
         if lang == "ua" else
-        "✅ Скрин сохранён. Теперь нажми «Я оплатил»."
+        "✅ Скрин сохранён. Теперь нажми «Я оплатил».",
+        reply_markup=_payment_action_keyboard(lang)
     )
     return WAITING_PAYMENT_SCREEN
 
@@ -132,7 +161,15 @@ async def payment_sent(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.reply_text(
             "Спочатку надішли скрін оплати." if lang == "ua" else "Сначала отправь скрин оплаты."
         )
-        return
+        return WAITING_PAYMENT_SCREEN
+
+    if payment.get("status") == "submitted":
+        await query.message.reply_text(
+            "✅ Заявку вже відправлено адміну. Очікуй промокод."
+            if lang == "ua" else
+            "✅ Заявка уже отправлена администратору. Ожидай промокод."
+        )
+        return ConversationHandler.END
 
     mark_payment_submitted(payment["id"])
 
@@ -165,6 +202,23 @@ async def payment_sent(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if lang == "ua" else
         "✅ Заявка отправлена администратору. Ожидай промокод."
     )
+    return ConversationHandler.END
+
+
+async def cancel_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    user_id = update.effective_user.id
+    user = get_user(user_id)
+    lang = user["lang"] if user and user.get("lang") else "ua"
+
+    await query.message.reply_text(
+        "❌ Оплату скасовано. Тепер можеш знову надсилати скріни ставок."
+        if lang == "ua" else
+        "❌ Оплата отменена. Теперь можешь снова отправлять скрины ставок."
+    )
+    return ConversationHandler.END
 
 
 async def admin_payment_reply_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):

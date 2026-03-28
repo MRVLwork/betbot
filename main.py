@@ -37,7 +37,7 @@ from keyboards import (
 from languages import get_text
 from handlers.start import start, start_offer_buttons
 from handlers.promo import access_buttons, promo_input, cancel_promo
-from handlers.payment import payment_buttons, handle_payment_screenshot, payment_sent, cancel_payment, admin_payment_reply_handler
+from handlers.payment import payment_buttons, handle_payment_screenshot, payment_sent, admin_payment_reply_handler
 from handlers.stars_payment import (
     open_stars_menu,
     precheckout_handler,
@@ -370,15 +370,9 @@ def main():
     app.add_handler(promo_conv)
 
     payment_conv = ConversationHandler(
-        entry_points=[CallbackQueryHandler(payment_buttons, pattern="^(buy_usdt|usdt_.*)$")],
-        states={
-            WAITING_PAYMENT_SCREEN: [
-                MessageHandler(filters.PHOTO, handle_payment_screenshot),
-                CallbackQueryHandler(payment_sent, pattern="^payment_sent$"),
-                CallbackQueryHandler(cancel_payment, pattern="^cancel_payment$"),
-            ]
-        },
-        fallbacks=[CallbackQueryHandler(cancel_payment, pattern="^cancel_payment$")],
+        entry_points=[CallbackQueryHandler(payment_buttons, pattern="^(buy_usdt|usdt_.*|cancel_payment)$")],
+        states={WAITING_PAYMENT_SCREEN: [MessageHandler(filters.PHOTO, handle_payment_screenshot)]},
+        fallbacks=[CallbackQueryHandler(payment_buttons, pattern="^cancel_payment$")],
         per_message=False,
     )
     app.add_handler(payment_conv)
@@ -388,6 +382,7 @@ def main():
     app.add_handler(PreCheckoutQueryHandler(precheckout_handler))
     app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_handler))
 
+    app.add_handler(CallbackQueryHandler(payment_sent, pattern="^payment_sent$"))
     app.add_handler(CallbackQueryHandler(stats_callback_handler, pattern="^stats_"))
     app.add_handler(CallbackQueryHandler(full_stats_callback_handler, pattern="^fullstats_"))
     app.add_handler(CallbackQueryHandler(analytics_callback_handler, pattern="^analytics_"))

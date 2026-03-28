@@ -1,4 +1,4 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler
 
 from config import ADMIN_ID
@@ -19,17 +19,6 @@ from services.payment_service import get_usdt_plan
 from states import WAITING_PAYMENT_SCREEN
 
 
-def _payment_action_keyboard(lang: str):
-    base_keyboard = payment_check_keyboard(lang)
-    cancel_text = "❌ Скасувати" if lang == "ua" else "❌ Отменить"
-    cancel_button = [InlineKeyboardButton(cancel_text, callback_data="cancel_payment")]
-
-    if base_keyboard and getattr(base_keyboard, "inline_keyboard", None):
-        return InlineKeyboardMarkup(base_keyboard.inline_keyboard + [cancel_button])
-
-    return InlineKeyboardMarkup([cancel_button])
-
-
 async def payment_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -43,6 +32,14 @@ async def payment_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.reply_text(
             "💸 Обери USDT тариф:" if lang == "ua" else "💸 Выбери USDT тариф:",
             reply_markup=usdt_plans_keyboard(lang, promo_available=promo_available)
+        )
+        return ConversationHandler.END
+
+    if query.data == "cancel_payment":
+        await query.message.reply_text(
+            "❌ Оплату скасовано. Тепер можеш надсилати скріни ставок."
+            if lang == "ua" else
+            "❌ Оплата отменена. Теперь можешь отправлять скрины ставок."
         )
         return ConversationHandler.END
 
@@ -101,7 +98,7 @@ async def payment_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.message.reply_text(
         text,
-        reply_markup=_payment_action_keyboard(lang),
+        reply_markup=payment_check_keyboard(lang),
         parse_mode="Markdown"
     )
     return WAITING_PAYMENT_SCREEN
@@ -121,18 +118,18 @@ async def handle_payment_screenshot(update: Update, context: ContextTypes.DEFAUL
 
     if payment.get("status") == "submitted":
         await update.message.reply_text(
-            "✅ Заявку вже відправлено адміну. Очікуй промокод або натисни /start."
+            "Ти вже надіслав заявку адміну. Очікуй промокод або натисни /start."
             if lang == "ua" else
-            "✅ Заявка уже отправлена администратору. Ожидай промокод или нажми /start."
+            "Ты уже отправил заявку админу. Ожидай промокод или нажми /start."
         )
         return ConversationHandler.END
 
     if payment.get("screenshot_file_id"):
         await update.message.reply_text(
-            "❗ Ти вже надіслав скрін оплати. Натисни «Я оплатив» або «Скасувати»."
+            "⚠️ Скрін оплати вже збережено.\nНатисни «Я оплатив» або «Скасувати»."
             if lang == "ua" else
-            "❗ Ты уже отправил скрин оплаты. Нажми «Я оплатил» или «Отменить».",
-            reply_markup=_payment_action_keyboard(lang)
+            "⚠️ Скрин оплаты уже сохранён.\nНажми «Я оплатил» или «Отменить».",
+            reply_markup=payment_check_keyboard(lang)
         )
         return WAITING_PAYMENT_SCREEN
 
@@ -143,7 +140,7 @@ async def handle_payment_screenshot(update: Update, context: ContextTypes.DEFAUL
         "✅ Скрін збережено. Тепер натисни «Я оплатив»."
         if lang == "ua" else
         "✅ Скрин сохранён. Теперь нажми «Я оплатил».",
-        reply_markup=_payment_action_keyboard(lang)
+        reply_markup=payment_check_keyboard(lang)
     )
     return WAITING_PAYMENT_SCREEN
 
@@ -201,22 +198,6 @@ async def payment_sent(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "✅ Заявку відправлено адміну. Очікуй промокод."
         if lang == "ua" else
         "✅ Заявка отправлена администратору. Ожидай промокод."
-    )
-    return ConversationHandler.END
-
-
-async def cancel_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-
-    user_id = update.effective_user.id
-    user = get_user(user_id)
-    lang = user["lang"] if user and user.get("lang") else "ua"
-
-    await query.message.reply_text(
-        "❌ Оплату скасовано. Тепер можеш знову надсилати скріни ставок."
-        if lang == "ua" else
-        "❌ Оплата отменена. Теперь можешь снова отправлять скрины ставок."
     )
     return ConversationHandler.END
 

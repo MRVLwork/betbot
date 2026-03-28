@@ -112,8 +112,12 @@ def usdt_plans_keyboard(lang: str, promo_available: bool = True):
 
 
 def payment_check_keyboard(lang: str):
-    text = "✅ Я оплатив" if lang == "ua" else "✅ Я оплатил"
-    return InlineKeyboardMarkup([[InlineKeyboardButton(text, callback_data="payment_sent")]])
+    confirm_text = "✅ Я оплатив" if lang == "ua" else "✅ Я оплатил"
+    cancel_text = "❌ Скасувати" if lang == "ua" else "❌ Отменить"
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(confirm_text, callback_data="payment_sent")],
+        [InlineKeyboardButton(cancel_text, callback_data="cancel_payment")],
+    ])
 
 
 def stats_periods_keyboard(is_vip: bool, lang: str, prefix: str = "stats"):

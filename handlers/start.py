@@ -1,7 +1,7 @@
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from keyboards import main_menu_keyboard, welcome_offer_keyboard
+from keyboards import main_menu_keyboard, welcome_offer_keyboard, access_keyboard
 from db import (
     create_user_if_not_exists,
     get_user,
@@ -61,6 +61,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
     tg_user = update.effective_user
     create_user_if_not_exists(tg_user)
 
@@ -68,24 +71,31 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
     lang = (user or {}).get("lang", "ua")
 
     if user_has_access(tg_user.id):
-        await update.message.reply_text(
+        await query.message.reply_text(
             "✔ Доступ активний." if lang == "ua" else "✔ Доступ активен.",
             reply_markup=main_menu_keyboard(lang)
         )
         return
 
-    if is_trial_available(tg_user.id):
-        start_trial_mode(tg_user.id)
+    if query.data == "try_trial":
+        if is_trial_available(tg_user.id):
+            start_trial_mode(tg_user.id)
 
-        await update.message.reply_text(
-            "🚀 Пробний доступ активовано!" if lang == "ua" else "🚀 Пробный доступ активирован!",
-            reply_markup=main_menu_keyboard(lang)
-        )
-    else:
-        remaining = get_trial_remaining(tg_user.id)
+            await query.message.reply_text(
+                "🚀 Пробний доступ активовано!" if lang == "ua" else "🚀 Пробный доступ активирован!",
+                reply_markup=main_menu_keyboard(lang)
+            )
+        else:
+            remaining = get_trial_remaining(tg_user.id)
 
-        await update.message.reply_text(
-            f"❌ Пробний доступ вже використано. Залишилось: {remaining}"
-            if lang == "ua"
-            else f"❌ Пробный доступ уже использован. Осталось: {remaining}"
+            await query.message.reply_text(
+                f"❌ Пробний доступ вже використано. Залишилось: {remaining}"
+                if lang == "ua"
+                else f"❌ Пробный доступ уже использован. Осталось: {remaining}"
+            )
+
+    elif query.data == "pay_now":
+        await query.message.reply_text(
+            "💳 Обери спосіб оплати:" if lang == "ua" else "💳 Выбери способ оплаты:",
+            reply_markup=access_keyboard(lang)
         )

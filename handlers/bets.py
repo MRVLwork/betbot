@@ -74,6 +74,223 @@ def _trial_offer_text(lang: str) -> str:
     )
 
 
+def _trial_progress_text(lang: str, used_trial: int, remaining_trial: int) -> str:
+    text = (
+        f"✅ Скрін зараховано.\nВикористано: {used_trial}/3"
+        if lang == "ua" else
+        f"✅ Скрин засчитан.\nИспользовано: {used_trial}/3"
+    )
+
+    if remaining_trial > 0:
+        text += (
+            f"\nЗалишилось: {remaining_trial}/3"
+            if lang == "ua" else
+            f"\nОсталось: {remaining_trial}/3"
+        )
+    return text
+
+
+def _trial_fail_text(lang: str, used_trial: int, remaining_trial: int) -> str:
+    text = (
+        f"⚠️ Цей скрін не вдалося розпізнати, але він зарахований у тест.\nВикористано: {used_trial}/3"
+        if lang == "ua" else
+        f"⚠️ Этот скрин не удалось распознать, но он засчитан в тест.\nИспользовано: {used_trial}/3"
+    )
+
+    if remaining_trial > 0:
+        text += (
+            f"\nЗалишилось: {remaining_trial}/3"
+            if lang == "ua" else
+            f"\nОсталось: {remaining_trial}/3"
+        )
+    return text
+
+
+def _build_trial_pitch(lang: str, stats: dict, used_trial: int) -> str | None:
+    if used_trial < 2:
+        return None
+
+    profit = float(stats.get("net_profit", 0) or 0)
+    roi = float(stats.get("roi", 0) or 0)
+    win_rate = float(stats.get("win_rate", 0) or 0)
+    avg_odds = float(stats.get("avg_odds", 0) or 0)
+
+    if profit > 0:
+        header = "📊 Тепер вже є картина\n\n" if lang == "ua" else "📊 Теперь уже есть картина\n\n"
+        body = (
+            f"💰 Прибуток: {profit}\n"
+            f"📈 ROI: {roi}%\n"
+            f"🎯 Winrate: {win_rate}%\n"
+            f"📊 Середній коефіцієнт: {avg_odds}\n\n"
+            "🔥 Непоганий результат.\n\n"
+            "Але є нюанс:\n\n"
+            "Ти зараз в плюсі —\n"
+            "але без системи це легко втратити.\n\n"
+            "📊 Саме на дистанції стає видно,\n"
+            "чи це випадковість чи стабільний плюс.\n\n"
+            "👇 Продовжуй аналіз або закріпи результат"
+            if lang == "ua" else
+            f"💰 Прибыль: {profit}\n"
+            f"📈 ROI: {roi}%\n"
+            f"🎯 Winrate: {win_rate}%\n"
+            f"📊 Средний коэффициент: {avg_odds}\n\n"
+            "🔥 Неплохой результат.\n\n"
+            "Но есть нюанс:\n\n"
+            "Ты сейчас в плюсе —\n"
+            "но без системы это легко потерять.\n\n"
+            "📊 Именно на дистанции становится видно,\n"
+            "случайность это или стабильный плюс.\n\n"
+            "👇 Продолжай анализ или закрепи результат"
+        )
+        return header + body
+
+    if profit < 0:
+        header = "📊 Тепер вже є картина\n\n" if lang == "ua" else "📊 Теперь уже есть картина\n\n"
+        body = (
+            f"💰 Прибуток: {profit}\n"
+            f"📈 ROI: {roi}%\n"
+            f"🎯 Winrate: {win_rate}%\n"
+            f"📊 Середній коефіцієнт: {avg_odds}\n\n"
+            "❗️ Важливий момент:\n\n"
+            "Зазвичай на цьому етапі люди розуміють,\n"
+            "що вони не заробляють, а втрачають.\n\n"
+            "Ти зараз на цьому ж етапі.\n\n"
+            "👇 Продовжуй аналіз або відкрий повний доступ"
+            if lang == "ua" else
+            f"💰 Прибыль: {profit}\n"
+            f"📈 ROI: {roi}%\n"
+            f"🎯 Winrate: {win_rate}%\n"
+            f"📊 Средний коэффициент: {avg_odds}\n\n"
+            "❗️ Важный момент:\n\n"
+            "Обычно на этом этапе люди понимают,\n"
+            "что они не зарабатывают, а теряют.\n\n"
+            "Ты сейчас на этом же этапе.\n\n"
+            "👇 Продолжай анализ или открой полный доступ"
+        )
+        return header + body
+
+    header = "📊 Уже є перша картина\n\n" if lang == "ua" else "📊 Уже есть первая картина\n\n"
+    body = (
+        f"💰 Прибуток: {profit}\n"
+        f"📈 ROI: {roi}%\n"
+        f"🎯 Winrate: {win_rate}%\n"
+        f"📊 Середній коефіцієнт: {avg_odds}\n\n"
+        "Поки результат біля нуля.\n"
+        "Саме кілька наступних ставок покажуть,\n"
+        "чи є у тебе система.\n\n"
+        "👇 Продовжуй, щоб побачити реальну картину"
+        if lang == "ua" else
+        f"💰 Прибыль: {profit}\n"
+        f"📈 ROI: {roi}%\n"
+        f"🎯 Winrate: {win_rate}%\n"
+        f"📊 Средний коэффициент: {avg_odds}\n\n"
+        "Пока результат около нуля.\n"
+        "Именно несколько следующих ставок покажут,\n"
+        "есть ли у тебя система.\n\n"
+        "👇 Продолжай, чтобы увидеть реальную картину"
+    )
+    return header + body
+
+
+def _build_limit_pitch(lang: str, stats: dict) -> str:
+    profit = float(stats.get("net_profit", 0) or 0)
+    roi = float(stats.get("roi", 0) or 0)
+    win_rate = float(stats.get("win_rate", 0) or 0)
+    avg_odds = float(stats.get("avg_odds", 0) or 0)
+
+    if profit > 0:
+        return (
+            "🚫 Ліміт досягнуто\n\n"
+            "📊 За цей час:\n"
+            f"💰 Прибуток: {profit}\n"
+            f"📈 ROI: {roi}%\n"
+            f"🎯 Winrate: {win_rate}%\n"
+            f"📊 Середній коефіцієнт: {avg_odds}\n\n"
+            "🔥 Ти вже показуєш плюс.\n\n"
+            "Але головне питання:\n\n"
+            "👉 це система чи просто коротка серія?\n\n"
+            "❗️ Саме тут більшість гравців:\n"
+            "— втрачають прибуток\n"
+            "— починають грати агресивніше\n"
+            "— зливають банк\n\n"
+            "⚡️ Повний доступ потрібен,\n"
+            "щоб зафіксувати і масштабувати результат\n\n"
+            "👇 Не зупиняйся на цьому"
+            if lang == "ua" else
+            "🚫 Лимит достигнут\n\n"
+            "📊 За это время:\n"
+            f"💰 Прибыль: {profit}\n"
+            f"📈 ROI: {roi}%\n"
+            f"🎯 Winrate: {win_rate}%\n"
+            f"📊 Средний коэффициент: {avg_odds}\n\n"
+            "🔥 Ты уже показываешь плюс.\n\n"
+            "Но главный вопрос:\n\n"
+            "👉 это система или просто короткая серия?\n\n"
+            "❗️ Именно здесь большинство игроков:\n"
+            "— теряют прибыль\n"
+            "— начинают играть агрессивнее\n"
+            "— сливают банк\n\n"
+            "⚡️ Полный доступ нужен,\n"
+            "чтобы зафиксировать и масштабировать результат\n\n"
+            "👇 Не останавливайся на этом"
+        )
+
+    if profit < 0:
+        return (
+            "🚫 Ліміт досягнуто\n\n"
+            "📊 За цей час:\n"
+            f"💰 Прибуток: {profit}\n"
+            f"📈 ROI: {roi}%\n"
+            f"🎯 Winrate: {win_rate}%\n"
+            f"📊 Середній коефіцієнт: {avg_odds}\n\n"
+            "❗️ І це тільки початок.\n\n"
+            "Без статистики ти будеш повторювати ті ж помилки.\n\n"
+            "⚡️ Повний доступ відкриє:\n"
+            "— всю статистику\n"
+            "— аналіз ставок\n"
+            "— контроль результатів\n\n"
+            "👇 Не залишай це просто так"
+            if lang == "ua" else
+            "🚫 Лимит достигнут\n\n"
+            "📊 За это время:\n"
+            f"💰 Прибыль: {profit}\n"
+            f"📈 ROI: {roi}%\n"
+            f"🎯 Winrate: {win_rate}%\n"
+            f"📊 Средний коэффициент: {avg_odds}\n\n"
+            "❗️ И это только начало.\n\n"
+            "Без статистики ты будешь повторять те же ошибки.\n\n"
+            "⚡️ Полный доступ откроет:\n"
+            "— всю статистику\n"
+            "— анализ ставок\n"
+            "— контроль результатов\n\n"
+            "👇 Не оставляй это просто так"
+        )
+
+    return (
+        "🚫 Ліміт досягнуто\n\n"
+        "📊 За цей час:\n"
+        f"💰 Прибуток: {profit}\n"
+        f"📈 ROI: {roi}%\n"
+        f"🎯 Winrate: {win_rate}%\n"
+        f"📊 Середній коефіцієнт: {avg_odds}\n\n"
+        "Зараз результат майже рівний.\n"
+        "Саме на дистанції стане видно,\n"
+        "чи працює твоя стратегія.\n\n"
+        "👇 Відкрий повний доступ і продовжуй аналіз"
+        if lang == "ua" else
+        "🚫 Лимит достигнут\n\n"
+        "📊 За это время:\n"
+        f"💰 Прибыль: {profit}\n"
+        f"📈 ROI: {roi}%\n"
+        f"🎯 Winrate: {win_rate}%\n"
+        f"📊 Средний коэффициент: {avg_odds}\n\n"
+        "Сейчас результат почти равный.\n"
+        "Именно на дистанции станет видно,\n"
+        "работает ли твоя стратегия.\n\n"
+        "👇 Открой полный доступ и продолжай анализ"
+    )
+
+
 async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.photo:
         return
@@ -164,20 +381,17 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         remaining_trial = get_trial_remaining(user_id)
         used_trial = 3 - remaining_trial
 
-        trial_save_text = (
-            f"✅ Скрін зараховано.\nВикористано: {used_trial}/3"
-            if lang == "ua" else
-            f"✅ Скрин засчитан.\nИспользовано: {used_trial}/3"
-        )
+        await update.message.reply_text(_trial_progress_text(lang, used_trial, remaining_trial))
 
-        if remaining_trial > 0:
-            trial_save_text += (
-                f"\nЗалишилось: {remaining_trial}/3"
-                if lang == "ua" else
-                f"\nОсталось: {remaining_trial}/3"
-            )
+        if used_trial >= 2:
+            trial_start = get_trial_start(user_id)
+            start_dt = trial_start or datetime.now()
+            end_dt = datetime.now()
 
-        await update.message.reply_text(trial_save_text)
+            stats = get_basic_stats_between(user_id, start_dt, end_dt, include_trial=True)
+            trial_pitch = _build_trial_pitch(lang, stats, used_trial)
+            if trial_pitch:
+                await update.message.reply_text(trial_pitch)
 
     else:
         create_bet(
@@ -202,20 +416,18 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         remaining_trial = get_trial_remaining(user_id)
         used_trial = 3 - remaining_trial
-        fail_text = (
-            f"⚠️ Цей скрін не вдалося розпізнати, але він зарахований у тест.\nВикористано: {used_trial}/3"
-            if lang == "ua" else
-            f"⚠️ Этот скрин не удалось распознать, но он засчитан в тест.\nИспользовано: {used_trial}/3"
-        )
 
-        if remaining_trial > 0:
-            fail_text += (
-                f"\nЗалишилось: {remaining_trial}/3"
-                if lang == "ua" else
-                f"\nОсталось: {remaining_trial}/3"
-            )
+        await update.message.reply_text(_trial_fail_text(lang, used_trial, remaining_trial))
 
-        await update.message.reply_text(fail_text)
+        if used_trial >= 2:
+            trial_start = get_trial_start(user_id)
+            start_dt = trial_start or datetime.now()
+            end_dt = datetime.now()
+
+            stats = get_basic_stats_between(user_id, start_dt, end_dt, include_trial=True)
+            trial_pitch = _build_trial_pitch(lang, stats, used_trial)
+            if trial_pitch:
+                await update.message.reply_text(trial_pitch)
 
     if not has_access and get_trial_remaining(user_id) == 0:
         trial_start = get_trial_start(user_id)
@@ -239,4 +451,4 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         await update.message.reply_text(stats_text)
-        await update.message.reply_text(_trial_offer_text(lang), reply_markup=access_keyboard(lang))
+        await update.message.reply_text(_build_limit_pitch(lang, stats), reply_markup=access_keyboard(lang))

@@ -436,19 +436,9 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         stats = get_basic_stats_between(user_id, start_dt, end_dt, include_trial=True)
 
-        stats_text = (
-            "📊 Базова статистика по тесту\n\n"
-            f"💰 Прибуток: {stats['net_profit']}\n"
-            f"📈 ROI: {stats['roi']}%\n"
-            f"🎯 Winrate: {stats['win_rate']}%\n"
-            f"📊 Середній коефіцієнт: {stats['avg_odds']}\n"
-            if lang == "ua" else
-            "📊 Базовая статистика по тесту\n\n"
-            f"💰 Прибыль: {stats['net_profit']}\n"
-            f"📈 ROI: {stats['roi']}%\n"
-            f"🎯 Winrate: {stats['win_rate']}%\n"
-            f"📊 Средний коэффициент: {stats['avg_odds']}\n"
+        # Без дублювання статистики окремим повідомленням:
+        # фінальний дожим уже містить усі потрібні цифри.
+        await update.message.reply_text(
+            _build_limit_pitch(lang, stats),
+            reply_markup=access_keyboard(lang)
         )
-
-        await update.message.reply_text(stats_text)
-        await update.message.reply_text(_build_limit_pitch(lang, stats), reply_markup=access_keyboard(lang))

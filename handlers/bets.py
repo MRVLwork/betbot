@@ -1,10 +1,13 @@
-from datetime import datetime
+from __future__ import annotations
+
+from datetime import datetime, timedelta
+from typing import Any
 
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from bets_db import create_bet, get_basic_stats_between
 from db import (
+    create_user_if_not_exists,
     get_user,
     user_has_access,
     get_user_daily_limit,
@@ -14,441 +17,316 @@ from db import (
     is_trial_available,
     get_trial_remaining,
     increment_trial_usage,
-    get_trial_start,
+    get_trial_used_count,
 )
-from keyboards import access_keyboard, welcome_offer_keyboard
+from bets_db import get_basic_stats_between
+from keyboards import access_keyboard
 from languages import get_text
-from services.ai_service import analyze_basic_bet_screenshot
+from services import ai_service
+import bets_db
 
 
-def _result_label(lang: str, result: str) -> str:
-    if result == "win":
-        return get_text(lang, "bet_result_win")
-    if result == "lose":
-        return get_text(lang, "bet_result_lose")
-    if result == "refund":
-        return get_text(lang, "bet_result_refund")
-    if result == "pending":
-        return get_text(lang, "bet_result_pending")
-    return result
+def _safe_lang(user_id: int) -> str:
+    user = get_user(user_id)
+    if not user:
+        return "ua"
+    return user.get("lang") or "ua"
 
 
-def _bet_type_label(lang: str, bet_type: str) -> str:
-    if lang == "ru":
-        if bet_type == "total":
-            return "тотал"
-        if bet_type == "result":
-            return "результат"
-        return bet_type
-
-    if bet_type == "total":
-        return "тотал"
-    if bet_type == "result":
-        return "результат"
-
-    return bet_type
+def _as_float(value: Any, default: float = 0.0) -> float:
+    try:
+        if value is None or value == "":
+            return default
+        return float(str(value).replace(",", ".").replace(" ", ""))
+    except Exception:
+        return default
 
 
-def _trial_offer_text(lang: str) -> str:
-    if lang == "ru":
-        return (
-            "🔥 Спецпредложение\n\n"
-            "⭐ 99 Stars — Basic 7 дней\n"
-            "⭐ 399 Stars — Basic 1 месяц\n"
-            "⭐ VIP 1 месяц: 1500 → 999 Stars\n"
-            "💸 USDT Basic 1 месяц — 4$\n"
-            "💸 USDT VIP 1 месяц: 15$ → 9.99$\n\n"
-            "После продления и следующих оплат будут действовать полные тарифы.\n\n"
-            "Ниже выбери удобный вариант оплаты:"
-        )
-
-    return (
-        "🔥 Спецпропозиція\n\n"
-        "⭐ 99 Stars — Basic 7 днів\n"
-        "⭐ 399 Stars — Basic 1 місяць\n"
-        "⭐ VIP 1 місяць: 1500 → 999 Stars\n"
-        "💸 USDT Basic 1 місяць — 4$\n"
-        "💸 USDT VIP 1 місяць: 15$ → 9.99$\n\n"
-        "Після продовження та наступних оплат діятимуть повні тарифи.\n\n"
-        "Нижче обери зручний варіант оплати:"
+def _normalize_bet(parsed: dict[str, Any]) -> dict[str, Any]:
+    bet_type = (
+        parsed.get("bet_type")
+        or parsed.get("type")
+        or parsed.get("market_type")
+        or "result"
+    )
+    bet_result = (
+        parsed.get("bet_result")
+        or parsed.get("result")
+        or parsed.get("status")
+        or "pending"
     )
 
+    stake_amount = _as_float(
+        parsed.get("stake_amount")
+        or parsed.get("stake")
+        or parsed.get("amount")
+    )
+    odds = _as_float(parsed.get("odds") or parsed.get("coefficient") or parsed.get("kef"), 1.0)
 
-def _trial_progress_text(lang: str, used_trial: int, remaining_trial: int) -> str:
-    text = (
-        f"✅ Скрін зараховано.\nВикористано: {used_trial}/3"
-        if lang == "ua" else
-        f"✅ Скрин засчитан.\nИспользовано: {used_trial}/3"
+    if bet_type not in ("total", "result"):
+        low = str(bet_type).lower()
+        bet_type = "total" if "total" in low or "тот" in low else "result"
+
+    low_res = str(bet_result).lower()
+    if low_res in ("win", "won", "виграш", "выигрыш", "green", "success"):
+        bet_result = "win"
+    elif low_res in ("lose", "lost", "програш", "проигрыш", "red", "fail"):
+        bet_result = "lose"
+    elif low_res in ("refund", "return", "повернення", "возврат", "void"):
+        bet_result = "refund"
+    else:
+        bet_result = "pending"
+
+    return {
+        "bet_type": bet_type,
+        "bet_result": bet_result,
+        "stake_amount": stake_amount,
+        "odds": odds,
+    }
+
+
+def _call_first_existing(module: Any, names: list[str], *args, **kwargs):
+    for name in names:
+        fn = getattr(module, name, None)
+        if callable(fn):
+            return fn(*args, **kwargs)
+    return None
+
+
+def _parse_bet(photo_bytes: bytes) -> dict[str, Any] | None:
+    parsed = _call_first_existing(
+        ai_service,
+        [
+            "parse_bet_from_image_bytes",
+            "parse_bet_from_photo_bytes",
+            "parse_bet_from_image",
+            "parse_bet_screenshot",
+            "analyze_bet_screenshot",
+            "analyze_image",
+        ],
+        photo_bytes,
     )
 
-    if remaining_trial > 0:
-        text += (
-            f"\nЗалишилось: {remaining_trial}/3"
-            if lang == "ua" else
-            f"\nОсталось: {remaining_trial}/3"
-        )
-    return text
-
-
-def _trial_fail_text(lang: str, used_trial: int, remaining_trial: int) -> str:
-    text = (
-        f"⚠️ Цей скрін не вдалося розпізнати, але він зарахований у тест.\nВикористано: {used_trial}/3"
-        if lang == "ua" else
-        f"⚠️ Этот скрин не удалось распознать, но он засчитан в тест.\nИспользовано: {used_trial}/3"
-    )
-
-    if remaining_trial > 0:
-        text += (
-            f"\nЗалишилось: {remaining_trial}/3"
-            if lang == "ua" else
-            f"\nОсталось: {remaining_trial}/3"
-        )
-    return text
-
-
-def _build_trial_pitch(lang: str, stats: dict, used_trial: int) -> str | None:
-    if used_trial < 2:
+    if not parsed:
         return None
+    if not isinstance(parsed, dict):
+        return None
+    return _normalize_bet(parsed)
 
-    profit = float(stats.get("net_profit", 0) or 0)
-    roi = float(stats.get("roi", 0) or 0)
-    win_rate = float(stats.get("win_rate", 0) or 0)
-    avg_odds = float(stats.get("avg_odds", 0) or 0)
 
-    if profit > 0:
-        header = "📊 Тепер вже є картина\n\n" if lang == "ua" else "📊 Теперь уже есть картина\n\n"
-        body = (
-            f"💰 Прибуток: {profit}\n"
-            f"📈 ROI: {roi}%\n"
-            f"🎯 Winrate: {win_rate}%\n"
-            f"📊 Середній коефіцієнт: {avg_odds}\n\n"
-            "🔥 Непоганий результат.\n\n"
-            "Але є нюанс:\n\n"
-            "Ти зараз в плюсі —\n"
-            "але без системи це легко втратити.\n\n"
-            "📊 Саме на дистанції стає видно,\n"
-            "чи це випадковість чи стабільний плюс.\n\n"
-            "👇 Продовжуй аналіз або закріпи результат"
-            if lang == "ua" else
-            f"💰 Прибыль: {profit}\n"
-            f"📈 ROI: {roi}%\n"
-            f"🎯 Winrate: {win_rate}%\n"
-            f"📊 Средний коэффициент: {avg_odds}\n\n"
-            "🔥 Неплохой результат.\n\n"
-            "Но есть нюанс:\n\n"
-            "Ты сейчас в плюсе —\n"
-            "но без системы это легко потерять.\n\n"
-            "📊 Именно на дистанции становится видно,\n"
-            "случайность это или стабильный плюс.\n\n"
-            "👇 Продолжай анализ или закрепи результат"
-        )
-        return header + body
-
-    if profit < 0:
-        header = "📊 Тепер вже є картина\n\n" if lang == "ua" else "📊 Теперь уже есть картина\n\n"
-        body = (
-            f"💰 Прибуток: {profit}\n"
-            f"📈 ROI: {roi}%\n"
-            f"🎯 Winrate: {win_rate}%\n"
-            f"📊 Середній коефіцієнт: {avg_odds}\n\n"
-            "❗️ Важливий момент:\n\n"
-            "Зазвичай на цьому етапі люди розуміють,\n"
-            "що вони не заробляють, а втрачають.\n\n"
-            "Ти зараз на цьому ж етапі.\n\n"
-            "👇 Продовжуй аналіз або відкрий повний доступ"
-            if lang == "ua" else
-            f"💰 Прибыль: {profit}\n"
-            f"📈 ROI: {roi}%\n"
-            f"🎯 Winrate: {win_rate}%\n"
-            f"📊 Средний коэффициент: {avg_odds}\n\n"
-            "❗️ Важный момент:\n\n"
-            "Обычно на этом этапе люди понимают,\n"
-            "что они не зарабатывают, а теряют.\n\n"
-            "Ты сейчас на этом же этапе.\n\n"
-            "👇 Продолжай анализ или открой полный доступ"
-        )
-        return header + body
-
-    header = "📊 Уже є перша картина\n\n" if lang == "ua" else "📊 Уже есть первая картина\n\n"
-    body = (
-        f"💰 Прибуток: {profit}\n"
-        f"📈 ROI: {roi}%\n"
-        f"🎯 Winrate: {win_rate}%\n"
-        f"📊 Середній коефіцієнт: {avg_odds}\n\n"
-        "Поки результат біля нуля.\n"
-        "Саме кілька наступних ставок покажуть,\n"
-        "чи є у тебе система.\n\n"
-        "👇 Продовжуй, щоб побачити реальну картину"
-        if lang == "ua" else
-        f"💰 Прибыль: {profit}\n"
-        f"📈 ROI: {roi}%\n"
-        f"🎯 Winrate: {win_rate}%\n"
-        f"📊 Средний коэффициент: {avg_odds}\n\n"
-        "Пока результат около нуля.\n"
-        "Именно несколько следующих ставок покажут,\n"
-        "есть ли у тебя система.\n\n"
-        "👇 Продолжай, чтобы увидеть реальную картину"
+def _save_bet(user_id: int, bet: dict[str, Any]) -> bool:
+    result = _call_first_existing(
+        bets_db,
+        [
+            "save_bet",
+            "create_bet",
+            "insert_bet",
+            "add_bet",
+            "save_parsed_bet",
+        ],
+        user_id=user_id,
+        bet_type=bet["bet_type"],
+        bet_result=bet["bet_result"],
+        stake_amount=bet["stake_amount"],
+        odds=bet["odds"],
+        created_at=datetime.now().isoformat(),
     )
-    return header + body
+
+    if result is not None:
+        return True
+
+    # positional fallback
+    result = _call_first_existing(
+        bets_db,
+        [
+            "save_bet",
+            "create_bet",
+            "insert_bet",
+            "add_bet",
+            "save_parsed_bet",
+        ],
+        user_id,
+        bet["bet_type"],
+        bet["bet_result"],
+        bet["stake_amount"],
+        bet["odds"],
+    )
+    return result is not None
 
 
-def _build_limit_pitch(lang: str, stats: dict) -> str:
-    profit = float(stats.get("net_profit", 0) or 0)
-    roi = float(stats.get("roi", 0) or 0)
-    win_rate = float(stats.get("win_rate", 0) or 0)
-    avg_odds = float(stats.get("avg_odds", 0) or 0)
+def _period_name_today(lang: str) -> str:
+    return get_text(lang, "period_today")
 
-    if profit > 0:
+
+def _render_single_stats_block(lang: str, stats: dict[str, Any], title: str | None = None) -> str:
+    body = (
+        f"💰 {'Прибуток' if lang == 'ua' else 'Прибыль'}: {stats['net_profit']}\n"
+        f"📈 ROI: {stats['roi']}%\n"
+        f"🎯 Winrate: {stats['win_rate']}%\n"
+        f"📊 {'Середній коефіцієнт' if lang == 'ua' else 'Средний коэффициент'}: {stats['avg_odds']}"
+    )
+    if title:
+        return f"{title}\n\n{body}"
+    return body
+
+
+def _render_trial_pitch(lang: str, stats: dict[str, Any]) -> str:
+    if lang == "ru":
+        intro = "🔥 Неплохой результат." if _as_float(stats["net_profit"]) >= 0 else "⚠️ Уже видно, где ты теряешь."
         return (
-            "🚫 Ліміт досягнуто\n\n"
-            "📊 За цей час:\n"
-            f"💰 Прибуток: {profit}\n"
-            f"📈 ROI: {roi}%\n"
-            f"🎯 Winrate: {win_rate}%\n"
-            f"📊 Середній коефіцієнт: {avg_odds}\n\n"
-            "🔥 Ти вже показуєш плюс.\n\n"
-            "Але головне питання:\n\n"
-            "👉 це система чи просто коротка серія?\n\n"
-            "❗️ Саме тут більшість гравців:\n"
-            "— втрачають прибуток\n"
-            "— починають грати агресивніше\n"
-            "— зливають банк\n\n"
-            "⚡️ Повний доступ потрібен,\n"
-            "щоб зафіксувати і масштабувати результат\n\n"
-            "👇 Не зупиняйся на цьому"
-            if lang == "ua" else
-            "🚫 Лимит достигнут\n\n"
-            "📊 За это время:\n"
-            f"💰 Прибыль: {profit}\n"
-            f"📈 ROI: {roi}%\n"
-            f"🎯 Winrate: {win_rate}%\n"
-            f"📊 Средний коэффициент: {avg_odds}\n\n"
-            "🔥 Ты уже показываешь плюс.\n\n"
+            "⛔ Лимит достигнут\n\n"
+            f"{_render_single_stats_block(lang, stats, '📊 За это время:')}\n\n"
+            f"{intro}\n\n"
             "Но главный вопрос:\n\n"
             "👉 это система или просто короткая серия?\n\n"
-            "❗️ Именно здесь большинство игроков:\n"
+            "❗ Именно здесь большинство игроков:\n"
             "— теряют прибыль\n"
             "— начинают играть агрессивнее\n"
             "— сливают банк\n\n"
-            "⚡️ Полный доступ нужен,\n"
+            "⚡ Полный доступ нужен,\n"
             "чтобы зафиксировать и масштабировать результат\n\n"
             "👇 Не останавливайся на этом"
         )
 
-    if profit < 0:
-        return (
-            "🚫 Ліміт досягнуто\n\n"
-            "📊 За цей час:\n"
-            f"💰 Прибуток: {profit}\n"
-            f"📈 ROI: {roi}%\n"
-            f"🎯 Winrate: {win_rate}%\n"
-            f"📊 Середній коефіцієнт: {avg_odds}\n\n"
-            "❗️ І це тільки початок.\n\n"
-            "Без статистики ти будеш повторювати ті ж помилки.\n\n"
-            "⚡️ Повний доступ відкриє:\n"
-            "— всю статистику\n"
-            "— аналіз ставок\n"
-            "— контроль результатів\n\n"
-            "👇 Не залишай це просто так"
-            if lang == "ua" else
-            "🚫 Лимит достигнут\n\n"
-            "📊 За это время:\n"
-            f"💰 Прибыль: {profit}\n"
-            f"📈 ROI: {roi}%\n"
-            f"🎯 Winrate: {win_rate}%\n"
-            f"📊 Средний коэффициент: {avg_odds}\n\n"
-            "❗️ И это только начало.\n\n"
-            "Без статистики ты будешь повторять те же ошибки.\n\n"
-            "⚡️ Полный доступ откроет:\n"
-            "— всю статистику\n"
-            "— анализ ставок\n"
-            "— контроль результатов\n\n"
-            "👇 Не оставляй это просто так"
-        )
-
+    intro = "🔥 Непоганий результат." if _as_float(stats["net_profit"]) >= 0 else "⚠️ Уже видно, де ти втрачаєш."
     return (
-        "🚫 Ліміт досягнуто\n\n"
-        "📊 За цей час:\n"
-        f"💰 Прибуток: {profit}\n"
-        f"📈 ROI: {roi}%\n"
-        f"🎯 Winrate: {win_rate}%\n"
-        f"📊 Середній коефіцієнт: {avg_odds}\n\n"
-        "Зараз результат майже рівний.\n"
-        "Саме на дистанції стане видно,\n"
-        "чи працює твоя стратегія.\n\n"
-        "👇 Відкрий повний доступ і продовжуй аналіз"
-        if lang == "ua" else
-        "🚫 Лимит достигнут\n\n"
-        "📊 За это время:\n"
-        f"💰 Прибыль: {profit}\n"
-        f"📈 ROI: {roi}%\n"
-        f"🎯 Winrate: {win_rate}%\n"
-        f"📊 Средний коэффициент: {avg_odds}\n\n"
-        "Сейчас результат почти равный.\n"
-        "Именно на дистанции станет видно,\n"
-        "работает ли твоя стратегия.\n\n"
-        "👇 Открой полный доступ и продолжай анализ"
+        "⛔ Ліміт досягнуто\n\n"
+        f"{_render_single_stats_block(lang, stats, '📊 За цей час:')}\n\n"
+        f"{intro}\n\n"
+        "Але головне питання:\n\n"
+        "👉 це система чи просто коротка серія?\n\n"
+        "❗ Саме тут більшість гравців:\n"
+        "— втрачають прибуток\n"
+        "— починають грати агресивніше\n"
+        "— зливають банк\n\n"
+        "⚡ Повний доступ потрібен,\n"
+        "щоб зафіксувати і масштабувати результат\n\n"
+        "👇 Не зупиняйся на цьому"
     )
+
+
+async def _download_last_photo_bytes(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bytes | None:
+    if not update.message or not update.message.photo:
+        return None
+
+    photo = update.message.photo[-1]
+    tg_file = await context.bot.get_file(photo.file_id)
+    raw = await tg_file.download_as_bytearray()
+    return bytes(raw)
 
 
 async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.photo:
         return
 
-    user_id = update.effective_user.id
-    user = get_user(user_id)
-    lang = (user["lang"] if user and user["lang"] else "ua")
+    tg_user = update.effective_user
+    user_id = tg_user.id
+
+    create_user_if_not_exists(tg_user)
+    lang = _safe_lang(user_id)
 
     has_access = user_has_access(user_id)
-    in_trial = (not has_access) and is_trial_available(user_id) and get_trial_start(user_id) is not None
+    trial_open = is_trial_available(user_id)
 
-    if not has_access and not in_trial:
+    if not has_access and not trial_open:
         await update.message.reply_text(
-            "⛔ У тебе немає активного доступу.\n\nСпочатку натисни «Спробувати» або оформи підписку."
-            if lang == "ua" else
-            "⛔ У тебя нет активного доступа.\n\nСначала нажми «Попробовать» или оформи подписку.",
-            reply_markup=welcome_offer_keyboard(lang)
+            get_text(lang, "trial_limit_push").format(
+                used=get_trial_used_count(user_id),
+                limit=3,
+            ),
+            reply_markup=access_keyboard(lang),
         )
         return
 
     if has_access:
-        daily_limit = get_user_daily_limit(user_id)
-        used_today = count_user_photos_today(user_id)
+        limit = get_user_daily_limit(user_id)
+        used_before = count_user_photos_today(user_id)
+        remaining_before = get_user_remaining_photos_today(user_id)
 
-        if used_today >= daily_limit:
+        if remaining_before <= 0:
             await update.message.reply_text(
-                get_text(lang, "daily_limit_reached").format(limit=daily_limit)
+                get_text(lang, "daily_limit_reached").format(limit=limit),
+                reply_markup=access_keyboard(lang),
             )
             return
-
-    photo = update.message.photo[-1]
-    file_id = photo.file_id
-
-    if has_access:
-        log_user_photo(user_id, file_id)
     else:
-        increment_trial_usage(user_id)
+        limit = 3
+        used_before = get_trial_used_count(user_id)
+        remaining_before = get_trial_remaining(user_id)
+
+        if remaining_before <= 0:
+            start_dt = datetime.now() - timedelta(days=30)
+            stats = get_basic_stats_between(user_id, start_dt, datetime.now())
+            await update.message.reply_text(
+                _render_trial_pitch(lang, stats),
+                reply_markup=access_keyboard(lang),
+            )
+            return
 
     await update.message.reply_text(get_text(lang, "bet_analysis_started"))
 
-    tg_file = await photo.get_file()
-    image_bytes = await tg_file.download_as_bytearray()
+    photo_bytes = await _download_last_photo_bytes(update, context)
+    if not photo_bytes:
+        await update.message.reply_text(get_text(lang, "bet_parse_failed"))
+        return
 
-    result = analyze_basic_bet_screenshot(bytes(image_bytes))
+    parsed = _parse_bet(photo_bytes)
+    if not parsed:
+        await update.message.reply_text(get_text(lang, "bet_parse_failed"))
+        return
 
-    if result["ok"]:
-        create_bet(
-            user_id=user_id,
-            photo_file_id=file_id,
-            stake_amount=result["stake_amount"],
-            odds=result["odds"],
-            bet_result=result["bet_result"],
-            currency=result["currency"],
-            parse_status="parsed",
-            raw_json=result.get("raw_json"),
-            bet_type=result.get("bet_type"),
-            bet_subtype=result.get("bet_subtype"),
-            is_trial=not has_access,
-        )
+    log_user_photo(user_id, update.message.photo[-1].file_id)
 
-        if has_access:
-            remaining = get_user_remaining_photos_today(user_id)
+    if not has_access:
+        increment_trial_usage(user_id)
 
-            if result["bet_result"] == "pending":
-                await update.message.reply_text(
-                    get_text(lang, "bet_pending_saved").format(
-                        stake_amount=result["stake_amount"],
-                        odds=result["odds"],
-                        bet_type=_bet_type_label(lang, result["bet_type"]),
-                        remaining=remaining,
-                        limit=daily_limit
-                    )
-                )
-                return
+    _save_bet(user_id, parsed)
 
-            await update.message.reply_text(
-                get_text(lang, "bet_saved").format(
-                    bet_result=_result_label(lang, result["bet_result"]),
-                    stake_amount=result["stake_amount"],
-                    odds=result["odds"],
-                    bet_type=_bet_type_label(lang, result["bet_type"]),
-                    remaining=remaining,
-                    limit=daily_limit
-                )
-            )
-            return
-
-        remaining_trial = get_trial_remaining(user_id)
-        used_trial = 3 - remaining_trial
-
-        await update.message.reply_text(_trial_progress_text(lang, used_trial, remaining_trial))
-
-        if used_trial >= 2:
-            trial_start = get_trial_start(user_id)
-            start_dt = trial_start or datetime.now()
-            end_dt = datetime.now()
-
-            stats = get_basic_stats_between(user_id, start_dt, end_dt, include_trial=True)
-            trial_pitch = _build_trial_pitch(lang, stats, used_trial)
-            if trial_pitch:
-                await update.message.reply_text(trial_pitch)
-
+    if has_access:
+        remaining_after = get_user_remaining_photos_today(user_id)
+        limit_after = get_user_daily_limit(user_id)
     else:
-        create_bet(
-            user_id=user_id,
-            photo_file_id=file_id,
-            stake_amount=None,
-            odds=None,
-            bet_result=None,
-            currency="UAH",
-            parse_status="failed",
-            raw_json={"raw_text": result.get("raw_text")} if result.get("raw_text") else None,
-            extraction_error=result.get("error"),
-            is_trial=not has_access,
+        remaining_after = get_trial_remaining(user_id)
+        limit_after = 3
+
+    bet_type_key = "bet_type_total" if parsed["bet_type"] == "total" else "bet_type_result"
+    bet_result_key = {
+        "win": "bet_result_win",
+        "lose": "bet_result_lose",
+        "refund": "bet_result_refund",
+        "pending": "bet_result_pending",
+    }[parsed["bet_result"]]
+
+    result_text = get_text(lang, "bet_saved" if parsed["bet_result"] != "pending" else "bet_pending_saved").format(
+        bet_result=get_text(lang, bet_result_key),
+        bet_type=get_text(lang, bet_type_key),
+        stake_amount=parsed["stake_amount"],
+        odds=parsed["odds"],
+        remaining=remaining_after,
+        limit=limit_after,
+    )
+    await update.message.reply_text(result_text)
+
+    if has_access:
+        return
+
+    used_after = get_trial_used_count(user_id)
+    stats = get_basic_stats_between(user_id, datetime.now() - timedelta(days=30), datetime.now())
+
+    if used_after == 1:
+        await update.message.reply_text(
+            get_text(lang, "trial_after_first_push") + "\n\n" + _render_single_stats_block(lang, stats, "📊")
         )
+        return
 
-        if has_access:
-            debug_error = result.get("error", "unknown error")
-            await update.message.reply_text(
-                f"{get_text(lang, 'bet_parse_failed')}\n\nDEBUG: {debug_error}"
-            )
-            return
-
-        remaining_trial = get_trial_remaining(user_id)
-        used_trial = 3 - remaining_trial
-
-        await update.message.reply_text(_trial_fail_text(lang, used_trial, remaining_trial))
-
-        if used_trial >= 2:
-            trial_start = get_trial_start(user_id)
-            start_dt = trial_start or datetime.now()
-            end_dt = datetime.now()
-
-            stats = get_basic_stats_between(user_id, start_dt, end_dt, include_trial=True)
-            trial_pitch = _build_trial_pitch(lang, stats, used_trial)
-            if trial_pitch:
-                await update.message.reply_text(trial_pitch)
-
-    if not has_access and get_trial_remaining(user_id) == 0:
-        trial_start = get_trial_start(user_id)
-        start_dt = trial_start or datetime.now()
-        end_dt = datetime.now()
-
-        stats = get_basic_stats_between(user_id, start_dt, end_dt, include_trial=True)
-
-        stats_text = (
-            "📊 Базова статистика по тесту\n\n"
-            f"💰 Прибуток: {stats['net_profit']}\n"
-            f"📈 ROI: {stats['roi']}%\n"
-            f"🎯 Winrate: {stats['win_rate']}%\n"
-            f"📊 Середній коефіцієнт: {stats['avg_odds']}\n"
-            if lang == "ua" else
-            "📊 Базовая статистика по тесту\n\n"
-            f"💰 Прибыль: {stats['net_profit']}\n"
-            f"📈 ROI: {stats['roi']}%\n"
-            f"🎯 Winrate: {stats['win_rate']}%\n"
-            f"📊 Средний коэффициент: {stats['avg_odds']}\n"
+    if used_after == 3 or get_trial_remaining(user_id) <= 0:
+        await update.message.reply_text(
+            _render_trial_pitch(lang, stats),
+            reply_markup=access_keyboard(lang),
         )
+        return
 
-        await update.message.reply_text(stats_text)
-        await update.message.reply_text(_build_limit_pitch(lang, stats), reply_markup=access_keyboard(lang))
+    if used_after >= 2:
+        await update.message.reply_text(
+            get_text(lang, "trial_after_third_push") + "\n\n" + _render_single_stats_block(lang, stats, "📊")
+        )

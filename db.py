@@ -885,7 +885,11 @@ def delete_user_by_id(user_id: int):
     cur.execute("""
         UPDATE users
         SET is_active = 0,
-            access_until = NULL
+            access_until = NULL,
+            trial_started_at = NULL,
+            trial_used_count = 0,
+            trial_completed = 0,
+            promo_offer_used = 0
         WHERE user_id = ?
     """, (user_id,))
 
@@ -905,7 +909,11 @@ def delete_user_by_username(username: str):
     cur.execute("""
         UPDATE users
         SET is_active = 0,
-            access_until = NULL
+            access_until = NULL,
+            trial_started_at = NULL,
+            trial_used_count = 0,
+            trial_completed = 0,
+            promo_offer_used = 0
         WHERE username = ?
     """, (clean_username,))
 

@@ -25,6 +25,7 @@ def _welcome_text(lang: str, promo_available: bool) -> str:
             "• Аналитику по ставкам\n\n"
             "🔥 Уже 1200+ пользователей\n"
             "📊 Средний ROI: +11%\n\n"
+            "Инструкция @bets_academy_platform\n"            
             "👇 Попробуй сам"
         )
     else:
@@ -38,6 +39,7 @@ def _welcome_text(lang: str, promo_available: bool) -> str:
             "• Аналітику по ставках\n\n"
             "🔥 Вже 1200+ користувачів\n"
             "📊 Середній ROI: +11%\n\n"
+            "Інструкція @bets_academy_platform\n"
             "👇 Спробуй сам"
         )
 

@@ -12,44 +12,61 @@ from db import (
     has_used_promo_offer,
 )
 
-def _welcome_text(lang: str, promo_available: bool) -> str:
-    lang = lang or "ru"
+def _welcome_text(lang: str) -> str:
+    lang = (lang or "ru").lower()
 
     if lang.startswith("uk"):
         return (
-            "❗ Думаєш, що ти в плюсі?\n"
-            "У 80% це не так\n\n"
-
-            "📊 Bet Tracker покаже правду:\n"
-            "• ROI та Winrate\n"
-            "• Реальний прибуток / збиток\n"
-            "• Повна статистика ставок\n\n"
-
-            "📸 Просто скинь скрін ставки\n"
+            "🔥 Хочеш стабільно вигравати на ставках?\n\n"
+            "Більшість просто ставить навмання\n"
+            "і зливає банк\n\n"
+            "👇 У цьому боті ти отримуєш:\n\n"
+            "📊 Ставки з високою проходимістю\n"
+            "📈 Реальну статистику (ROI / Winrate)\n"
+            "🧠 Аналіз твоїх помилок\n\n"
+            "❗ Але головне:\n\n"
+            "Ти побачиш, чи ти реально в плюсі\n"
+            "чи просто думаєш, що виграєш\n\n"
+            "⚡ Просто відправ 1 скрін ставки\n"
             "і отримай аналіз за 5 секунд\n\n"
-
-            "🔥 Вже 1200+ користувачів\n"
-            "📈 Середній ROI: +11%\n\n"
-            "Інструкція @bets_academy_platform\n"
+            "🔥 + доступ до щоденних ставок\n\n"
             "👇 Спробуй безкоштовно"
         )
+
+    elif lang.startswith("ru"):
+        return (
+            "🔥 Хочешь стабильно выигрывать на ставках?\n\n"
+            "Большинство ставит наугад\n"
+            "и сливает банк\n\n"
+            "👇 В этом боте ты получаешь:\n\n"
+            "📊 Ставки с высокой проходимостью\n"
+            "📈 Реальную статистику (ROI / Winrate)\n"
+            "🧠 Анализ твоих ошибок\n\n"
+            "❗ Но главное:\n\n"
+            "Ты увидишь, реально ли ты в плюсе\n"
+            "или просто думаешь, что выигрываешь\n\n"
+            "⚡ Просто отправь 1 скрин ставки\n"
+            "и получи анализ за 5 секунд\n\n"
+            "🔥 + доступ к ежедневным ставкам\n\n"
+            "👇 Попробуй бесплатно"
+        )
+
     else:
         return (
-            "❗ Думаешь, что ты в плюсе?\n"
-            "У 80% это не так\n\n"
-
-            "📊 Bet Tracker покажет правду:\n"
-            "• ROI и Winrate\n"
-            "• Реальную прибыль / убыток\n"
-            "• Полную статистику ставок\n\n"
-
-            "📸 Просто отправь скрин ставки\n"
-            "и получи анализ за 5 секунд\n\n"
-
-            "🔥 Уже 1200+ пользователей\n"
-            "📈 Средний ROI: +11%\n\n"
-            "Инструкция @bets_academy_platform\n"
-            "👇 Попробуй бесплатно"
+            "🔥 Want to win consistently in betting?\n\n"
+            "Most people bet randomly\n"
+            "and lose their bankroll\n\n"
+            "👇 In this bot you get:\n\n"
+            "📊 High winrate bets\n"
+            "📈 Real stats (ROI / Winrate)\n"
+            "🧠 Analysis of your mistakes\n\n"
+            "❗ Most important:\n\n"
+            "You will see if you are really profitable\n"
+            "or just think you are\n\n"
+            "⚡ Send 1 bet screenshot\n"
+            "and get analysis in 5 seconds\n\n"
+            "🔥 + access to daily bets\n\n"
+            "👇 Try for free"
         )
 #def _welcome_text(lang: str, promo_available: bool) -> str:
 #    if lang == "ru":

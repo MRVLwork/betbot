@@ -43,25 +43,40 @@ def _result_label(lang: str, result: str) -> str:
 
 
 def _bet_type_label(lang: str, bet_type: str) -> str:
+    lang = _normalize_lang(lang)
+
     if bet_type == "total":
-        return get_text(lang, "bet_type_total")
+        if lang == "ua":
+            return "тотал"
+        if lang == "ru":
+            return "тотал"
+        return "total"
+
     if bet_type == "result":
-        return get_text(lang, "bet_type_result")
+        if lang == "ua":
+            return "результат"
+        if lang == "ru":
+            return "результат"
+        return "result"
+
     return bet_type
 
 
 def _trial_progress_text(lang: str, used_trial: int, remaining_trial: int) -> str:
     lang = _normalize_lang(lang)
+
     if lang == "ua":
         text = f"✅ Скрін зараховано.\nВикористано: {used_trial}/3"
         if remaining_trial > 0:
             text += f"\nЗалишилось: {remaining_trial}/3"
         return text
+
     if lang == "ru":
         text = f"✅ Скрин засчитан.\nИспользовано: {used_trial}/3"
         if remaining_trial > 0:
             text += f"\nОсталось: {remaining_trial}/3"
         return text
+
     text = f"✅ Screenshot counted.\nUsed: {used_trial}/3"
     if remaining_trial > 0:
         text += f"\nRemaining: {remaining_trial}/3"
@@ -70,17 +85,29 @@ def _trial_progress_text(lang: str, used_trial: int, remaining_trial: int) -> st
 
 def _trial_fail_text(lang: str, used_trial: int, remaining_trial: int) -> str:
     lang = _normalize_lang(lang)
+
     if lang == "ua":
-        text = f"⚠️ Цей скрін не вдалося розпізнати, але він зарахований у тест.\nВикористано: {used_trial}/3"
+        text = (
+            f"⚠️ Цей скрін не вдалося розпізнати, але він зарахований у тест.\n"
+            f"Використано: {used_trial}/3"
+        )
         if remaining_trial > 0:
             text += f"\nЗалишилось: {remaining_trial}/3"
         return text
+
     if lang == "ru":
-        text = f"⚠️ Этот скрин не удалось распознать, но он засчитан в тест.\nИспользовано: {used_trial}/3"
+        text = (
+            f"⚠️ Этот скрин не удалось распознать, но он засчитан в тест.\n"
+            f"Использовано: {used_trial}/3"
+        )
         if remaining_trial > 0:
             text += f"\nОсталось: {remaining_trial}/3"
         return text
-    text = f"⚠️ This screenshot could not be recognized, but it was counted in the trial.\nUsed: {used_trial}/3"
+
+    text = (
+        f"⚠️ This screenshot could not be recognized, but it was counted in the trial.\n"
+        f"Used: {used_trial}/3"
+    )
     if remaining_trial > 0:
         text += f"\nRemaining: {remaining_trial}/3"
     return text
@@ -103,34 +130,36 @@ def _build_trial_pitch(lang: str, stats: dict, used_trial: int) -> str | None:
                 f"💰 Profit: {profit}\n"
                 f"📈 ROI: {roi}%\n"
                 f"🎯 Winrate: {win_rate}%\n"
-                f"📊 Avg odds: {avg_odds}\n\n"
-                "🔥 Solid result.\n\n"
-                "But here is the catch:\n\n"
-                "You are in profit right now —\n"
+                f"📊 Average odds: {avg_odds}\n\n"
+                "🔥 Good result.\n\n"
+                "But here is the key point:\n\n"
+                "You are in profit now —\n"
                 "but without a system it is easy to lose it.\n\n"
                 "📊 Only distance shows\n"
-                "whether it is luck or a stable edge.\n\n"
-                "👇 Keep analyzing or lock in the result"
+                "whether this is luck or a stable edge.\n\n"
+                "👇 Continue the analysis or lock in the result"
             )
+
         if profit < 0:
             return (
                 "📊 Now the picture is clearer\n\n"
                 f"💰 Profit: {profit}\n"
                 f"📈 ROI: {roi}%\n"
                 f"🎯 Winrate: {win_rate}%\n"
-                f"📊 Avg odds: {avg_odds}\n\n"
+                f"📊 Average odds: {avg_odds}\n\n"
                 "❗ Important point:\n\n"
-                "At this stage most people realize\n"
-                "they are not earning — they are losing.\n\n"
-                "You are at the same stage right now.\n\n"
-                "👇 Keep analyzing or unlock full access"
+                "At this stage most users realize\n"
+                "that they are not earning — they are losing.\n\n"
+                "You are at the same stage now.\n\n"
+                "👇 Continue the analysis or unlock full access"
             )
+
         return (
             "📊 You already have the first picture\n\n"
             f"💰 Profit: {profit}\n"
             f"📈 ROI: {roi}%\n"
             f"🎯 Winrate: {win_rate}%\n"
-            f"📊 Avg odds: {avg_odds}\n\n"
+            f"📊 Average odds: {avg_odds}\n\n"
             "For now the result is around zero.\n"
             "The next few bets will show\n"
             "whether you really have a system.\n\n"
@@ -225,49 +254,49 @@ def _build_limit_pitch(lang: str, stats: dict) -> str:
         if profit > 0:
             return (
                 "🚫 Limit reached\n\n"
-                "📊 During this time:\n"
+                "📊 So far:\n"
                 f"💰 Profit: {profit}\n"
                 f"📈 ROI: {roi}%\n"
                 f"🎯 Winrate: {win_rate}%\n"
-                f"📊 Avg odds: {avg_odds}\n\n"
-                "🔥 You are already showing a profit.\n\n"
+                f"📊 Average odds: {avg_odds}\n\n"
+                "🔥 You are already showing profit.\n\n"
                 "But the main question is:\n\n"
-                "👉 is this a system or just a short streak?\n\n"
-                "❗ This is where most players:\n"
+                "👉 is it a system or just a short streak?\n\n"
+                "❗ This is exactly where most users:\n"
                 "— lose their profit\n"
-                "— start betting more aggressively\n"
-                "— lose the bankroll\n\n"
+                "— start playing more aggressively\n"
+                "— drain their bankroll\n\n"
                 "⚡ Full access is needed\n"
-                "to lock in and scale the result\n\n"
-                "👇 Do not stop here"
+                "to lock in and scale your result\n\n"
+                "👇 Don’t stop here"
             )
         if profit < 0:
             return (
                 "🚫 Limit reached\n\n"
-                "📊 During this time:\n"
+                "📊 So far:\n"
                 f"💰 Profit: {profit}\n"
                 f"📈 ROI: {roi}%\n"
                 f"🎯 Winrate: {win_rate}%\n"
-                f"📊 Avg odds: {avg_odds}\n\n"
+                f"📊 Average odds: {avg_odds}\n\n"
                 "❗ And this is only the beginning.\n\n"
-                "Without stats you will keep repeating the same mistakes.\n\n"
+                "Without statistics, you will keep repeating the same mistakes.\n\n"
                 "⚡ Full access unlocks:\n"
                 "— full statistics\n"
                 "— bet analysis\n"
-                "— control over results\n\n"
-                "👇 Do not leave it like this"
+                "— result control\n\n"
+                "👇 Don’t leave it like this"
             )
         return (
             "🚫 Limit reached\n\n"
-            "📊 During this time:\n"
+            "📊 So far:\n"
             f"💰 Profit: {profit}\n"
             f"📈 ROI: {roi}%\n"
             f"🎯 Winrate: {win_rate}%\n"
-            f"📊 Avg odds: {avg_odds}\n\n"
+            f"📊 Average odds: {avg_odds}\n\n"
             "Right now the result is almost flat.\n"
             "Only distance will show\n"
             "whether your strategy really works.\n\n"
-            "👇 Unlock full access and continue the analysis"
+            "👇 Unlock full access and continue"
         )
 
     if profit > 0:
@@ -375,13 +404,13 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     in_trial = (not has_access) and is_trial_available(user_id) and get_trial_start(user_id) is not None
 
     if not has_access and not in_trial:
-        if lang == "ua":
-            no_access_text = "⛔ У тебе немає активного доступу.\n\nСпочатку натисни «Спробувати» або оформи підписку."
-        elif lang == "ru":
-            no_access_text = "⛔ У тебя нет активного доступа.\n\nСначала нажми «Попробовать» или оформи подписку."
-        else:
-            no_access_text = "⛔ You do not have active access.\n\nFirst press ‘Try’ or purchase a subscription."
-
+        no_access_text = (
+            "⛔ У тебе немає активного доступу.\n\nСпочатку натисни «Спробувати» або оформи підписку."
+            if lang == "ua" else
+            "⛔ У тебя нет активного доступа.\n\nСначала нажми «Попробовать» или оформи подписку."
+            if lang == "ru" else
+            "⛔ You do not have active access.\n\nPress “Try” first or buy a subscription."
+        )
         await update.message.reply_text(no_access_text, reply_markup=welcome_offer_keyboard(lang))
         return
 
@@ -390,7 +419,9 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         used_today = count_user_photos_today(user_id)
 
         if used_today >= daily_limit:
-            await update.message.reply_text(get_text(lang, "daily_limit_reached").format(limit=daily_limit))
+            await update.message.reply_text(
+                get_text(lang, "daily_limit_reached").format(limit=daily_limit)
+            )
             return
 
     photo = update.message.photo[-1]
@@ -481,7 +512,9 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if has_access:
             debug_error = result.get("error", "unknown error")
-            await update.message.reply_text(f"{get_text(lang, 'bet_parse_failed')}\n\nDEBUG: {debug_error}")
+            await update.message.reply_text(
+                f"{get_text(lang, 'bet_parse_failed')}\n\nDEBUG: {debug_error}"
+            )
             return
 
         remaining_trial = get_trial_remaining(user_id)
@@ -506,4 +539,7 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         stats = get_basic_stats_between(user_id, start_dt, end_dt, include_trial=True)
 
-        await update.message.reply_text(_build_limit_pitch(lang, stats), reply_markup=access_keyboard(lang))
+        await update.message.reply_text(
+            _build_limit_pitch(lang, stats),
+            reply_markup=access_keyboard(lang)
+        )

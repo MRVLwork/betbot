@@ -175,33 +175,3 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
             buy_text,
             reply_markup=access_keyboard(lang)
         )
-
-#def _welcome_text(lang: str, promo_available: bool) -> str:
-#    if lang == "ru":
-#       return (
-#            "Привет 👋\n\n"
-#           "Это Bet Tracker Bot — инструмент для анализа твоих ставок 📊\n\n"
-#            "Что ты получишь:\n"
-#            "• Статистику прибыли и убытков 💰\n"
-#           "• ROI и винрейт 📈\n"
-#            "• Средний коэффициент 🎯\n"
-#            "• Аналитику по ставкам\n\n"
-#            "🔥 Уже 1200+ пользователей\n"
-#            "📊 Средний ROI: +11%\n\n"
-#            "Инструкция @bets_academy_platform\n"
-#            "👇 Попробуй сам"
-#        )
-#    else:
-#        return (
-#            "Привіт 👋\n\n"
-#            "Це Bet Tracker Bot — інструмент для аналізу твоїх ставок 📊\n\n"
-#            "Що ти отримаєш:\n"
-#            "• Статистику прибутку та збитків 💰\n"
-#            "• ROI і вінрейт 📈\n"
-#            "• Середній коефіцієнт 🎯\n"
-#            "• Аналітику по ставках\n\n"
-#            "🔥 Вже 1200+ користувачів\n"
-#            "📊 Середній ROI: +11%\n\n"
-#            "Інструкція @bets_academy_platform\n"
-#            "👇 Спробуй сам"
-#        )

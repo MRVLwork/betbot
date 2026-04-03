@@ -198,13 +198,14 @@ def create_user_if_not_exists(user):
     row = cur.fetchone()
 
     tg_lang = (user.language_code or "").lower()
-    if tg_lang.startswith("ua"):
+    if tg_lang.startswith("uk") or tg_lang.startswith("ua"):
         lang = "ua"
     elif tg_lang.startswith("ru"):
         lang = "ru"
+    elif tg_lang.startswith("en"):
+        lang = "en"
     else:
         lang = "en"
-    #lang = "ua" if tg_lang.startswith("ua") else "ru"
 
     if not row:
         cur.execute("""

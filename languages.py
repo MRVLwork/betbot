@@ -471,10 +471,255 @@ TEXTS = {
             "🔥 Выявление слабых мест\n\n"
             "👇 Выбери тариф"
         )
+    },
+
+    "en": {
+        "start": "Hello 👋\nChoose an action:",
+        "choose_lang": "Choose a language:",
+        "language_changed": "✅ Language changed",
+
+        "no_access": "⛔ You do not have active access.",
+        "activate_access_first": "⛔ Activate access first via /start",
+        "no_active_access_start": "⛔ You do not have active access. Press /start",
+
+        "choose_period": "Choose a stats period:",
+        "choose_full_stats_period": "Choose a period for full stats:",
+        "choose_analytics_period": "Choose a period for analytics:",
+        "enter_promo_hint": "Enter the promo code in one message:",
+
+        "daily_limit_reached": (
+            "⛔ Daily limit reached.\n\n"
+            "Your plan allows {limit} screenshots per day.\n"
+            "Try again tomorrow."
+        ),
+
+        "send_screen_with_limit": (
+            "📤 Send a bet screenshot\n\n"
+            "Today's limit: {limit}\n"
+            "Used: {used}\n"
+            "Remaining: {remaining}"
+        ),
+
+        "account_info": (
+            "📈 Account info\n\n"
+            "Plan: {plan}\n"
+            "Access until: {access_until}\n\n"
+            "Daily screenshot limit: {limit}\n"
+            "Used today: {used}\n"
+            "Remaining today: {remaining}"
+        ),
+
+        "stats_result": (
+            "📊 My stats ({period})\n\n"
+            "💰 Profit: {net_profit}\n"
+            "📈 ROI: {roi}%\n"
+            "🎯 Win rate: {win_rate}%\n"
+            "📊 Avg odds: {avg_odds}\n\n"
+            "🔥 Streak: {win_streak}"
+        ),
+
+        "full_stats_result": (
+            "📈 Full stats ({period})\n\n"
+            "💰 Profit: {net_profit}\n"
+            "📈 ROI: {roi}%\n"
+            "🎯 Win rate: {win_rate}%\n"
+            "📊 Avg odds: {avg_odds}\n\n"
+            "📦 Total bets: {total_bets}\n"
+            "✅ Wins: {wins}\n"
+            "❌ Losses: {losses}\n"
+            "🔁 Refunds: {refunds}\n\n"
+            "💵 Total stake: {total_stake}\n"
+            "🔥 Current win streak: {win_streak}\n"
+            "🏆 Best streak for the period: {best_win_streak}\n\n"
+            "📌 Bet types:\n"
+            "Total: {total_type_count}\n"
+            "Result: {result_type_count}\n\n"
+            "📊 By type:\n"
+            "Total → {total_type_profit}\n"
+            "Result → {result_type_profit}\n\n"
+            "📈 By odds:\n"
+            "<2 → {under_2_count} bets ({under_2_profit})\n"
+            "≥2 → {over_2_count} bets ({over_2_profit})\n\n"
+            "📉 Last 5 bets:\n"
+            "{last_results}"
+        ),
+
+        "analytics_result": (
+            "🧠 Analytics ({period})\n\n"
+            "📊 Distribution:\n"
+            "Total: {total_type_count}\n"
+            "Result: {result_type_count}\n\n"
+            "💵 Profit:\n"
+            "Total → {total_type_profit}\n"
+            "Result → {result_type_profit}\n\n"
+            "📈 By odds:\n"
+            "<2 → {under_2_count} bets ({under_2_profit})\n"
+            "≥2 → {over_2_count} bets ({over_2_profit})\n\n"
+            "🎯 Win rate:\n"
+            "{win_rate}%\n\n"
+            "🏆 Most effective:\n"
+            "{best_type}\n\n"
+            "⚠️ Weak spot:\n"
+            "{worst_type}\n\n"
+            "📌 Conclusion:\n"
+            "{conclusion}\n\n"
+            "{risk_block}\n"
+            "{dynamics_block}\n\n"
+            "🧠 Your style:\n"
+            "{profile_title}\n\n"
+            "📌 Profile:\n"
+            "{profile_desc}"
+        ),
+
+        "bet_type_total": "Total",
+        "bet_type_result": "Result",
+        "bet_type_equal": "Equal",
+        "bet_type_none": "No obvious weak spot",
+
+        "conclusion_better_total": "You steadily profit from totals.",
+        "conclusion_better_result": "Result bets work better for you.",
+        "conclusion_equal": "Your bet types are balanced.",
+
+        "conclusion_good": "You have good momentum and control.",
+        "conclusion_neutral": "The result is stable, but there is room to grow.",
+        "conclusion_bad": "Your results are dropping — review your strategy.",
+
+        "coeff_under2": "Better to focus on odds below 2.",
+        "coeff_over2": "Odds of 2 and above work better.",
+        "coeff_under_2": "Odds below 2 work better.",
+        "coeff_over_2": "Odds of 2 and above work better.",
+
+        "risk_losing_streak": "⚠️ You have a losing streak ({streak}). It is recommended to reduce your stake size.",
+        "risk_roi_drop": "⚠️ Profit in the last 3 days dropped compared with the previous 3 days.",
+        "analytics_dynamics": "📈 Dynamics:\nLast 3 days: {recent_profit}\nPrevious 3 days: {previous_profit}",
+
+        "profile_careful_title": "Careful player",
+        "profile_careful_desc": "You more often choose odds below 2. This gives steadier but slower growth.",
+        "profile_aggressive_title": "Aggressive player",
+        "profile_aggressive_desc": "You often choose odds of 2 and above. This increases risk and makes results less stable.",
+        "profile_balanced_title": "Balanced player",
+        "profile_balanced_desc": "You use different odds quite evenly. The balance is good, but it is worth checking what really brings profit.",
+        "profile_mixed_title": "Mixed style",
+        "profile_mixed_desc": "You combine different approaches and odds.",
+        "profile_system_title": "Systematic style",
+        "profile_system_desc": "You stick to a stable and disciplined approach.",
+
+        "period_today": "Today",
+        "period_yesterday": "Yesterday",
+        "period_3days": "Last 3 days",
+        "period_7days": "Last 7 days",
+        "period_30days": "Last 30 days",
+        "period_current_week": "Current week",
+        "period_current_month": "Current month",
+
+        "promo_not_found": "❌ Promo code not found, inactive, or already used.",
+        "promo_cancelled": "Promo code entry cancelled.",
+        "promo_activated": (
+            "✅ Promo code activated.\n"
+            "Plan: {plan}\n"
+            "Access opened for {days} days."
+        ),
+
+        "choose_access_option": "Choose one of the access options:",
+        "usdt_choose_plan": "Choose a plan for USDT TRC20 payment:",
+        "usdt_wallet_not_configured": "TRC20 wallet is not configured in .env",
+        "usdt_send_screenshot": "📸 Now send a payment screenshot.",
+        "usdt_choose_plan_first": "Choose a plan first.",
+        "usdt_screenshot_received": (
+            "✅ Screenshot received.\n\n"
+            "Now press the 'I paid' button."
+        ),
+        "usdt_no_pending_payment": (
+            "No active payment request found. Choose a plan first."
+        ),
+        "usdt_payment_sent": (
+            "✅ Payment verification request accepted.\n\n"
+            "After verification you will receive a promo code from the admin."
+        ),
+
+        "stars_choose_plan": "Choose a plan for Telegram Stars payment:",
+        "stars_plan_not_found": "Payment received, but the plan was not found.",
+        "stars_payment_success_7days": "✅ Payment successful. Bot is active for 7 days.",
+        "stars_payment_success": (
+            "✅ Payment successful.\n"
+            "Plan: {title}\n"
+            "Access activated for {days} days."
+        ),
+
+        "bet_analysis_started": "🤖 Analyzing your bet.",
+        "bet_saved": (
+            "✅ Bet recognized and saved\n\n"
+            "🎯 Result: {bet_result}\n"
+            "📌 Bet type: {bet_type}\n"
+            "💰 Stake amount: {stake_amount}\n"
+            "📊 Odds: {odds}\n\n"
+            "📤 You can send the next screenshot\n"
+            "Remaining today: {remaining}/{limit}"
+        ),
+        "bet_pending_saved": (
+            "🕒 Bet saved as unsettled\n\n"
+            "📌 Bet type: {bet_type}\n"
+            "💰 Stake amount: {stake_amount}\n"
+            "📊 Odds: {odds}\n\n"
+            "After settlement, send the final screenshot of this bet\n"
+            "Remaining today: {remaining}/{limit}"
+        ),
+        "bet_parse_failed": (
+            "❌ Failed to recognize the bet from the screenshot.\n"
+            "Try another screenshot or send a clearer one."
+        ),
+
+        "bet_result_win": "win",
+        "bet_result_lose": "loss",
+        "bet_result_refund": "refund",
+        "bet_result_pending": "unsettled",
+
+        "trial_intro_push": (
+            "🚀 Trial access activated!\n\n"
+            "⚠️ You have 10 analyses per day\n\n"
+            "📊 What you will see:\n"
+            "• your real ROI\n"
+            "• where you are losing money\n"
+            "• which bets work better\n\n"
+            "👇 Send your first screenshot"
+        ),
+        "trial_after_first_push": (
+            "📊 You already have your first result.\n\n"
+            "Even 1 screenshot already shows more than most players see in a week.\n\n"
+            "👉 Send a few more bets — let’s build the full picture."
+        ),
+        "trial_after_third_push": (
+            "📊 You already have the first data for conclusions.\n\n"
+            "❌ Most players do not even know their real ROI\n"
+            "✅ You already see what is usually hidden\n\n"
+            "🔥 A little more — and the full betting picture will become obvious."
+        ),
+        "trial_limit_push": (
+            "❌ Limit reached ({used}/{limit})\n\n"
+            "📊 You have already seen the basic value of the bot.\n"
+            "Imagine what happens if you track this every day.\n\n"
+            "🔥 Unlock full access and scale your result."
+        ),
+        "buy_access_push": (
+            "🚀 Full access gives you:\n\n"
+            "📊 Full statistics\n"
+            "🧠 Deep analytics\n"
+            "📈 ROI and profit control\n"
+            "🔥 Identification of weak spots\n\n"
+            "👇 Choose a plan"
+        )
     }
 }
 
 
 def get_text(lang: str, key: str) -> str:
-    safe_lang = "ru" if lang == "ru" else "ua"
-    return TEXTS.get(safe_lang, TEXTS["ua"]).get(key, TEXTS["ua"].get(key, key))
+    safe_lang = (lang or "en").lower()
+
+    if safe_lang.startswith("uk") or safe_lang.startswith("ua"):
+        code = "ua"
+    elif safe_lang.startswith("ru"):
+        code = "ru"
+    else:
+        code = "en"
+
+    return TEXTS.get(code, TEXTS["en"]).get(key, TEXTS["en"].get(key, key))

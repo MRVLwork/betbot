@@ -7,6 +7,11 @@ def welcome_offer_keyboard(lang: str):
             InlineKeyboardButton("🧪 Попробовать", callback_data="try_trial"),
             InlineKeyboardButton("💳 Оплатить сразу", callback_data="pay_now"),
         ]]
+    elif lang == "en":
+        keyboard = [[
+            InlineKeyboardButton("🧪 Try", callback_data="try_trial"),
+            InlineKeyboardButton("💳 Pay now", callback_data="pay_now"),
+        ]]
     else:
         keyboard = [[
             InlineKeyboardButton("🧪 Спробувати", callback_data="try_trial"),
@@ -25,6 +30,16 @@ def main_menu_keyboard(lang: str):
             ["🛠 Все инструменты"],
             ["💳 Купить доступ"],
             ["🌐 Язык"],
+        ]
+    elif lang == "en":
+        keyboard = [
+            ["📤 Send result"],
+            ["📊 My stats"],
+            ["📈 Full stats"],
+            ["🧠 Analytics"],
+            ["🛠 All tools"],
+            ["💳 Buy access"],
+            ["🌐 Language"],
         ]
     else:
         keyboard = [
@@ -46,6 +61,12 @@ def access_keyboard(lang: str):
             [InlineKeyboardButton("⭐ Купить через Stars", callback_data="buy_stars")],
             [InlineKeyboardButton("💸 Оплатить USDT", callback_data="buy_usdt")],
         ]
+    elif lang == "en":
+        keyboard = [
+            [InlineKeyboardButton("🔑 Enter promo code", callback_data="enter_promo")],
+            [InlineKeyboardButton("⭐ Buy via Stars", callback_data="buy_stars")],
+            [InlineKeyboardButton("💸 Pay via USDT", callback_data="buy_usdt")],
+        ]
     else:
         keyboard = [
             [InlineKeyboardButton("🔑 Ввести промокод", callback_data="enter_promo")],
@@ -63,6 +84,12 @@ def stars_plans_keyboard(lang: str, promo_available: bool = True):
                 [InlineKeyboardButton("399 ⭐ — Basic 1 месяц", callback_data="stars_basic_month")],
                 [InlineKeyboardButton("🔥 VIP 1 месяц: 1500 → 999 ⭐", callback_data="stars_vip_month_promo")],
             ]
+        elif lang == "en":
+            keyboard = [
+                [InlineKeyboardButton("99 ⭐ — Basic 7 days", callback_data="stars_basic_week")],
+                [InlineKeyboardButton("399 ⭐ — Basic 1 month", callback_data="stars_basic_month")],
+                [InlineKeyboardButton("🔥 VIP 1 month: 1500 → 999 ⭐", callback_data="stars_vip_month_promo")],
+            ]
         else:
             keyboard = [
                 [InlineKeyboardButton("99 ⭐ — Basic 7 днів", callback_data="stars_basic_week")],
@@ -75,6 +102,12 @@ def stars_plans_keyboard(lang: str, promo_available: bool = True):
                 [InlineKeyboardButton("99 ⭐ — Basic 7 дней", callback_data="stars_basic_week")],
                 [InlineKeyboardButton("399 ⭐ — Basic 1 месяц", callback_data="stars_basic_month")],
                 [InlineKeyboardButton("VIP 1 месяц — 1500 ⭐", callback_data="stars_vip_month_full")],
+            ]
+        elif lang == "en":
+            keyboard = [
+                [InlineKeyboardButton("99 ⭐ — Basic 7 days", callback_data="stars_basic_week")],
+                [InlineKeyboardButton("399 ⭐ — Basic 1 month", callback_data="stars_basic_month")],
+                [InlineKeyboardButton("VIP 1 month — 1500 ⭐", callback_data="stars_vip_month_full")],
             ]
         else:
             keyboard = [
@@ -92,6 +125,11 @@ def usdt_plans_keyboard(lang: str, promo_available: bool = True):
                 [InlineKeyboardButton("Basic 1 месяц — 4$", callback_data="usdt_basic_month")],
                 [InlineKeyboardButton("🔥 VIP 1 месяц: 15$ → 9.99$", callback_data="usdt_vip_month_promo")],
             ]
+        elif lang == "en":
+            keyboard = [
+                [InlineKeyboardButton("Basic 1 month — 4$", callback_data="usdt_basic_month")],
+                [InlineKeyboardButton("🔥 VIP 1 month: 15$ → 9.99$", callback_data="usdt_vip_month_promo")],
+            ]
         else:
             keyboard = [
                 [InlineKeyboardButton("Basic 1 місяць — 4$", callback_data="usdt_basic_month")],
@@ -103,6 +141,11 @@ def usdt_plans_keyboard(lang: str, promo_available: bool = True):
                 [InlineKeyboardButton("Basic 1 месяц — 4$", callback_data="usdt_basic_month")],
                 [InlineKeyboardButton("VIP 1 месяц — 15$", callback_data="usdt_vip_month_full")],
             ]
+        elif lang == "en":
+            keyboard = [
+                [InlineKeyboardButton("Basic 1 month — 4$", callback_data="usdt_basic_month")],
+                [InlineKeyboardButton("VIP 1 month — 15$", callback_data="usdt_vip_month_full")],
+            ]
         else:
             keyboard = [
                 [InlineKeyboardButton("Basic 1 місяць — 4$", callback_data="usdt_basic_month")],
@@ -112,8 +155,16 @@ def usdt_plans_keyboard(lang: str, promo_available: bool = True):
 
 
 def payment_check_keyboard(lang: str):
-    confirm_text = "✅ Я оплатив" if lang == "ua" else "✅ Я оплатил"
-    cancel_text = "❌ Скасувати" if lang == "ua" else "❌ Отменить"
+    if lang == "ru":
+        confirm_text = "✅ Я оплатил"
+        cancel_text = "❌ Отменить"
+    elif lang == "en":
+        confirm_text = "✅ I paid"
+        cancel_text = "❌ Cancel"
+    else:
+        confirm_text = "✅ Я оплатив"
+        cancel_text = "❌ Скасувати"
+
     return InlineKeyboardMarkup([
         [InlineKeyboardButton(confirm_text, callback_data="payment_sent")],
         [InlineKeyboardButton(cancel_text, callback_data="cancel_payment")],
@@ -132,6 +183,19 @@ def stats_periods_keyboard(is_vip: bool, lang: str, prefix: str = "stats"):
         if is_vip:
             keyboard.append([InlineKeyboardButton("Текущая неделя", callback_data=f"{prefix}_current_week")])
             keyboard.append([InlineKeyboardButton("Текущий месяц", callback_data=f"{prefix}_current_month")])
+
+    elif lang == "en":
+        keyboard = [
+            [InlineKeyboardButton("Today", callback_data=f"{prefix}_today")],
+            [InlineKeyboardButton("Yesterday", callback_data=f"{prefix}_yesterday")],
+            [InlineKeyboardButton("3 days", callback_data=f"{prefix}_3days")],
+            [InlineKeyboardButton("7 days", callback_data=f"{prefix}_7days")],
+            [InlineKeyboardButton("30 days", callback_data=f"{prefix}_30days")],
+        ]
+        if is_vip:
+            keyboard.append([InlineKeyboardButton("Current week", callback_data=f"{prefix}_current_week")])
+            keyboard.append([InlineKeyboardButton("Current month", callback_data=f"{prefix}_current_month")])
+
     else:
         keyboard = [
             [InlineKeyboardButton("Сьогодні", callback_data=f"{prefix}_today")],
@@ -143,6 +207,7 @@ def stats_periods_keyboard(is_vip: bool, lang: str, prefix: str = "stats"):
         if is_vip:
             keyboard.append([InlineKeyboardButton("Поточний тиждень", callback_data=f"{prefix}_current_week")])
             keyboard.append([InlineKeyboardButton("Поточний місяць", callback_data=f"{prefix}_current_month")])
+
     return InlineKeyboardMarkup(keyboard)
 
 
@@ -150,4 +215,5 @@ def language_keyboard():
     return InlineKeyboardMarkup([[
         InlineKeyboardButton("🇺🇦 Українська", callback_data="lang_ua"),
         InlineKeyboardButton("🇷🇺 Русский", callback_data="lang_ru"),
+        InlineKeyboardButton("🇬🇧 English", callback_data="lang_en"),
     ]])

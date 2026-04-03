@@ -236,11 +236,12 @@ def create_user_if_not_exists(user):
     else:
         cur.execute("""
             UPDATE users
-            SET username = ?, first_name = ?
+            SET username = ?, first_name = ?, lang = ?
             WHERE user_id = ?
         """, (
             user.username,
             user.first_name,
+            lang,
             user.id,
         ))
 

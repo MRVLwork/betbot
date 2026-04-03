@@ -12,7 +12,8 @@ from db import (
     has_used_promo_offer,
 )
 
-def _welcome_text(lang: str) -> str:
+
+def _welcome_text(lang: str, promo_available: bool) -> str:
     lang = (lang or "ru").lower()
 
     if lang.startswith("uk"):
@@ -53,21 +54,128 @@ def _welcome_text(lang: str) -> str:
 
     else:
         return (
-            "🔥 Want to win consistently in betting?\n\n"
+            "🔥 Want to win consistently on sports bets?\n\n"
             "Most people bet randomly\n"
             "and lose their bankroll\n\n"
-            "👇 In this bot you get:\n\n"
-            "📊 High winrate bets\n"
+            "👇 Inside this bot you get:\n\n"
+            "📊 High-probability bets\n"
             "📈 Real stats (ROI / Winrate)\n"
             "🧠 Analysis of your mistakes\n\n"
-            "❗ Most important:\n\n"
-            "You will see if you are really profitable\n"
+            "❗ But most importantly:\n\n"
+            "You will see whether you are actually profitable\n"
             "or just think you are\n\n"
-            "⚡ Send 1 bet screenshot\n"
+            "⚡ Just send 1 bet screenshot\n"
             "and get analysis in 5 seconds\n\n"
             "🔥 + access to daily bets\n\n"
-            "👇 Try for free"
+            "👇 Try it for free"
         )
+
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    create_user_if_not_exists(user)
+
+    db_user = get_user(user.id)
+    lang = (db_user or {}).get("lang", "ua")
+
+    if user_has_access(user.id):
+        await update.message.reply_text(
+            "✔ Доступ активний." if lang == "ua" else
+            "✔ Access is active." if not lang.startswith("ru") and not lang.startswith("uk") else
+            "✔ Доступ активен.",
+            reply_markup=main_menu_keyboard(lang)
+        )
+        return
+
+    promo_available = not has_used_promo_offer(user.id)
+
+    await update.message.reply_text(
+        _welcome_text(lang, promo_available),
+        reply_markup=welcome_offer_keyboard(lang)
+    )
+
+
+async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    tg_user = update.effective_user
+    create_user_if_not_exists(tg_user)
+
+    user = get_user(tg_user.id)
+    lang = (user or {}).get("lang", "ua")
+    lang_low = (lang or "ua").lower()
+
+    if user_has_access(tg_user.id):
+        await query.message.reply_text(
+            "✔ Доступ активний." if lang_low.startswith("uk") else
+            "✔ Access is active." if not lang_low.startswith("ru") else
+            "✔ Доступ активен.",
+            reply_markup=main_menu_keyboard(lang)
+        )
+        return
+
+    if query.data == "try_trial":
+        if is_trial_available(tg_user.id):
+            start_trial_mode(tg_user.id)
+
+            trial_text = (
+                "🚀 Пробний доступ активовано!\n\n"
+                "⚠️ У тебе є 10 аналізів на день\n\n"
+                "👇 Надішли перший скрін"
+                if lang_low.startswith("uk") else
+                "🚀 Trial access activated!\n\n"
+                "⚠️ You have 10 analyses per day\n\n"
+                "👇 Send your first screenshot"
+                if not lang_low.startswith("ru") else
+                "🚀 Пробный доступ активирован!\n\n"
+                "⚠️ У тебя есть 10 анализов в день\n\n"
+                "👇 Отправь первый скрин"
+            )
+
+            await query.message.reply_text(
+                trial_text,
+                reply_markup=main_menu_keyboard(lang)
+            )
+        else:
+            remaining = get_trial_remaining(tg_user.id)
+
+            limit_text = (
+                f"❌ Пробний доступ вже використано. Залишилось: {remaining}"
+                if lang_low.startswith("uk") else
+                f"❌ Trial access has already been used. Remaining: {remaining}"
+                if not lang_low.startswith("ru") else
+                f"❌ Пробный доступ уже использован. Осталось: {remaining}"
+            )
+
+            await query.message.reply_text(limit_text)
+
+    elif query.data == "pay_now":
+        buy_text = (
+            "🚀 Повний доступ дає:\n\n"
+            "📊 Повну статистику\n"
+            "🧠 Аналітику\n"
+            "📈 Контроль ROI\n\n"
+            "👇 Обери тариф"
+            if lang_low.startswith("uk") else
+            "🚀 Full access gives you:\n\n"
+            "📊 Full statistics\n"
+            "🧠 Analytics\n"
+            "📈 ROI control\n\n"
+            "👇 Choose a plan"
+            if not lang_low.startswith("ru") else
+            "🚀 Полный доступ даёт:\n\n"
+            "📊 Полную статистику\n"
+            "🧠 Аналитику\n"
+            "📈 Контроль ROI\n\n"
+            "👇 Выбери тариф"
+        )
+
+        await query.message.reply_text(
+            buy_text,
+            reply_markup=access_keyboard(lang)
+        )
+
 #def _welcome_text(lang: str, promo_available: bool) -> str:
 #    if lang == "ru":
 #       return (
@@ -97,82 +205,3 @@ def _welcome_text(lang: str) -> str:
 #            "Інструкція @bets_academy_platform\n"
 #            "👇 Спробуй сам"
 #        )
-
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    create_user_if_not_exists(user)
-
-    db_user = get_user(user.id)
-    lang = (db_user or {}).get("lang", "ua")
-
-    if user_has_access(user.id):
-        await update.message.reply_text(
-            "✔ Доступ активний." if lang == "ua" else "✔ Доступ активен.",
-            reply_markup=main_menu_keyboard(lang)
-        )
-        return
-
-    promo_available = not has_used_promo_offer(user.id)
-
-    await update.message.reply_text(
-        _welcome_text(lang, promo_available),
-        reply_markup=welcome_offer_keyboard(lang)
-    )
-
-
-async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-
-    tg_user = update.effective_user
-    create_user_if_not_exists(tg_user)
-
-    user = get_user(tg_user.id)
-    lang = (user or {}).get("lang", "ua")
-
-    if user_has_access(tg_user.id):
-        await query.message.reply_text(
-            "✔ Доступ активний." if lang == "ua" else "✔ Доступ активен.",
-            reply_markup=main_menu_keyboard(lang)
-        )
-        return
-
-    if query.data == "try_trial":
-        if is_trial_available(tg_user.id):
-            start_trial_mode(tg_user.id)
-
-            await query.message.reply_text(
-                "🚀 Пробний доступ активовано!\n\n"
-                "⚠️ У тебе є 10 аналізів на день\n\n"
-                "👇 Надішли перший скрін"
-                if lang == "ua"
-                else "🚀 Пробный доступ активирован!\n\n"
-                     "⚠️ У тебя есть 10 анализов в день\n\n"
-                     "👇 Отправь первый скрин",
-                reply_markup=main_menu_keyboard(lang)
-            )
-        else:
-            remaining = get_trial_remaining(tg_user.id)
-
-            await query.message.reply_text(
-                f"❌ Пробний доступ вже використано. Залишилось: {remaining}"
-                if lang == "ua"
-                else f"❌ Пробный доступ уже использован. Осталось: {remaining}"
-            )
-
-    elif query.data == "pay_now":
-        await query.message.reply_text(
-            "🚀 Повний доступ дає:\n\n"
-            "📊 Повну статистику\n"
-            "🧠 Аналітику\n"
-            "📈 Контроль ROI\n\n"
-            "👇 Обери тариф"
-            if lang == "ua"
-            else "🚀 Полный доступ даёт:\n\n"
-                 "📊 Полную статистику\n"
-                 "🧠 Аналитику\n"
-                 "📈 Контроль ROI\n\n"
-                 "👇 Выбери тариф",
-            reply_markup=access_keyboard(lang)
-        )

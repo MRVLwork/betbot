@@ -62,8 +62,8 @@ from states import WAITING_PROMO, WAITING_PAYMENT_SCREEN
 def get_user_lang(user_id: int) -> str:
     user = get_user(user_id)
     if not user:
-        return "ua"
-    return user["lang"] or "ua"
+        return "en"
+    return (user.get("lang") or "en").lower()
 
 
 def resolve_stats_period(query_data: str, lang: str):
@@ -241,7 +241,15 @@ async def language_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     user_id = update.effective_user.id
-    lang = "ru" if query.data == "lang_ru" else "ua"
+
+    if query.data == "lang_ua":
+        lang = "ua"
+    elif query.data == "lang_ru":
+        lang = "ru"
+    elif query.data == "lang_en":
+        lang = "en"
+    else:
+        lang = "en"
 
     set_user_language(user_id, lang)
 
@@ -259,7 +267,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(user_id)
     text = update.message.text
 
-    if text in ("📤 Надіслати результат", "📤 Отправить результат"):
+    if text in ("📤 Надіслати результат", "📤 Отправить результат", "📤 Send result"):
         if not user_has_access(user_id):
             await update.message.reply_text(get_text(lang, "activate_access_first"))
             return ConversationHandler.END
@@ -276,7 +284,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         )
 
-    elif text == "📊 Моя статистика":
+    elif text in ("📊 Моя статистика", "📊 My stats"):
         if not user_has_access(user_id):
             await update.message.reply_text(get_text(lang, "no_active_access_start"))
             return ConversationHandler.END
@@ -289,7 +297,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=stats_periods_keyboard(is_vip, lang, prefix="stats")
         )
 
-    elif text in ("📈 Повна статистика", "📈 Полная статистика"):
+    elif text in ("📈 Повна статистика", "📈 Полная статистика", "📈 Full stats"):
         if not user_has_access(user_id):
             await update.message.reply_text(get_text(lang, "no_active_access_start"))
             return ConversationHandler.END
@@ -302,7 +310,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=stats_periods_keyboard(is_vip, lang, prefix="fullstats")
         )
 
-    elif text in ("🧠 Аналітика", "🧠 Аналитика"):
+    elif text in ("🧠 Аналітика", "🧠 Аналитика", "🧠 Analytics"):
         if not user_has_access(user_id):
             await update.message.reply_text(get_text(lang, "no_active_access_start"))
             return ConversationHandler.END
@@ -315,24 +323,29 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=stats_periods_keyboard(is_vip, lang, prefix="analytics")
         )
 
-    elif text in ("🛠 Усі інструменти", "🛠 Все инструменты"):
-        await update.message.reply_text(
-            "Інструменти скоро будуть доступні." if lang == "ua" else "Инструменты скоро будут доступны."
-        )
+    elif text in ("🛠 Усі інструменти", "🛠 Все инструменты", "🛠 All tools"):
+        if lang == "ru":
+            tools_text = "Инструменты скоро будут доступны."
+        elif lang == "en":
+            tools_text = "Tools will be available soon."
+        else:
+            tools_text = "Інструменти скоро будуть доступні."
 
-    elif text in ("💳 Купити доступ", "💳 Купить доступ"):
+        await update.message.reply_text(tools_text)
+
+    elif text in ("💳 Купити доступ", "💳 Купить доступ", "💳 Buy access"):
         await update.message.reply_text(
             get_text(lang, "choose_access_option"),
             reply_markup=access_keyboard(lang)
         )
 
-    elif text in ("🌐 Мова", "🌐 Язык"):
+    elif text in ("🌐 Мова", "🌐 Язык", "🌐 Language"):
         await update.message.reply_text(
             get_text(lang, "choose_lang"),
             reply_markup=language_keyboard()
         )
 
-    elif text == "🔑 Ввести промокод":
+    elif text in ("🔑 Ввести промокод", "🔑 Enter promo code"):
         await update.message.reply_text(get_text(lang, "enter_promo_hint"))
         return WAITING_PROMO
 

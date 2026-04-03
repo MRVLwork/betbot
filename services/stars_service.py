@@ -2,6 +2,7 @@ STARS_PLANS = {
     "stars_basic_week": {
         "title_ua": "Basic 7 днів",
         "title_ru": "Basic 7 дней",
+        "title_en": "Basic 7 days",
         "plan_type": "basic",
         "duration_days": 7,
         "amount_xtr": 99,
@@ -11,6 +12,7 @@ STARS_PLANS = {
     "stars_basic_month": {
         "title_ua": "Basic 1 місяць",
         "title_ru": "Basic 1 месяц",
+        "title_en": "Basic 1 month",
         "plan_type": "basic",
         "duration_days": 30,
         "amount_xtr": 399,
@@ -20,6 +22,7 @@ STARS_PLANS = {
     "stars_vip_month_promo": {
         "title_ua": "VIP 1 місяць",
         "title_ru": "VIP 1 месяц",
+        "title_en": "VIP 1 month",
         "plan_type": "vip",
         "duration_days": 30,
         "amount_xtr": 999,
@@ -29,6 +32,7 @@ STARS_PLANS = {
     "stars_vip_month_full": {
         "title_ua": "VIP 1 місяць",
         "title_ru": "VIP 1 месяц",
+        "title_en": "VIP 1 month",
         "plan_type": "vip",
         "duration_days": 30,
         "amount_xtr": 1500,

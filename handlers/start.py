@@ -176,18 +176,26 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
             trial_text = {
                 "ua": (
                     "🚀 Пробний доступ активовано!\n\n"
-                    "⚠️ У тебе є 10 аналізів на день\n\n"
-                    "👇 Надішли перший скрін"
+                    "⚠️ У тебе є можливість перевірити частину функціоналу \n"
+                    "як бот вестиме твою статистику, надіславши 3 скріна вже зіграних ставок або\n"
+                    " дізнайся більше про платформу за info посиланням\n\n"
+                    "👇 Надішли перший скрін або @bet_tracker_info_ua"
                 ),
                 "ru": (
                     "🚀 Пробный доступ активирован!\n\n"
-                    "⚠️ У тебя есть 10 анализов в день\n\n"
-                    "👇 Отправь первый скрин"
+                    "⚠️ У тебя есть возможность протестировать часть функционала\n"
+                    "и посмотреть, как бот ведёт твою статистику, отправив 3 скрина\n"
+                    "уже сыгранных ставок или\n"
+                    "узнать больше о платформе по info ссылке\n\n"
+                    "👇 Отправь первый скрин или @bet_tracker_info_ua"
                 ),
                 "en": (
                     "🚀 Trial access activated!\n\n"
-                    "⚠️ You have 10 analyses per day\n\n"
-                    "👇 Send your first screenshot"
+                    "⚠️ You can test part of the functionality\n"
+                    "and see how the bot tracks your stats by sending 3 screenshots\n"
+                    "of your completed bets or\n"
+                    "learn more about the platform via the info link\n\n"
+                    "👇 Send your first screenshot or @bet_tracker_info_ua"
                 ),
             }[lang]
 

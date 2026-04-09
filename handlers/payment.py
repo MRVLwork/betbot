@@ -334,5 +334,5 @@ async def admin_payment_reply_handler(update: Update, context: ContextTypes.DEFA
 
     mark_payment_promo_sent(payment_id, update.message.text)
 
-    if payment.get("plan_key") in ("usdt_basic_month", "usdt_vip_month_promo"):
+    if payment.get("plan_key") == "usdt_vip_month_promo":
         mark_promo_offer_used(payment["user_id"])

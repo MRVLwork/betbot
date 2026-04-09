@@ -148,7 +148,7 @@ async def successful_payment_handler(update: Update, context: ContextTypes.DEFAU
         source=f"stars:{plan_key}",
     )
 
-    if plan.get("is_promo"):
+    if plan_key == "stars_vip_month_promo":
         mark_promo_offer_used(user_id)
 
     user = get_user(user_id)

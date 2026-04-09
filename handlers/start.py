@@ -178,18 +178,20 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
                     "🚀 Пробний доступ активовано!\n\n"
                     "⚠️ У тебе є можливість перевірити\n"
                     "частину функціоналу, як бот вестиме\n"
-                    " твою статистику, надіславши 3 скріна\n"
-                    " вже зіграних ставок або дізнайся більше про\n"
-                    " платформу за info посиланням\n\n"
+                    "твою статистику, надіславши 3 скріна\n"
+                    "вже зіграних ставок або дізнайся \n"
+                    "більше про платформу посиланням\n\n"
                     "👇 Надішли перший скрін або @bet_tracker_info_ua"
                 ),
                 "ru": (
                     "🚀 Пробный доступ активирован!\n\n"
-                    "⚠️ У тебя есть возможность протестировать часть функционала\n"
-                    "и посмотреть, как бот ведёт твою статистику, отправив 3 скрина\n"
+                    "⚠️ У тебя есть возможность\n"
+                    "протестировать часть функционала\n"
+                    "и посмотреть, как бот ведёт твою \n"
+                    "статистику, отправив 3 скрина\n"
                     "уже сыгранных ставок или\n"
                     "узнать больше о платформе по info ссылке\n\n"
-                    "👇 Отправь первый скрин или @bet_tracker_info_ua"
+                    "👇 Отправь первый скрин или @bet_tracker_info_ru"
                 ),
                 "en": (
                     "🚀 Trial access activated!\n\n"
@@ -197,7 +199,7 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
                     "and see how the bot tracks your stats by sending 3 screenshots\n"
                     "of your completed bets or\n"
                     "learn more about the platform via the info link\n\n"
-                    "👇 Send your first screenshot or @bet_tracker_info_ua"
+                    "👇 Send your first screenshot or @bet_tracker_info"
                 ),
             }[lang]
 

@@ -191,7 +191,7 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
                     "статистику, отправив 3 скрина\n"
                     "уже сыгранных ставок или\n"
                     "узнать больше о платформе по info ссылке\n\n"
-                    "👇 Отправь первый скрин или @bet_tracker_info_ru"
+                    "👇 Отправь первый скрин или @bet_tracker_info_r"
                 ),
                 "en": (
                     "🚀 Trial access activated!\n\n"

@@ -375,7 +375,7 @@ def main():
     app.add_handler(CommandHandler("stars", stars_revenue))
     app.add_handler(CommandHandler("sendbasicday", send_basic_bet_day))
     app.add_handler(CommandHandler("sendvipday", send_vip_bet_day))
-    app.add_handler(CommandHandler("sendsenddaybet", senddaybet))
+    app.add_handler(CommandHandler("senddaybet", senddaybet))
     app.add_handler(CommandHandler("sendposthelp", sendposthelp))
     app.add_handler(CommandHandler("sendpost", sendpost))
 

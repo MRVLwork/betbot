@@ -324,3 +324,47 @@ async def admin_broadcast_photo_handler(update: Update, context: ContextTypes.DE
         f"Відправлено: {sent}\n"
         f"Помилки: {failed}"
     )
+
+
+from services.tools_service import send_day_bet
+
+async def senddaybet(update, context):
+    if not is_admin(update.effective_user.id):
+        return
+
+    raw = update.message.text or ""
+    text = raw.replace("/senddaybet", "").strip()
+
+    lang = "alllangs"
+    audience = "basic"
+
+    if "/ua" in text:
+        lang = "ua"
+    elif "/ru" in text:
+        lang = "ru"
+    elif "/en" in text:
+        lang = "en"
+
+    if "/vip" in text:
+        audience = "vip"
+    elif "/basic" in text:
+        audience = "basic"
+
+    for tag in ["/ua","/ru","/en","/alllangs","/basic","/vip"]:
+        text = text.replace(tag, "")
+
+    text = text.strip()
+
+    if not text:
+        await update.message.reply_text("❌ Немає тексту")
+        return
+
+    sent, errors = await send_day_bet(context.bot, text, lang, audience)
+
+    await update.message.reply_text(
+        f"✅ Ставка дня відправлена\n\n"
+        f"Мова: {lang}\n"
+        f"Аудиторія: {audience}\n"
+        f"Відправлено: {sent}\n"
+        f"Помилки: {errors}"
+    )

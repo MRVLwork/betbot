@@ -1,4 +1,30 @@
 from keyboards import tools_keyboard
+from db import get_basic_bet_day_subscribers, get_vip_bet_day_subscribers
+
+async def send_day_bet(bot, text, lang, audience):
+    if audience == "basic":
+        users = get_basic_bet_day_subscribers()
+    elif audience == "vip":
+        users = get_vip_bet_day_subscribers()
+    else:
+        return 0, 0
+
+    sent = 0
+    errors = 0
+
+    for user in users:
+        user_lang = user.get("lang", "en")
+
+        if lang != "alllangs" and user_lang != lang:
+            continue
+
+        try:
+            await bot.send_message(user["user_id"], text)
+            sent += 1
+        except:
+            errors += 1
+
+    return sent, errors
 
 
 def get_tools_menu(lang: str, user_has_any_access: bool):

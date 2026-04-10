@@ -56,6 +56,7 @@ from handlers.admin import (
     stars_revenue,
     send_basic_bet_day,
     send_vip_bet_day,
+    senddaybet,
     sendposthelp,
     sendpost,
     admin_broadcast_photo_handler,
@@ -373,7 +374,8 @@ def main():
     app.add_handler(CommandHandler("deluser", delete_user))
     app.add_handler(CommandHandler("stars", stars_revenue))
     app.add_handler(CommandHandler("sendbasicday", send_basic_bet_day))
-    app.add_handler(CommandHandler("sendvipday", send_vip_bet_day))
+    app.add_handler(CommandHandler("sendvipday", send_vip_bet_day,
+    senddaybet))
     app.add_handler(CommandHandler("sendposthelp", sendposthelp))
     app.add_handler(CommandHandler("sendpost", sendpost))
 
@@ -406,7 +408,6 @@ def main():
     app.add_handler(CallbackQueryHandler(tools_callback_handler, pattern="^(tool_|betday_|tools_back|usdt_vip_bet_day_month|stars_vip_bet_day_month)"))
 
     app.add_handler(MessageHandler(filters.REPLY & filters.TEXT & ~filters.COMMAND, admin_payment_reply_handler))
-    app.add_handler(MessageHandler(filters.User(user_id=ADMIN_ID) & filters.PHOTO & filters.CAPTION, admin_broadcast_photo_handler))
     app.add_handler(MessageHandler(filters.PHOTO, process_bet_photo))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, menu_handler))
 

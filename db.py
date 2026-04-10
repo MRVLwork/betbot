@@ -644,20 +644,69 @@ def get_all_promos():
     return rows
 
 
+def _resolve_user_sub_type(row: dict) -> str:
+    plan = (row.get("plan") or "").lower()
+    has_active_access = _row_has_active_access(row)
+    stars_spent = int(row.get("stars_spent") or 0)
+    usdt_spent = float(row.get("usdt_spent") or 0)
+    had_any_paid_access = bool(
+        stars_spent > 0
+        or usdt_spent > 0
+        or row.get("activated_by")
+        or row.get("activated_at")
+        or row.get("access_until")
+    )
+
+    if has_active_access and plan == "vip":
+        return "vip"
+    if has_active_access and plan == "basic":
+        return "basic"
+    if had_any_paid_access:
+        return "endsub"
+    return "trial"
+
+
 def get_all_users(limit: int = 100):
     conn = get_conn()
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT user_id, username, first_name, is_active, access_until, activated_by, plan
-        FROM users
-        ORDER BY created_at DESC
+        SELECT
+            u.user_id,
+            u.username,
+            u.first_name,
+            u.is_active,
+            u.access_until,
+            u.activated_by,
+            u.activated_at,
+            u.plan,
+            u.lang,
+            COALESCE((
+                SELECT SUM(sp.amount_xtr)
+                FROM star_payments sp
+                WHERE sp.user_id = u.user_id
+                  AND COALESCE(sp.status, 'paid') = 'paid'
+            ), 0) AS stars_spent,
+            COALESCE((
+                SELECT SUM(p.amount_usd)
+                FROM payments p
+                WHERE p.user_id = u.user_id
+                  AND p.status = 'promo_sent'
+            ), 0) AS usdt_spent
+        FROM users u
+        ORDER BY u.created_at DESC
         LIMIT ?
     """, (limit,))
     rows = cur.fetchall()
-
     conn.close()
-    return rows
+
+    prepared = []
+    for row in rows:
+        row["lang"] = _normalize_lang_code(row.get("lang"))
+        row["sub_type"] = _resolve_user_sub_type(row)
+        prepared.append(row)
+
+    return prepared
 
 
 def get_users_by_promo(code: str):

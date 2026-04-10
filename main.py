@@ -406,7 +406,7 @@ def main():
     app.add_handler(CallbackQueryHandler(tools_callback_handler, pattern="^(tool_|betday_|tools_back|usdt_vip_bet_day_month|stars_vip_bet_day_month)"))
 
     app.add_handler(MessageHandler(filters.REPLY & filters.TEXT & ~filters.COMMAND, admin_payment_reply_handler))
-    app.add_handler(MessageHandler(filters.User(user_id=ADMIN_ID) & filters.PHOTO & filters.CAPTION & filters.Regex(r"(?is)^/sendpost\b"), admin_broadcast_photo_handler))
+    app.add_handler(MessageHandler(filters.User(user_id=ADMIN_ID) & filters.PHOTO & filters.CAPTION, admin_broadcast_photo_handler))
     app.add_handler(MessageHandler(filters.PHOTO, process_bet_photo))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, menu_handler))
 

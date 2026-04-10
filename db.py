@@ -105,7 +105,12 @@ def init_db():
             trial_started_at TEXT,
             trial_used_count INTEGER DEFAULT 0,
             trial_completed INTEGER DEFAULT 0,
-            promo_offer_used INTEGER DEFAULT 0
+            promo_offer_used INTEGER DEFAULT 0,
+            bet_day_basic_subscribed INTEGER DEFAULT 0,
+            bet_day_vip_subscribed INTEGER DEFAULT 0,
+            vip_bet_day_until TEXT,
+            ai_daily_used INTEGER DEFAULT 0,
+            ai_daily_reset_at TEXT
         )
     """)
 
@@ -181,6 +186,11 @@ def init_db():
     add_column_if_not_exists("users", "trial_used_count", "INTEGER DEFAULT 0")
     add_column_if_not_exists("users", "trial_completed", "INTEGER DEFAULT 0")
     add_column_if_not_exists("users", "promo_offer_used", "INTEGER DEFAULT 0")
+    add_column_if_not_exists("users", "bet_day_basic_subscribed", "INTEGER DEFAULT 0")
+    add_column_if_not_exists("users", "bet_day_vip_subscribed", "INTEGER DEFAULT 0")
+    add_column_if_not_exists("users", "vip_bet_day_until", "TEXT")
+    add_column_if_not_exists("users", "ai_daily_used", "INTEGER DEFAULT 0")
+    add_column_if_not_exists("users", "ai_daily_reset_at", "TEXT")
 
     add_column_if_not_exists("promo_codes", "plan_type", "TEXT DEFAULT 'basic'")
 
@@ -223,9 +233,14 @@ def create_user_if_not_exists(user):
                 trial_started_at,
                 trial_used_count,
                 trial_completed,
-                promo_offer_used
+                promo_offer_used,
+                bet_day_basic_subscribed,
+                bet_day_vip_subscribed,
+                vip_bet_day_until,
+                ai_daily_used,
+                ai_daily_reset_at
             )
-            VALUES (?, ?, ?, 0, NULL, NULL, NULL, ?, 'basic', NULL, ?, NULL, 0, 0, 0)
+            VALUES (?, ?, ?, 0, NULL, NULL, NULL, ?, 'basic', NULL, ?, NULL, 0, 0, 0, 0, 0, NULL, 0, NULL)
         """, (
             user.id,
             user.username,
@@ -294,6 +309,183 @@ def set_user_language(user_id: int, lang: str):
     conn.commit()
     conn.close()
 
+
+
+
+def subscribe_bet_day_basic(user_id: int):
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("""
+        UPDATE users
+        SET bet_day_basic_subscribed = 1
+        WHERE user_id = ?
+    """, (user_id,))
+    conn.commit()
+    conn.close()
+
+
+def subscribe_bet_day_vip(user_id: int):
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("""
+        UPDATE users
+        SET bet_day_vip_subscribed = 1
+        WHERE user_id = ?
+    """, (user_id,))
+    conn.commit()
+    conn.close()
+
+
+def is_subscribed_bet_day_basic(user_id: int) -> bool:
+    user = get_user(user_id)
+    if not user:
+        return False
+    return int(user.get("bet_day_basic_subscribed") or 0) == 1
+
+
+def is_subscribed_bet_day_vip(user_id: int) -> bool:
+    user = get_user(user_id)
+    if not user:
+        return False
+    return int(user.get("bet_day_vip_subscribed") or 0) == 1
+
+
+def activate_vip_bet_day_access(user_id: int, days: int = 30):
+    conn = get_conn()
+    cur = conn.cursor()
+    user = get_user(user_id)
+    now = datetime.now()
+
+    base_time = now
+    if user and user.get("vip_bet_day_until"):
+        try:
+            current_until = datetime.fromisoformat(user["vip_bet_day_until"])
+            if current_until > now:
+                base_time = current_until
+        except Exception:
+            pass
+
+    new_until = base_time + timedelta(days=days)
+
+    cur.execute("""
+        UPDATE users
+        SET vip_bet_day_until = ?
+        WHERE user_id = ?
+    """, (new_until.isoformat(), user_id))
+    conn.commit()
+    conn.close()
+
+
+def has_vip_bet_day_access(user_id: int) -> bool:
+    user = get_user(user_id)
+    if not user:
+        return False
+
+    if (user.get("plan") or "").lower() == "vip" and user_has_access(user_id):
+        return True
+
+    vip_bet_day_until = user.get("vip_bet_day_until")
+    if not vip_bet_day_until:
+        return False
+
+    try:
+        return datetime.fromisoformat(vip_bet_day_until) > datetime.now()
+    except Exception:
+        return False
+
+
+def get_basic_bet_day_subscribers():
+    conn = get_conn()
+    cur = conn.cursor()
+    now_iso = datetime.now().isoformat()
+
+    cur.execute("""
+        SELECT user_id
+        FROM users
+        WHERE bet_day_basic_subscribed = 1
+          AND is_active = 1
+          AND access_until IS NOT NULL
+          AND access_until > ?
+    """, (now_iso,))
+    rows = cur.fetchall()
+    conn.close()
+    return [row["user_id"] for row in rows]
+
+
+def get_vip_bet_day_subscribers():
+    conn = get_conn()
+    cur = conn.cursor()
+    now_iso = datetime.now().isoformat()
+
+    cur.execute("""
+        SELECT user_id
+        FROM users
+        WHERE bet_day_vip_subscribed = 1
+          AND (
+              (is_active = 1 AND plan = 'vip' AND access_until IS NOT NULL AND access_until > ?)
+              OR
+              (vip_bet_day_until IS NOT NULL AND vip_bet_day_until > ?)
+          )
+    """, (now_iso, now_iso))
+    rows = cur.fetchall()
+    conn.close()
+    return [row["user_id"] for row in rows]
+
+
+def reset_ai_usage_if_needed(user_id: int):
+    user = get_user(user_id)
+    if not user:
+        return
+
+    now = datetime.now()
+    reset_at_raw = user.get("ai_daily_reset_at")
+    if reset_at_raw:
+        try:
+            reset_at = datetime.fromisoformat(reset_at_raw)
+            if reset_at.date() == now.date():
+                return
+        except Exception:
+            pass
+
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("""
+        UPDATE users
+        SET ai_daily_used = 0,
+            ai_daily_reset_at = ?
+        WHERE user_id = ?
+    """, (now.isoformat(), user_id))
+    conn.commit()
+    conn.close()
+
+
+def get_ai_daily_remaining(user_id: int) -> int:
+    user = get_user(user_id)
+    if not user:
+        return 0
+
+    if (user.get("plan") or "").lower() == "vip":
+        return 999999
+
+    reset_ai_usage_if_needed(user_id)
+    user = get_user(user_id)
+    used = int(user.get("ai_daily_used") or 0)
+    remaining = 1 - used
+    return remaining if remaining > 0 else 0
+
+
+def increment_ai_daily_usage(user_id: int):
+    reset_ai_usage_if_needed(user_id)
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("""
+        UPDATE users
+        SET ai_daily_used = COALESCE(ai_daily_used, 0) + 1,
+            ai_daily_reset_at = COALESCE(ai_daily_reset_at, ?)
+        WHERE user_id = ?
+    """, (datetime.now().isoformat(), user_id))
+    conn.commit()
+    conn.close()
 
 def user_has_access(user_id: int) -> bool:
     user = get_user(user_id)
@@ -896,7 +1088,12 @@ def delete_user_by_id(user_id: int):
             trial_started_at = NULL,
             trial_used_count = 0,
             trial_completed = 0,
-            promo_offer_used = 0
+            promo_offer_used = 0,
+            bet_day_basic_subscribed = 0,
+            bet_day_vip_subscribed = 0,
+            vip_bet_day_until = NULL,
+            ai_daily_used = 0,
+            ai_daily_reset_at = NULL
         WHERE user_id = ?
     """, (user_id,))
 
@@ -920,7 +1117,12 @@ def delete_user_by_username(username: str):
             trial_started_at = NULL,
             trial_used_count = 0,
             trial_completed = 0,
-            promo_offer_used = 0
+            promo_offer_used = 0,
+            bet_day_basic_subscribed = 0,
+            bet_day_vip_subscribed = 0,
+            vip_bet_day_until = NULL,
+            ai_daily_used = 0,
+            ai_daily_reset_at = NULL
         WHERE username = ?
     """, (clean_username,))
 

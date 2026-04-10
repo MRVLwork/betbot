@@ -13,6 +13,7 @@ from db import (
     get_user,
     has_used_promo_offer,
     mark_promo_offer_used,
+    activate_vip_bet_day_access,
 )
 from keyboards import usdt_plans_keyboard, payment_check_keyboard
 from services.payment_service import get_usdt_plan
@@ -336,3 +337,16 @@ async def admin_payment_reply_handler(update: Update, context: ContextTypes.DEFA
 
     if payment.get("plan_key") == "usdt_vip_month_promo":
         mark_promo_offer_used(payment["user_id"])
+    elif payment.get("plan_key") == "usdt_vip_bet_day_month":
+        activate_vip_bet_day_access(payment["user_id"], days=30)
+        target_user = get_user(payment["user_id"])
+        target_lang = _normalize_lang(target_user["lang"] if target_user and target_user.get("lang") else "en")
+        success_text = {
+            "ua": "✅ VIP ставка дня активована на 30 днів.",
+            "ru": "✅ VIP ставка дня активирована на 30 дней.",
+            "en": "✅ VIP bet of the day activated for 30 days.",
+        }[target_lang]
+        try:
+            await context.bot.send_message(chat_id=payment["user_id"], text=success_text)
+        except Exception:
+            pass

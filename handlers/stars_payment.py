@@ -7,6 +7,7 @@ from db import (
     get_user,
     has_used_promo_offer,
     mark_promo_offer_used,
+    activate_vip_bet_day_access,
 )
 from keyboards import stars_plans_keyboard
 from services.stars_service import get_stars_plan
@@ -141,12 +142,15 @@ async def successful_payment_handler(update: Update, context: ContextTypes.DEFAU
         provider_charge_id=payment.provider_payment_charge_id,
     )
 
-    activate_user_access(
-        user_id=user_id,
-        days=plan["duration_days"],
-        plan_type=plan["plan_type"],
-        source=f"stars:{plan_key}",
-    )
+    if plan_key == "stars_vip_bet_day_month":
+        activate_vip_bet_day_access(user_id=user_id, days=plan["duration_days"])
+    else:
+        activate_user_access(
+            user_id=user_id,
+            days=plan["duration_days"],
+            plan_type=plan["plan_type"],
+            source=f"stars:{plan_key}",
+        )
 
     if plan_key == "stars_vip_month_promo":
         mark_promo_offer_used(user_id)

@@ -34,6 +34,17 @@ USDT_PLANS = {
         "is_promo": False,
         "wallet_address": TRC20_WALLET,
     },
+    "usdt_vip_bet_day_month": {
+        "plan_name_ua": "VIP ставка дня 1 місяць",
+        "plan_name_ru": "VIP ставка дня 1 месяц",
+        "plan_name_en": "VIP bet of the day 1 month",
+        "plan_type": "vip_bet_day",
+        "duration_days": 30,
+        "amount_usd": 4.99,
+        "full_amount_usd": 4.99,
+        "is_promo": False,
+        "wallet_address": TRC20_WALLET,
+    },
 }
 
 

@@ -10,6 +10,8 @@ from db import (
     delete_user_by_id,
     delete_user_by_username,
     get_conn,
+    get_basic_bet_day_subscribers,
+    get_vip_bet_day_subscribers,
 )
 from services.promo_service import generate_promo_code
 
@@ -205,3 +207,44 @@ async def stars_revenue(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Basic: {row['basic_stars']} ⭐\n"
         f"VIP: {row['vip_stars']} ⭐"
     )
+
+async def send_basic_bet_day(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update.effective_user.id):
+        return
+
+    text = update.message.text.partition(" ")[2].strip()
+    if not text:
+        await update.message.reply_text("Формат: /sendbasicday текст ставки")
+        return
+
+    user_ids = get_basic_bet_day_subscribers()
+    sent = 0
+    for user_id in user_ids:
+        try:
+            await context.bot.send_message(chat_id=user_id, text=f"🎯 Basic ставка дня\n\n{text}")
+            sent += 1
+        except Exception:
+            pass
+
+    await update.message.reply_text(f"✅ Відправлено Basic ставку дня: {sent}")
+
+
+async def send_vip_bet_day(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update.effective_user.id):
+        return
+
+    text = update.message.text.partition(" ")[2].strip()
+    if not text:
+        await update.message.reply_text("Формат: /sendvipday текст ставки")
+        return
+
+    user_ids = get_vip_bet_day_subscribers()
+    sent = 0
+    for user_id in user_ids:
+        try:
+            await context.bot.send_message(chat_id=user_id, text=f"🔥 VIP ставка дня\n\n{text}")
+            sent += 1
+        except Exception:
+            pass
+
+    await update.message.reply_text(f"✅ Відправлено VIP ставку дня: {sent}")

@@ -80,21 +80,21 @@ def stars_plans_keyboard(lang: str, promo_available: bool = True):
     if promo_available:
         if lang == "ru":
             keyboard = [
-                [InlineKeyboardButton("🧪 Попробовать — 99 ⭐", callback_data="stars_basic_trial")],
+                [InlineKeyboardButton("🧪 Попробовать — 99 ⭐", callback_data="stars_basic_week")],
                 [InlineKeyboardButton("🔥 Basic 1 месяц: 499 → 399 ⭐", callback_data="stars_basic_month")],
                 [InlineKeyboardButton("VIP 7 дней — 499 ⭐", callback_data="stars_vip_week")],
                 [InlineKeyboardButton("🔥 VIP 1 месяц: 1999 → 1499 ⭐", callback_data="stars_vip_month_promo")],
             ]
         elif lang == "en":
             keyboard = [
-                [InlineKeyboardButton("🧪 Try — 99 ⭐", callback_data="stars_basic_trial")],
+                [InlineKeyboardButton("🧪 Try — 99 ⭐", callback_data="stars_basic_week")],
                 [InlineKeyboardButton("🔥 Basic 1 month: 499 → 399 ⭐", callback_data="stars_basic_month")],
                 [InlineKeyboardButton("VIP 7 days — 499 ⭐", callback_data="stars_vip_week")],
                 [InlineKeyboardButton("🔥 VIP 1 month: 1999 → 1499 ⭐", callback_data="stars_vip_month_promo")],
             ]
         else:
             keyboard = [
-                [InlineKeyboardButton("🧪 Спробувати — 99 ⭐", callback_data="stars_basic_trial")],
+                [InlineKeyboardButton("🧪 Спробувати — 99 ⭐", callback_data="stars_basic_week")],
                 [InlineKeyboardButton("🔥 Basic 1 місяць: 499 → 399 ⭐", callback_data="stars_basic_month")],
                 [InlineKeyboardButton("VIP 7 днів — 499 ⭐", callback_data="stars_vip_week")],
                 [InlineKeyboardButton("🔥 VIP 1 місяць: 1999 → 1499 ⭐", callback_data="stars_vip_month_promo")],
@@ -102,24 +102,26 @@ def stars_plans_keyboard(lang: str, promo_available: bool = True):
     else:
         if lang == "ru":
             keyboard = [
+                [InlineKeyboardButton("🧪 Попробовать — 99 ⭐", callback_data="stars_basic_week")],
                 [InlineKeyboardButton("Basic 1 месяц — 499 ⭐", callback_data="stars_basic_month_full")],
                 [InlineKeyboardButton("VIP 7 дней — 499 ⭐", callback_data="stars_vip_week")],
                 [InlineKeyboardButton("VIP 1 месяц — 1999 ⭐", callback_data="stars_vip_month_full")],
             ]
         elif lang == "en":
             keyboard = [
+                [InlineKeyboardButton("🧪 Try — 99 ⭐", callback_data="stars_basic_week")],
                 [InlineKeyboardButton("Basic 1 month — 499 ⭐", callback_data="stars_basic_month_full")],
                 [InlineKeyboardButton("VIP 7 days — 499 ⭐", callback_data="stars_vip_week")],
                 [InlineKeyboardButton("VIP 1 month — 1999 ⭐", callback_data="stars_vip_month_full")],
             ]
         else:
             keyboard = [
+                [InlineKeyboardButton("🧪 Спробувати — 99 ⭐", callback_data="stars_basic_week")],
                 [InlineKeyboardButton("Basic 1 місяць — 499 ⭐", callback_data="stars_basic_month_full")],
                 [InlineKeyboardButton("VIP 7 днів — 499 ⭐", callback_data="stars_vip_week")],
                 [InlineKeyboardButton("VIP 1 місяць — 1999 ⭐", callback_data="stars_vip_month_full")],
             ]
     return InlineKeyboardMarkup(keyboard)
-
 
 def usdt_plans_keyboard(lang: str, promo_available: bool = True):
     if promo_available:
@@ -156,6 +158,100 @@ def usdt_plans_keyboard(lang: str, promo_available: bool = True):
             ]
     return InlineKeyboardMarkup(keyboard)
 
+
+def tools_keyboard(lang: str):
+    if lang == "ru":
+        keyboard = [
+            [InlineKeyboardButton("🎯 Ставка дня", callback_data="tool_bet_day")],
+            [InlineKeyboardButton("⚡ Live", callback_data="tool_live")],
+            [InlineKeyboardButton("🤖 AI-анализ", callback_data="tool_ai")],
+            [InlineKeyboardButton("🚀 Челлендж", callback_data="tool_challenge")],
+        ]
+    elif lang == "en":
+        keyboard = [
+            [InlineKeyboardButton("🎯 Bet of the day", callback_data="tool_bet_day")],
+            [InlineKeyboardButton("⚡ Live", callback_data="tool_live")],
+            [InlineKeyboardButton("🤖 AI analysis", callback_data="tool_ai")],
+            [InlineKeyboardButton("🚀 Challenge", callback_data="tool_challenge")],
+        ]
+    else:
+        keyboard = [
+            [InlineKeyboardButton("🎯 Ставка дня", callback_data="tool_bet_day")],
+            [InlineKeyboardButton("⚡ Live", callback_data="tool_live")],
+            [InlineKeyboardButton("🤖 AI-аналіз", callback_data="tool_ai")],
+            [InlineKeyboardButton("🚀 Челендж", callback_data="tool_challenge")],
+        ]
+    return InlineKeyboardMarkup(keyboard)
+
+
+def bet_day_menu_keyboard(lang: str):
+    if lang == "ru":
+        keyboard = [
+            [InlineKeyboardButton("🎯 Ставка дня (Basic)", callback_data="betday_basic")],
+            [InlineKeyboardButton("🔥 Ставка дня (VIP)", callback_data="betday_vip")],
+            [InlineKeyboardButton("⬅️ Назад", callback_data="tools_back")],
+        ]
+    elif lang == "en":
+        keyboard = [
+            [InlineKeyboardButton("🎯 Bet of the day (Basic)", callback_data="betday_basic")],
+            [InlineKeyboardButton("🔥 Bet of the day (VIP)", callback_data="betday_vip")],
+            [InlineKeyboardButton("⬅️ Back", callback_data="tools_back")],
+        ]
+    else:
+        keyboard = [
+            [InlineKeyboardButton("🎯 Ставка дня (Basic)", callback_data="betday_basic")],
+            [InlineKeyboardButton("🔥 Ставка дня (VIP)", callback_data="betday_vip")],
+            [InlineKeyboardButton("⬅️ Назад", callback_data="tools_back")],
+        ]
+    return InlineKeyboardMarkup(keyboard)
+
+
+def bet_day_basic_keyboard(lang: str, is_subscribed: bool = False):
+    if lang == "ru":
+        subscribe = "✅ Ты подписан" if is_subscribed else "🔔 Подписаться"
+        keyboard = [
+            [InlineKeyboardButton(subscribe, callback_data="betday_basic_subscribe")],
+            [InlineKeyboardButton("⬅️ Назад", callback_data="tool_bet_day")],
+        ]
+    elif lang == "en":
+        subscribe = "✅ You are subscribed" if is_subscribed else "🔔 Subscribe"
+        keyboard = [
+            [InlineKeyboardButton(subscribe, callback_data="betday_basic_subscribe")],
+            [InlineKeyboardButton("⬅️ Back", callback_data="tool_bet_day")],
+        ]
+    else:
+        subscribe = "✅ Ти підписаний" if is_subscribed else "🔔 Підписатися"
+        keyboard = [
+            [InlineKeyboardButton(subscribe, callback_data="betday_basic_subscribe")],
+            [InlineKeyboardButton("⬅️ Назад", callback_data="tool_bet_day")],
+        ]
+    return InlineKeyboardMarkup(keyboard)
+
+
+def bet_day_vip_keyboard(lang: str, has_access: bool = False, is_subscribed: bool = False):
+    rows = []
+    if has_access:
+        if lang == "ru":
+            subscribe = "✅ Ты подписан" if is_subscribed else "🔔 Подписаться"
+        elif lang == "en":
+            subscribe = "✅ You are subscribed" if is_subscribed else "🔔 Subscribe"
+        else:
+            subscribe = "✅ Ти підписаний" if is_subscribed else "🔔 Підписатися"
+        rows.append([InlineKeyboardButton(subscribe, callback_data="betday_vip_subscribe")])
+    else:
+        if lang == "ru":
+            rows.append([InlineKeyboardButton("💸 Купить за 4.99$", callback_data="usdt_vip_bet_day_month")])
+            rows.append([InlineKeyboardButton("⭐ Купить за 499 Stars", callback_data="stars_vip_bet_day_month")])
+        elif lang == "en":
+            rows.append([InlineKeyboardButton("💸 Buy for $4.99", callback_data="usdt_vip_bet_day_month")])
+            rows.append([InlineKeyboardButton("⭐ Buy for 499 Stars", callback_data="stars_vip_bet_day_month")])
+        else:
+            rows.append([InlineKeyboardButton("💸 Купити за 4.99$", callback_data="usdt_vip_bet_day_month")])
+            rows.append([InlineKeyboardButton("⭐ Купити за 499 Stars", callback_data="stars_vip_bet_day_month")])
+
+    back_text = "⬅️ Назад" if lang in ("ru","ua") else "⬅️ Back"
+    rows.append([InlineKeyboardButton(back_text, callback_data="tool_bet_day")])
+    return InlineKeyboardMarkup(rows)
 
 def payment_check_keyboard(lang: str):
     if lang == "ru":

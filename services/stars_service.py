@@ -59,6 +59,16 @@ STARS_PLANS = {
         "is_promo": False,
         "full_price_xtr": 1999,
     },
+    "stars_vip_bet_day_month": {
+        "title_ua": "VIP ставка дня 1 місяць",
+        "title_ru": "VIP ставка дня 1 месяц",
+        "title_en": "VIP bet of the day 1 month",
+        "plan_type": "vip_bet_day",
+        "duration_days": 30,
+        "amount_xtr": 499,
+        "is_promo": False,
+        "full_price_xtr": 499,
+    },
 }
 
 
@@ -67,7 +77,7 @@ def get_stars_plan(plan_key: str):
 
 
 def get_default_stars_plan_keys():
-    return ["stars_basic_week", "stars_basic_month", "stars_vip_week", "stars_vip_month_promo"]
+    return ["stars_basic_week", "stars_basic_month", "stars_vip_week", "stars_vip_month_promo", "stars_vip_bet_day_month"]
 
 
 def get_renewal_stars_plan_key(plan_type: str, duration_days: int = 30):

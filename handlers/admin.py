@@ -215,46 +215,99 @@ async def stars_revenue(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"VIP: {row['vip_stars']} ⭐"
     )
 
-async def send_basic_bet_day(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update.effective_user.id):
-        return
-
-    text = update.message.text.partition(" ")[2].strip()
-    if not text:
-        await update.message.reply_text("Формат: /sendbasicday текст ставки")
-        return
-
-    user_ids = get_basic_bet_day_subscribers()
+async def _send_bet_day_content(update: Update, context: ContextTypes.DEFAULT_TYPE, user_ids, title: str, empty_hint: str):
     sent = 0
+
+    if update.message.photo:
+        photo_file_id = update.message.photo[-1].file_id
+        caption = (update.message.caption or "").strip()
+        command = caption.split()[0].lower() if caption else ""
+        clean_caption = caption[len(command):].strip() if command.startswith("/") else caption
+        final_caption = f"{title}\n\n{clean_caption}" if clean_caption else title
+
+        for user_id in user_ids:
+            try:
+                await context.bot.send_photo(
+                    chat_id=user_id,
+                    photo=photo_file_id,
+                    caption=final_caption,
+                )
+                sent += 1
+            except Exception:
+                pass
+
+        await update.message.reply_text(f"✅ Відправлено: {sent}")
+        return
+
+    text = (update.message.text or "").partition(" ")[2].strip()
+    if not text:
+        await update.message.reply_text(empty_hint)
+        return
+
     for user_id in user_ids:
         try:
-            await context.bot.send_message(chat_id=user_id, text=f"🎯 Basic ставка дня\n\n{text}")
+            await context.bot.send_message(chat_id=user_id, text=f"{title}\n\n{text}")
             sent += 1
         except Exception:
             pass
 
-    await update.message.reply_text(f"✅ Відправлено Basic ставку дня: {sent}")
+    await update.message.reply_text(f"✅ Відправлено: {sent}")
+
+
+async def send_basic_bet_day(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update.effective_user.id):
+        return
+
+    user_ids = get_basic_bet_day_subscribers()
+    await _send_bet_day_content(
+        update=update,
+        context=context,
+        user_ids=user_ids,
+        title="🎯 Basic ставка дня",
+        empty_hint="Формат: /sendbasicday текст ставки або фото з caption /sendbasicday",
+    )
 
 
 async def send_vip_bet_day(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update.effective_user.id):
         return
 
-    text = update.message.text.partition(" ")[2].strip()
-    if not text:
-        await update.message.reply_text("Формат: /sendvipday текст ставки")
+    user_ids = get_vip_bet_day_subscribers()
+    await _send_bet_day_content(
+        update=update,
+        context=context,
+        user_ids=user_ids,
+        title="🔥 VIP ставка дня",
+        empty_hint="Формат: /sendvipday текст ставки або фото з caption /sendvipday",
+    )
+
+
+async def admin_basic_bet_day_photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message or not update.message.photo:
         return
 
-    user_ids = get_vip_bet_day_subscribers()
-    sent = 0
-    for user_id in user_ids:
-        try:
-            await context.bot.send_message(chat_id=user_id, text=f"🔥 VIP ставка дня\n\n{text}")
-            sent += 1
-        except Exception:
-            pass
+    if not is_admin(update.effective_user.id):
+        return
 
-    await update.message.reply_text(f"✅ Відправлено VIP ставку дня: {sent}")
+    caption = (update.message.caption or "").strip().lower()
+    if not caption.startswith("/sendbasicday"):
+        return
+
+    await send_basic_bet_day(update, context)
+
+
+async def admin_vip_bet_day_photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message or not update.message.photo:
+        return
+
+    if not is_admin(update.effective_user.id):
+        return
+
+    caption = (update.message.caption or "").strip().lower()
+    if not caption.startswith("/sendvipday"):
+        return
+
+    await send_vip_bet_day(update, context)
 
 
 async def sendposthelp(update: Update, context: ContextTypes.DEFAULT_TYPE):

@@ -208,8 +208,8 @@ def create_user_if_not_exists(user):
     row = cur.fetchone()
 
     tg_lang = (user.language_code or "").lower()
-    if tg_lang.startswith("uk"):
-        lang = "uk"
+    if tg_lang.startswith("uk") or tg_lang.startswith("ua"):
+        lang = "ua"
     elif tg_lang.startswith("ru"):
         lang = "ru"
     else:
@@ -1131,3 +1131,67 @@ def delete_user_by_username(username: str):
     conn.commit()
     conn.close()
     return affected
+
+
+def _normalize_lang_code(lang: str) -> str:
+    lang = (lang or "en").lower()
+    if lang.startswith("uk") or lang.startswith("ua"):
+        return "ua"
+    if lang.startswith("ru"):
+        return "ru"
+    return "en"
+
+
+def _row_has_active_access(user_row: dict) -> bool:
+    if not user_row:
+        return False
+    if not user_row.get("is_active"):
+        return False
+    if not user_row.get("access_until"):
+        return False
+    try:
+        return datetime.fromisoformat(user_row["access_until"]) > datetime.now()
+    except Exception:
+        return False
+
+
+def get_broadcast_recipients(lang_tag: str = "alllangs", audience_tag: str = "all") -> list[int]:
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT user_id, lang, plan, is_active, access_until
+        FROM users
+    """)
+    rows = cur.fetchall()
+    conn.close()
+
+    recipients = []
+    lang_tag = (lang_tag or "alllangs").lower()
+    audience_tag = (audience_tag or "all").lower()
+
+    for row in rows:
+        row_lang = _normalize_lang_code(row.get("lang"))
+        has_access = _row_has_active_access(row)
+        plan = (row.get("plan") or "").lower()
+
+        if lang_tag != "alllangs" and row_lang != lang_tag:
+            continue
+
+        if audience_tag == "trial":
+            if has_access:
+                continue
+        elif audience_tag == "basic":
+            if not has_access or plan != "basic":
+                continue
+        elif audience_tag == "vip":
+            if not has_access or plan != "vip":
+                continue
+        elif audience_tag == "all":
+            pass
+        else:
+            continue
+
+        recipients.append(row["user_id"])
+
+    return recipients

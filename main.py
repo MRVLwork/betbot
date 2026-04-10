@@ -60,6 +60,8 @@ from handlers.admin import (
     sendposthelp,
     sendpost,
     admin_broadcast_photo_handler,
+    admin_basic_bet_day_photo_handler,
+    admin_vip_bet_day_photo_handler,
 )
 from handlers.bets import process_bet_photo
 from handlers.tools import open_tools_menu, tools_callback_handler
@@ -408,9 +410,15 @@ def main():
     app.add_handler(CallbackQueryHandler(tools_callback_handler, pattern="^(tool_|betday_|tools_back|usdt_vip_bet_day_month|stars_vip_bet_day_month)"))
 
     app.add_handler(MessageHandler(filters.REPLY & filters.TEXT & ~filters.COMMAND, admin_payment_reply_handler))
-    app.add_handler(MessageHandler(filters.PHOTO & filters.CAPTION & filters.Regex(r"^/sendbasicday"), admin_basic_bet_day_photo_handler))
-    app.add_handler(MessageHandler(filters.PHOTO & filters.CAPTION & filters.Regex(r"^/sendvipday"), admin_vip_bet_day_photo_handler))
-    app.add_handler(MessageHandler(filters.PHOTO & filters.CAPTION & filters.Regex(r"^/sendpost"), admin_broadcast_photo_handler))
+    app.add_handler(
+        MessageHandler(filters.PHOTO & filters.CaptionRegex(r"^/sendbasicday(?:@\w+)?(?:\s|$)"), admin_basic_bet_day_photo_handler)
+    )
+    app.add_handler(
+        MessageHandler(filters.PHOTO & filters.CaptionRegex(r"^/sendvipday(?:@\w+)?(?:\s|$)"), admin_vip_bet_day_photo_handler)
+    )
+    app.add_handler(
+        MessageHandler(filters.PHOTO & filters.CaptionRegex(r"^/sendpost(?:@\w+)?(?:\s|$)"), admin_broadcast_photo_handler)
+    )
     app.add_handler(MessageHandler(filters.PHOTO, process_bet_photo))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, menu_handler))
 

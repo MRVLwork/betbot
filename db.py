@@ -1171,27 +1171,42 @@ def get_broadcast_recipients(lang_tag: str = "alllangs", audience_tag: str = "al
     audience_tag = (audience_tag or "all").lower()
 
     for row in rows:
-        row_lang = _normalize_lang_code(row.get("lang"))
-        has_access = _row_has_active_access(row)
+        user_id = row["user_id"]
+        user_lang = (row.get("lang") or "en").lower()
         plan = (row.get("plan") or "").lower()
+        is_active = row.get("is_active")
+        access_until = row.get("access_until")
 
-        if lang_tag != "alllangs" and row_lang != lang_tag:
+        # перевірка активності
+        has_active_access = False
+        if is_active and access_until:
+            try:
+                from datetime import datetime
+                has_active_access = datetime.fromisoformat(access_until) > datetime.now()
+            except:
+                has_active_access = False
+
+        # фільтр по мові
+        if lang_tag != "alllangs" and user_lang != lang_tag:
             continue
 
+        # фільтр по аудиторії
         if audience_tag == "trial":
-            if has_access:
+            if has_active_access:
                 continue
-        elif audience_tag == "basic":
-            if not has_access or plan != "basic":
-                continue
-        elif audience_tag == "vip":
-            if not has_access or plan != "vip":
-                continue
-        elif audience_tag == "all":
-            pass
-        else:
-            continue
 
-        recipients.append(row["user_id"])
+        elif audience_tag == "basic":
+            if not has_active_access or plan != "basic":
+                continue
+
+        elif audience_tag == "vip":
+            if not has_active_access or plan != "vip":
+                continue
+
+        elif audience_tag == "all":
+            if not has_active_access:
+                continue
+
+        recipients.append(user_id)
 
     return recipients

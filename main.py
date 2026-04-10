@@ -12,7 +12,7 @@ from telegram.ext import (
     filters,
 )
 
-from config import BOT_TOKEN
+from config import BOT_TOKEN, ADMIN_ID
 from db import (
     init_db,
     user_has_access,
@@ -56,6 +56,9 @@ from handlers.admin import (
     stars_revenue,
     send_basic_bet_day,
     send_vip_bet_day,
+    sendposthelp,
+    sendpost,
+    admin_broadcast_photo_handler,
 )
 from handlers.bets import process_bet_photo
 from handlers.tools import open_tools_menu, tools_callback_handler
@@ -371,6 +374,8 @@ def main():
     app.add_handler(CommandHandler("stars", stars_revenue))
     app.add_handler(CommandHandler("sendbasicday", send_basic_bet_day))
     app.add_handler(CommandHandler("sendvipday", send_vip_bet_day))
+    app.add_handler(CommandHandler("sendposthelp", sendposthelp))
+    app.add_handler(CommandHandler("sendpost", sendpost))
 
     promo_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(access_buttons, pattern="^(enter_promo|back_to_access)$")],
@@ -401,6 +406,7 @@ def main():
     app.add_handler(CallbackQueryHandler(tools_callback_handler, pattern="^(tool_|betday_|tools_back|usdt_vip_bet_day_month|stars_vip_bet_day_month)"))
 
     app.add_handler(MessageHandler(filters.REPLY & filters.TEXT & ~filters.COMMAND, admin_payment_reply_handler))
+    app.add_handler(MessageHandler(filters.User(user_id=ADMIN_ID) & filters.PHOTO & filters.CAPTION & filters.Regex(r"(?s)^/sendpost\b"), admin_broadcast_photo_handler))
     app.add_handler(MessageHandler(filters.PHOTO, process_bet_photo))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, menu_handler))
 

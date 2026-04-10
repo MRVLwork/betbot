@@ -1,45 +1,98 @@
 import re
+from typing import Tuple
+
+from db import get_broadcast_recipients
 
 
 LANG_TAGS = {"ua", "ru", "en", "alllangs"}
 AUDIENCE_TAGS = {"trial", "basic", "vip", "all"}
 
 
-def parse_segmented_post(raw_text: str):
+def parse_broadcast_text(raw_text: str) -> Tuple[str, str, str]:
+    """
+    Expected formats:
+
+    /sendpost
+    Message text...
+
+    /ua
+    /vip
+
+    or
+
+    /sendpost Message text...
+
+    /en
+    /all
+    """
     text = (raw_text or "").strip()
-    text = re.sub(r"^/sendpost(?:@\w+)?", "", text, count=1).strip()
+    if not text:
+        return "", "alllangs", "all"
 
-    lang_tag = None
-    audience_tag = None
-    content_lines = []
+    text = re.sub(r"^/sendpost\b", "", text, flags=re.IGNORECASE).strip()
 
-    for line in text.splitlines():
+    lines = [line.rstrip() for line in text.splitlines()]
+    lang_tag = "alllangs"
+    audience_tag = "all"
+    cleaned_lines = []
+
+    for line in lines:
         stripped = line.strip()
-        lowered = stripped.lower()
-
-        if lowered.startswith("/") and lowered[1:] in LANG_TAGS:
-            lang_tag = lowered[1:]
+        if re.fullmatch(r"/(ua|ru|en|alllangs)", stripped, flags=re.IGNORECASE):
+            lang_tag = stripped[1:].lower()
             continue
-
-        if lowered.startswith("/") and lowered[1:] in AUDIENCE_TAGS:
-            audience_tag = lowered[1:]
+        if re.fullmatch(r"/(trial|basic|vip|all)", stripped, flags=re.IGNORECASE):
+            audience_tag = stripped[1:].lower()
             continue
+        cleaned_lines.append(line)
 
-        content_lines.append(line)
-
-    content = "\n".join(content_lines).strip()
-
-    if not lang_tag:
-        lang_tag = "alllangs"
-    if not audience_tag:
-        audience_tag = "all"
-
-    return {
-        "text": content,
-        "lang_tag": lang_tag,
-        "audience_tag": audience_tag,
-    }
+    clean_text = "\n".join(cleaned_lines).strip()
+    return clean_text, lang_tag, audience_tag
 
 
-def is_sendpost_text(text: str) -> bool:
-    return bool((text or "").strip().startswith("/sendpost"))
+def broadcast_help_text() -> str:
+    return (
+        "Формат розсилки:\n\n"
+        "/sendpost\n"
+        "Текст повідомлення\n\n"
+        "/ua\n"
+        "/basic\n\n"
+        "Мова:\n"
+        "/ua /ru /en /alllangs\n\n"
+        "Аудиторія:\n"
+        "/trial /basic /vip /all\n\n"
+        "Можна також надіслати фото з caption у такому ж форматі, "
+        "починаючи caption з /sendpost"
+    )
+
+
+async def send_broadcast(bot, text: str, lang_tag: str = "alllangs", audience_tag: str = "all") -> tuple[int, int]:
+    recipients = get_broadcast_recipients(lang_tag=lang_tag, audience_tag=audience_tag)
+
+    sent = 0
+    failed = 0
+
+    for user_id in recipients:
+        try:
+            await bot.send_message(chat_id=user_id, text=text)
+            sent += 1
+        except Exception:
+            failed += 1
+
+    return sent, failed
+
+
+async def send_photo_broadcast(bot, photo_file_id: str, caption: str, lang_tag: str = "alllangs", audience_tag: str = "all") -> tuple[int, int]:
+    recipients = get_broadcast_recipients(lang_tag=lang_tag, audience_tag=audience_tag)
+
+    sent = 0
+    failed = 0
+
+    for user_id in recipients:
+        try:
+            await bot.send_photo(chat_id=user_id, photo=photo_file_id, caption=caption or "")
+            sent += 1
+        except Exception:
+            failed += 1
+
+    return sent, failed

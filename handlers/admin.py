@@ -14,6 +14,12 @@ from db import (
     get_vip_bet_day_subscribers,
 )
 from services.promo_service import generate_promo_code
+from services.broadcast_service import (
+    parse_broadcast_text,
+    broadcast_help_text,
+    send_broadcast,
+    send_photo_broadcast,
+)
 
 
 def is_admin(user_id: int) -> bool:
@@ -248,3 +254,72 @@ async def send_vip_bet_day(update: Update, context: ContextTypes.DEFAULT_TYPE):
             pass
 
     await update.message.reply_text(f"✅ Відправлено VIP ставку дня: {sent}")
+
+
+async def sendposthelp(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update.effective_user.id):
+        return
+    await update.message.reply_text(broadcast_help_text())
+
+
+async def sendpost(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update.effective_user.id):
+        return
+
+    raw_text = update.message.text or ""
+    clean_text, lang_tag, audience_tag = parse_broadcast_text(raw_text)
+
+    if not clean_text:
+        await update.message.reply_text("❌ Немає тексту для розсилки.\n\n/sendposthelp")
+        return
+
+    sent, failed = await send_broadcast(
+        bot=context.bot,
+        text=clean_text,
+        lang_tag=lang_tag,
+        audience_tag=audience_tag,
+    )
+
+    await update.message.reply_text(
+        f"✅ Розсилка завершена\n\n"
+        f"Мова: {lang_tag}\n"
+        f"Аудиторія: {audience_tag}\n"
+        f"Відправлено: {sent}\n"
+        f"Помилки: {failed}"
+    )
+
+
+async def admin_broadcast_photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message or not update.message.photo:
+        return
+
+    if not is_admin(update.effective_user.id):
+        return
+
+    caption = update.message.caption or ""
+    if not caption.strip().lower().startswith("/sendpost"):
+        return
+
+    clean_text, lang_tag, audience_tag = parse_broadcast_text(caption)
+
+    if not clean_text:
+        await update.message.reply_text("❌ Немає тексту в caption для розсилки.\n\n/sendposthelp")
+        return
+
+    photo_file_id = update.message.photo[-1].file_id
+
+    sent, failed = await send_photo_broadcast(
+        bot=context.bot,
+        photo_file_id=photo_file_id,
+        caption=clean_text,
+        lang_tag=lang_tag,
+        audience_tag=audience_tag,
+    )
+
+    await update.message.reply_text(
+        f"✅ Фото-розсилка завершена\n\n"
+        f"Мова: {lang_tag}\n"
+        f"Аудиторія: {audience_tag}\n"
+        f"Відправлено: {sent}\n"
+        f"Помилки: {failed}"
+    )

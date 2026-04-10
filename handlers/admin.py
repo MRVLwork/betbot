@@ -222,14 +222,14 @@ async def send_basic_bet_day(update: Update, context: ContextTypes.DEFAULT_TYPE)
     raw_text = update.message.text or ""
 
     lang = "all"
-    if "/ua" in raw_text:
+    if "/alllangs" in raw_text:
+        lang = "all"
+    elif "/ua" in raw_text:
         lang = "ua"
     elif "/ru" in raw_text:
         lang = "ru"
     elif "/en" in raw_text:
         lang = "en"
-    elif "/alllangs" in raw_text:
-        lang = "all"
 
     text = raw_text.replace("/sendbasicday", "")
     for tag in ["/ua", "/ru", "/en", "/alllangs"]:
@@ -248,7 +248,7 @@ async def send_basic_bet_day(update: Update, context: ContextTypes.DEFAULT_TYPE)
     else:
         cur.execute(
             "SELECT user_id FROM users WHERE basic_bet_day = TRUE AND lang = %s",
-            (lang,),
+            (lang,)
         )
 
     rows = cur.fetchall()
@@ -256,17 +256,18 @@ async def send_basic_bet_day(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     sent = 0
     for row in rows:
-        user_id = row["user_id"] if isinstance(row, dict) or hasattr(row, "keys") else row[0]
+        user_id = row["user_id"] if isinstance(row, dict) or "user_id" in getattr(row, "keys", lambda: [])() else row[0]
         try:
             await context.bot.send_message(
                 chat_id=user_id,
-                text=f"🎯 Basic ставка дня\n\n{text}",
+                text=f"🎯 Basic ставка дня\n\n{text}"
             )
             sent += 1
         except Exception:
             pass
 
     await update.message.reply_text(f"✅ Відправлено Basic ставку дня: {sent}")
+
 
 
 async def admin_basic_bet_day_photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -280,42 +281,14 @@ async def admin_basic_bet_day_photo_handler(update: Update, context: ContextType
     if not caption.strip().lower().startswith("/sendbasicday"):
         return
 
-    lang = "all"
-    if "/ua" in caption:
-        lang = "ua"
-    elif "/ru" in caption:
-        lang = "ru"
-    elif "/en" in caption:
-        lang = "en"
-    elif "/alllangs" in caption:
-        lang = "all"
-
-    text = caption.replace("/sendbasicday", "")
-    for tag in ["/ua", "/ru", "/en", "/alllangs"]:
-        text = text.replace(tag, "")
-    text = text.strip()
-
+    text = caption.split(maxsplit=1)[1].strip() if len(caption.split(maxsplit=1)) > 1 else ""
     final_caption = f"🎯 Basic ставка дня\n\n{text}" if text else "🎯 Basic ставка дня"
 
     photo_file_id = update.message.photo[-1].file_id
-
-    conn = get_conn()
-    cur = conn.cursor()
-
-    if lang == "all":
-        cur.execute("SELECT user_id FROM users WHERE basic_bet_day = TRUE")
-    else:
-        cur.execute(
-            "SELECT user_id FROM users WHERE basic_bet_day = TRUE AND lang = %s",
-            (lang,),
-        )
-
-    rows = cur.fetchall()
-    conn.close()
+    user_ids = get_basic_bet_day_subscribers()
 
     sent = 0
-    for row in rows:
-        user_id = row["user_id"] if isinstance(row, dict) or hasattr(row, "keys") else row[0]
+    for user_id in user_ids:
         try:
             await context.bot.send_photo(
                 chat_id=user_id,
@@ -333,49 +306,16 @@ async def send_vip_bet_day(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update.effective_user.id):
         return
 
-    raw_text = update.message.text or ""
-
-    lang = "all"
-    if "/ua" in raw_text:
-        lang = "ua"
-    elif "/ru" in raw_text:
-        lang = "ru"
-    elif "/en" in raw_text:
-        lang = "en"
-    elif "/alllangs" in raw_text:
-        lang = "all"
-
-    text = raw_text.replace("/sendvipday", "")
-    for tag in ["/ua", "/ru", "/en", "/alllangs"]:
-        text = text.replace(tag, "")
-    text = text.strip()
-
+    text = update.message.text.partition(" ")[2].strip()
     if not text:
-        await update.message.reply_text("Формат: /sendvipday /ua текст ставки")
+        await update.message.reply_text("Формат: /sendvipday текст ставки")
         return
 
-    conn = get_conn()
-    cur = conn.cursor()
-
-    if lang == "all":
-        cur.execute("SELECT user_id FROM users WHERE vip_bet_day = TRUE")
-    else:
-        cur.execute(
-            "SELECT user_id FROM users WHERE vip_bet_day = TRUE AND lang = %s",
-            (lang,),
-        )
-
-    rows = cur.fetchall()
-    conn.close()
-
+    user_ids = get_vip_bet_day_subscribers()
     sent = 0
-    for row in rows:
-        user_id = row["user_id"] if isinstance(row, dict) or hasattr(row, "keys") else row[0]
+    for user_id in user_ids:
         try:
-            await context.bot.send_message(
-                chat_id=user_id,
-                text=f"🔥 VIP ставка дня\n\n{text}",
-            )
+            await context.bot.send_message(chat_id=user_id, text=f"🔥 VIP ставка дня\n\n{text}")
             sent += 1
         except Exception:
             pass
@@ -394,42 +334,14 @@ async def admin_vip_bet_day_photo_handler(update: Update, context: ContextTypes.
     if not caption.strip().lower().startswith("/sendvipday"):
         return
 
-    lang = "all"
-    if "/ua" in caption:
-        lang = "ua"
-    elif "/ru" in caption:
-        lang = "ru"
-    elif "/en" in caption:
-        lang = "en"
-    elif "/alllangs" in caption:
-        lang = "all"
-
-    text = caption.replace("/sendvipday", "")
-    for tag in ["/ua", "/ru", "/en", "/alllangs"]:
-        text = text.replace(tag, "")
-    text = text.strip()
-
+    text = caption.split(maxsplit=1)[1].strip() if len(caption.split(maxsplit=1)) > 1 else ""
     final_caption = f"🔥 VIP ставка дня\n\n{text}" if text else "🔥 VIP ставка дня"
 
     photo_file_id = update.message.photo[-1].file_id
-
-    conn = get_conn()
-    cur = conn.cursor()
-
-    if lang == "all":
-        cur.execute("SELECT user_id FROM users WHERE vip_bet_day = TRUE")
-    else:
-        cur.execute(
-            "SELECT user_id FROM users WHERE vip_bet_day = TRUE AND lang = %s",
-            (lang,),
-        )
-
-    rows = cur.fetchall()
-    conn.close()
+    user_ids = get_vip_bet_day_subscribers()
 
     sent = 0
-    for row in rows:
-        user_id = row["user_id"] if isinstance(row, dict) or hasattr(row, "keys") else row[0]
+    for user_id in user_ids:
         try:
             await context.bot.send_photo(
                 chat_id=user_id,

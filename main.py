@@ -54,11 +54,11 @@ from handlers.admin import (
     promo_stats,
     delete_user,
     stars_revenue,
-    sendposthelp,
-    admin_sendpost_command,
-    admin_sendpost_photo,
+    send_basic_bet_day,
+    send_vip_bet_day,
 )
 from handlers.bets import process_bet_photo
+from handlers.tools import open_tools_menu, tools_callback_handler
 from states import WAITING_PROMO, WAITING_PAYMENT_SCREEN
 
 
@@ -327,14 +327,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     elif text in ("🛠 Усі інструменти", "🛠 Все инструменты", "🛠 All tools"):
-        if lang == "ru":
-            tools_text = "Инструменты скоро будут доступны."
-        elif lang == "en":
-            tools_text = "Tools will be available soon."
-        else:
-            tools_text = "Інструменти скоро будуть доступні."
-
-        await update.message.reply_text(tools_text)
+        await open_tools_menu(update, context)
 
     elif text in ("💳 Купити доступ", "💳 Купить доступ", "💳 Buy access"):
         await update.message.reply_text(
@@ -376,8 +369,8 @@ def main():
     app.add_handler(CommandHandler("statspromo", promo_stats))
     app.add_handler(CommandHandler("deluser", delete_user))
     app.add_handler(CommandHandler("stars", stars_revenue))
-    app.add_handler(CommandHandler("sendposthelp", sendposthelp))
-    app.add_handler(CommandHandler("sendpost", admin_sendpost_command))
+    app.add_handler(CommandHandler("sendbasicday", send_basic_bet_day))
+    app.add_handler(CommandHandler("sendvipday", send_vip_bet_day))
 
     promo_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(access_buttons, pattern="^(enter_promo|back_to_access)$")],
@@ -405,9 +398,9 @@ def main():
     app.add_handler(CallbackQueryHandler(full_stats_callback_handler, pattern="^fullstats_"))
     app.add_handler(CallbackQueryHandler(analytics_callback_handler, pattern="^analytics_"))
     app.add_handler(CallbackQueryHandler(language_handler, pattern="^lang_"))
+    app.add_handler(CallbackQueryHandler(tools_callback_handler, pattern="^(tool_|betday_|tools_back|usdt_vip_bet_day_month|stars_vip_bet_day_month)"))
 
     app.add_handler(MessageHandler(filters.REPLY & filters.TEXT & ~filters.COMMAND, admin_payment_reply_handler))
-    app.add_handler(MessageHandler(filters.PHOTO, admin_sendpost_photo))
     app.add_handler(MessageHandler(filters.PHOTO, process_bet_photo))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, menu_handler))
 

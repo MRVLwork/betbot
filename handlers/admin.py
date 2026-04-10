@@ -1,5 +1,5 @@
 from telegram import Update
-from telegram.ext import ContextTypes, ApplicationHandlerStop
+from telegram.ext import ContextTypes
 
 from config import ADMIN_ID
 from db import (
@@ -10,10 +10,10 @@ from db import (
     delete_user_by_id,
     delete_user_by_username,
     get_conn,
-    get_broadcast_recipients,
+    get_basic_bet_day_subscribers,
+    get_vip_bet_day_subscribers,
 )
 from services.promo_service import generate_promo_code
-from services.broadcast_service import parse_segmented_post, is_sendpost_text
 
 
 def is_admin(user_id: int) -> bool:
@@ -208,90 +208,43 @@ async def stars_revenue(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"VIP: {row['vip_stars']} ⭐"
     )
 
-async def sendposthelp(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def send_basic_bet_day(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update.effective_user.id):
         return
 
-    await update.message.reply_text(
-        "Формат розсилки:\n\n"
-        "/sendpost\n"
-        "Текст повідомлення\n\n"
-        "/ua або /ru або /en або /alllangs\n"
-        "/trial або /basic або /vip або /all\n\n"
-        "Можна надсилати як текстом, так і фото з caption."
-    )
-
-
-async def admin_sendpost_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update.effective_user.id):
+    text = update.message.text.partition(" ")[2].strip()
+    if not text:
+        await update.message.reply_text("Формат: /sendbasicday текст ставки")
         return
 
-    raw_text = update.message.text or ""
-    if not is_sendpost_text(raw_text):
-        return
-
-    parsed = parse_segmented_post(raw_text)
-    recipients = get_broadcast_recipients(parsed["lang_tag"], parsed["audience_tag"])
-
-    if not recipients:
-        await update.message.reply_text("❌ Немає отримувачів для цієї розсилки.")
-        raise ApplicationHandlerStop
-
+    user_ids = get_basic_bet_day_subscribers()
     sent = 0
-    failed = 0
-
-    for user_id in recipients:
+    for user_id in user_ids:
         try:
-            await context.bot.send_message(chat_id=user_id, text=parsed["text"] or " ")
+            await context.bot.send_message(chat_id=user_id, text=f"🎯 Basic ставка дня\n\n{text}")
             sent += 1
         except Exception:
-            failed += 1
+            pass
 
-    await update.message.reply_text(
-        f"✅ Розсилка завершена\n\n"
-        f"Мова: {parsed['lang_tag']}\n"
-        f"Аудиторія: {parsed['audience_tag']}\n"
-        f"Відправлено: {sent}\n"
-        f"Помилки: {failed}"
-    )
-    raise ApplicationHandlerStop
+    await update.message.reply_text(f"✅ Відправлено Basic ставку дня: {sent}")
 
 
-async def admin_sendpost_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def send_vip_bet_day(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update.effective_user.id):
         return
 
-    caption = update.message.caption or ""
-    if not is_sendpost_text(caption):
+    text = update.message.text.partition(" ")[2].strip()
+    if not text:
+        await update.message.reply_text("Формат: /sendvipday текст ставки")
         return
 
-    parsed = parse_segmented_post(caption)
-    recipients = get_broadcast_recipients(parsed["lang_tag"], parsed["audience_tag"])
-
-    if not recipients:
-        await update.message.reply_text("❌ Немає отримувачів для цієї розсилки.")
-        raise ApplicationHandlerStop
-
-    photo_id = update.message.photo[-1].file_id
+    user_ids = get_vip_bet_day_subscribers()
     sent = 0
-    failed = 0
-
-    for user_id in recipients:
+    for user_id in user_ids:
         try:
-            await context.bot.send_photo(
-                chat_id=user_id,
-                photo=photo_id,
-                caption=parsed["text"] or None,
-            )
+            await context.bot.send_message(chat_id=user_id, text=f"🔥 VIP ставка дня\n\n{text}")
             sent += 1
         except Exception:
-            failed += 1
+            pass
 
-    await update.message.reply_text(
-        f"✅ Розсилка завершена\n\n"
-        f"Мова: {parsed['lang_tag']}\n"
-        f"Аудиторія: {parsed['audience_tag']}\n"
-        f"Відправлено: {sent}\n"
-        f"Помилки: {failed}"
-    )
-    raise ApplicationHandlerStop
+    await update.message.reply_text(f"✅ Відправлено VIP ставку дня: {sent}")

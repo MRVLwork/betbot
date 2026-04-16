@@ -35,8 +35,8 @@ def analyze_basic_bet_screenshot(image_bytes: bytes) -> dict:
     - stake_amount
     - odds
     - currency
-    - bet_type: total / result
-    - bet_subtype: tb / tm / win / draw / double_chance / handicap / qualification / other
+    - bet_type: 1x2 / total / btts / handicap / double_chance / corners / cards / other
+    - bet_subtype: home / away / draw / over / under / yes / no / 1x / x2 / 12 / other
     """
 
     if not OPENAI_API_KEY:
@@ -60,13 +60,13 @@ def analyze_basic_bet_screenshot(image_bytes: bytes) -> dict:
                                 "STAKE=<number>\n"
                                 "ODDS=<decimal number>\n"
                                 "CURRENCY=UAH|USD|EUR\n"
-                                "BET_TYPE=total|result\n"
-                                "BET_SUBTYPE=tb|tm|win|draw|double_chance|handicap|qualification|other\n\n"
+                                "BET_TYPE=1x2|total|btts|handicap|double_chance|corners|cards|other\n"
+                                "BET_SUBTYPE=home|away|draw|over|under|yes|no|1x|x2|12|other\n\n"
                                 "Classification rules:\n"
                                 "- If the bet is not settled yet, match is not finished, there is no final payout/result, "
                                 "or the screenshot shows potential payout / possible win instead of actual settled payout, then RESULT=pending\n"
-                                "- If the bet is on total over/under (ТБ, ТМ, Over, Under), BET_TYPE=total\n"
-                                "- For totals: ТБ/Over -> BET_SUBTYPE=tb, ТМ/Under -> BET_SUBTYPE=tm\n"
+                                "- Match winner / 1X2 / P1 / P2 / X / draw -> BET_TYPE=1x2\n- Goal total over/under (ТБ, ТМ, Over, Under) -> BET_TYPE=total\n"
+                                "- For totals: Over -> BET_SUBTYPE=over, Under -> BET_SUBTYPE=under\n"
                                 "- If the bet is on match result, 1X2, P1/P2, draw, double chance, handicap, qualification, BET_TYPE=result\n"
                                 "- For result-like bets:\n"
                                 "  * win / P1 / P2 / перемога -> BET_SUBTYPE=win\n"
@@ -124,8 +124,8 @@ def analyze_basic_bet_screenshot(image_bytes: bytes) -> dict:
         odds = _to_float(odds_raw)
 
         valid_results = {"win", "lose", "refund", "pending"}
-        valid_types = {"total", "result"}
-        valid_subtypes = {"tb", "tm", "win", "draw", "double_chance", "handicap", "qualification", "other"}
+        valid_types = {"1x2", "total", "btts", "handicap", "double_chance", "corners", "cards", "other"}
+        valid_subtypes = {"home", "away", "draw", "over", "under", "yes", "no", "1x", "x2", "12", "other"}
 
         if result not in valid_results:
             return {"ok": False, "error": f"Invalid RESULT: {result}", "raw_text": text}

@@ -79,7 +79,11 @@ def get_user_plan(user_id: int) -> str:
     user = get_user(user_id)
     if not user:
         return "basic"
-    return (user.get("plan") or "basic").lower()
+    return (user.get("plan") or "basic").strip().lower()
+
+
+def is_user_vip(user_id: int) -> bool:
+    return get_user_plan(user_id) == "vip" and user_has_access(user_id)
 
 
 def format_compare_block(current: dict, previous: dict, lang: str, current_label_key: str, previous_label_key: str) -> str:
@@ -330,11 +334,11 @@ async def analytics_callback_handler(update: Update, context: ContextTypes.DEFAU
                     worst_lose_streak=stats["worst_lose_streak"],
                 ),
                 dynamics_text=(
-                    format_compare_block(lang, stats["recent"], stats["previous"], "period_recent_3days", "period_previous_3days")
+                    format_compare_block(stats["recent"], stats["previous"], lang, "period_recent_3days", "period_previous_3days")
                     + "\n\n" +
-                    format_compare_block(lang, stats["week_current"], stats["week_previous"], "period_current_week", "period_previous_week")
+                    format_compare_block(stats["week_current"], stats["week_previous"], lang, "period_current_week", "period_previous_week")
                     + "\n\n" +
-                    format_compare_block(lang, stats["month_current"], stats["month_previous"], "period_current_month", "period_previous_month")
+                    format_compare_block(stats["month_current"], stats["month_previous"], lang, "period_current_month", "period_previous_month")
                 ),
                 profile_title=profile_title,
                 profile_desc=profile_desc,
@@ -423,8 +427,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(get_text(lang, "no_active_access_start"))
             return ConversationHandler.END
 
-        user = get_user(user_id)
-        is_vip = (user["plan"] == "vip")
+        is_vip = is_user_vip(user_id)
 
         await update.message.reply_text(
             get_text(lang, "choose_period"),
@@ -436,8 +439,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(get_text(lang, "no_active_access_start"))
             return ConversationHandler.END
 
-        user = get_user(user_id)
-        is_vip = (user["plan"] == "vip")
+        is_vip = is_user_vip(user_id)
 
         await update.message.reply_text(
             get_text(lang, "choose_full_stats_period"),
@@ -449,8 +451,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(get_text(lang, "no_active_access_start"))
             return ConversationHandler.END
 
-        user = get_user(user_id)
-        is_vip = (user["plan"] == "vip")
+        is_vip = is_user_vip(user_id)
 
         await update.message.reply_text(
             get_text(lang, "choose_analytics_period"),

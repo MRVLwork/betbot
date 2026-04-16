@@ -1,18 +1,27 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 
 from db import get_conn
+
+
+VALID_RESULTS = {"win", "lose", "refund", "pending"}
+SETTLED_RESULTS = {"win", "lose", "refund"}
+ODDS_BUCKETS = ("lt2", "mid", "high")
+TYPE_BUCKETS = ("total", "result")
 
 
 def add_column_if_not_exists(table_name: str, column_name: str, column_def: str):
     conn = get_conn()
     cur = conn.cursor()
 
-    cur.execute("""
+    cur.execute(
+        """
         SELECT column_name
         FROM information_schema.columns
         WHERE table_name = ? AND column_name = ?
-    """, (table_name, column_name))
+    """,
+        (table_name, column_name),
+    )
     exists = cur.fetchone()
 
     if not exists:
@@ -26,7 +35,8 @@ def init_bets_table():
     conn = get_conn()
     cur = conn.cursor()
 
-    cur.execute("""
+    cur.execute(
+        """
         CREATE TABLE IF NOT EXISTS bets (
             id SERIAL PRIMARY KEY,
             user_id BIGINT NOT NULL,
@@ -43,7 +53,8 @@ def init_bets_table():
             is_trial INTEGER DEFAULT 0,
             created_at TEXT NOT NULL
         )
-    """)
+    """
+    )
 
     conn.commit()
     conn.close()
@@ -72,7 +83,8 @@ def create_bet(
 
     raw_json_value = json.dumps(raw_json, ensure_ascii=False) if raw_json is not None else None
 
-    cur.execute("""
+    cur.execute(
+        """
         INSERT INTO bets (
             user_id,
             photo_file_id,
@@ -90,26 +102,35 @@ def create_bet(
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         RETURNING id
-    """, (
-        user_id,
-        photo_file_id,
-        stake_amount,
-        odds,
-        bet_result,
-        currency,
-        parse_status,
-        raw_json_value,
-        extraction_error,
-        bet_type,
-        bet_subtype,
-        1 if is_trial else 0,
-        datetime.now().isoformat(),
-    ))
+    """,
+        (
+            user_id,
+            photo_file_id,
+            stake_amount,
+            odds,
+            bet_result,
+            currency,
+            parse_status,
+            raw_json_value,
+            extraction_error,
+            bet_type,
+            bet_subtype,
+            1 if is_trial else 0,
+            datetime.now().isoformat(),
+        ),
+    )
 
     row = cur.fetchone()
     conn.commit()
     conn.close()
     return row["id"] if row else None
+
+
+def _safe_float(value) -> float:
+    try:
+        return float(value or 0)
+    except (TypeError, ValueError):
+        return 0.0
 
 
 def _result_to_symbol(result: str) -> str:
@@ -124,118 +145,314 @@ def _result_to_symbol(result: str) -> str:
     return "?"
 
 
+def _normalize_row(row):
+    if row.get("parse_status") != "parsed":
+        return None
+    result = row.get("bet_result")
+    if result not in VALID_RESULTS:
+        return None
+
+    stake = _safe_float(row.get("stake_amount"))
+    odds = _safe_float(row.get("odds"))
+    created_at_raw = row.get("created_at")
+    created_at = None
+    if created_at_raw:
+        try:
+            created_at = datetime.fromisoformat(created_at_raw)
+        except Exception:
+            created_at = None
+
+    if result == "win":
+        profit = stake * (odds - 1) if odds > 0 else 0.0
+    elif result == "lose":
+        profit = -stake
+    else:
+        profit = 0.0
+
+    return {
+        "stake": stake,
+        "odds": odds,
+        "bet_result": result,
+        "bet_type": row.get("bet_type") if row.get("bet_type") in TYPE_BUCKETS else None,
+        "profit": profit,
+        "created_at": created_at,
+    }
+
+
+def _empty_bucket():
+    return {
+        "count": 0,
+        "settled_count": 0,
+        "wins": 0,
+        "losses": 0,
+        "refunds": 0,
+        "pending": 0,
+        "stake": 0.0,
+        "settled_stake": 0.0,
+        "profit": 0.0,
+        "odds_sum": 0.0,
+        "odds_count": 0,
+    }
+
+
+def _update_bucket(bucket: dict, item: dict):
+    bucket["count"] += 1
+    bucket["stake"] += item["stake"]
+
+    if item["odds"] > 0:
+        bucket["odds_sum"] += item["odds"]
+        bucket["odds_count"] += 1
+
+    result = item["bet_result"]
+    if result == "win":
+        bucket["wins"] += 1
+        bucket["settled_count"] += 1
+        bucket["settled_stake"] += item["stake"]
+    elif result == "lose":
+        bucket["losses"] += 1
+        bucket["settled_count"] += 1
+        bucket["settled_stake"] += item["stake"]
+    elif result == "refund":
+        bucket["refunds"] += 1
+        bucket["settled_count"] += 1
+        bucket["settled_stake"] += item["stake"]
+    elif result == "pending":
+        bucket["pending"] += 1
+
+    bucket["profit"] += item["profit"]
+
+
+def _finalize_bucket(bucket: dict) -> dict:
+    settled_for_wr = bucket["wins"] + bucket["losses"]
+    win_rate = round((bucket["wins"] / settled_for_wr) * 100, 2) if settled_for_wr > 0 else 0.0
+    roi = round((bucket["profit"] / bucket["settled_stake"]) * 100, 2) if bucket["settled_stake"] > 0 else 0.0
+    avg_odds = round(bucket["odds_sum"] / bucket["odds_count"], 2) if bucket["odds_count"] > 0 else 0.0
+    bucket["stake"] = round(bucket["stake"], 2)
+    bucket["settled_stake"] = round(bucket["settled_stake"], 2)
+    bucket["profit"] = round(bucket["profit"], 2)
+    bucket["avg_odds"] = avg_odds
+    bucket["win_rate"] = win_rate
+    bucket["roi"] = roi
+    return bucket
+
+
+def _get_odds_bucket(odds: float) -> str | None:
+    if odds <= 0:
+        return None
+    if odds < 2.0:
+        return "lt2"
+    if odds < 2.5:
+        return "mid"
+    return "high"
+
+
+def _pick_best_bucket(buckets: dict) -> str:
+    candidates = [(name, data) for name, data in buckets.items() if data["settled_count"] >= 3]
+    if not candidates:
+        candidates = [(name, data) for name, data in buckets.items() if data["count"] > 0]
+    if not candidates:
+        return "none"
+    candidates.sort(key=lambda item: (item[1]["roi"], item[1]["profit"], item[1]["win_rate"], item[1]["count"]), reverse=True)
+    return candidates[0][0]
+
+
+def _pick_weak_bucket(buckets: dict) -> str:
+    candidates = [(name, data) for name, data in buckets.items() if data["settled_count"] >= 3]
+    if not candidates:
+        candidates = [(name, data) for name, data in buckets.items() if data["count"] > 0]
+    if not candidates:
+        return "none"
+    candidates.sort(key=lambda item: (item[1]["roi"], item[1]["profit"], item[1]["win_rate"], -item[1]["count"]))
+    return candidates[0][0]
+
+
+def _profile_code(stats: dict) -> str:
+    avg_odds = stats["avg_odds"]
+    lt2_share = stats["odds_lt2"]["count"] / stats["total_bets"] if stats["total_bets"] else 0
+    high_share = stats["odds_high"]["count"] / stats["total_bets"] if stats["total_bets"] else 0
+    total_share = stats["types"]["total"]["count"] / stats["total_bets"] if stats["total_bets"] else 0
+
+    if high_share >= 0.35 or avg_odds >= 2.3:
+        return "aggressive"
+    if lt2_share >= 0.65 and avg_odds and avg_odds < 1.95:
+        return "careful"
+    if total_share >= 0.7 and stats["roi"] >= 0:
+        return "system"
+    if 0.35 <= lt2_share <= 0.65 and 0.15 <= high_share <= 0.3:
+        return "balanced"
+    if stats["roi"] < 0 and stats["worst_lose_streak"] >= 4:
+        return "mixed"
+    return "mixed"
+
+
+def _overall_status_code(stats: dict) -> str:
+    if stats["roi"] >= 12 and stats["win_rate"] >= 58:
+        return "great"
+    if stats["roi"] >= 4 and stats["win_rate"] >= 52:
+        return "good"
+    if stats["roi"] >= -3 and stats["win_rate"] >= 45:
+        return "neutral"
+    return "bad"
+
+
+def _trend_code(recent: dict, previous: dict) -> str:
+    diff = recent["profit"] - previous["profit"]
+    if diff > 0.01:
+        return "up"
+    if diff < -0.01:
+        return "down"
+    return "flat"
+
+
+def _recommendation_code(stats: dict) -> str:
+    if stats["odds_high"]["roi"] < 0 and stats["odds_high"]["count"] >= 3:
+        return "cut_high_odds"
+    if stats["types"]["result"]["roi"] < 0 <= stats["types"]["total"]["roi"] and stats["types"]["result"]["count"] >= 3:
+        return "focus_total"
+    if stats["types"]["total"]["roi"] < 0 <= stats["types"]["result"]["roi"] and stats["types"]["total"]["count"] >= 3:
+        return "focus_result"
+    if stats["worst_lose_streak"] >= 3:
+        return "reduce_risk"
+    return "keep_discipline"
+
+
+def _risk_codes(stats: dict, recent: dict, previous: dict) -> list[str]:
+    codes: list[str] = []
+    if stats["worst_lose_streak"] >= 3:
+        codes.append("losing_streak")
+    if stats["roi"] < -10:
+        codes.append("negative_roi")
+    if stats["odds_high"]["count"] >= 3 and stats["odds_high"]["roi"] < 0:
+        codes.append("high_odds_drag")
+    if stats["win_rate"] and stats["win_rate"] < 45:
+        codes.append("low_winrate")
+    if recent["profit"] < previous["profit"] and recent["roi"] < previous["roi"]:
+        codes.append("downtrend")
+    return codes[:3]
+
+
 def _calc_stats(rows):
-    total_bets = 0
-    wins = 0
-    losses = 0
-    refunds = 0
-    total_stake = 0.0
-    total_profit = 0.0
-    odds_values = []
-    win_streak = 0
+    stats = {
+        "total_bets": 0,
+        "settled_bets": 0,
+        "pending_bets": 0,
+        "wins": 0,
+        "losses": 0,
+        "refunds": 0,
+        "total_stake": 0.0,
+        "settled_stake": 0.0,
+        "net_profit": 0.0,
+        "avg_odds": 0.0,
+        "roi": 0.0,
+        "current_win_streak": 0,
+        "best_win_streak": 0,
+        "current_lose_streak": 0,
+        "worst_lose_streak": 0,
+        "last_results": "-",
+        "types": {name: _empty_bucket() for name in TYPE_BUCKETS},
+        "odds_lt2": _empty_bucket(),
+        "odds_mid": _empty_bucket(),
+        "odds_high": _empty_bucket(),
+    }
+
+    odds_sum = 0.0
+    odds_count = 0
+    current_win_streak = 0
+    current_lose_streak = 0
     best_win_streak = 0
-    current_streak = 0
-
-    total_type_count = 0
-    result_type_count = 0
-    total_type_profit = 0.0
-    result_type_profit = 0.0
-
-    under_2_count = 0
-    over_2_count = 0
-    under_2_profit = 0.0
-    over_2_profit = 0.0
-
+    worst_lose_streak = 0
     last_results_list = []
 
     for row in rows:
-        if row["parse_status"] != "parsed":
+        item = _normalize_row(row)
+        if not item:
             continue
-        if row["bet_result"] not in ("win", "lose", "refund", "pending"):
-            continue
 
-        stake = float(row["stake_amount"] or 0)
-        odds = float(row["odds"] or 0)
-        bet_result = row["bet_result"]
-        bet_type = row.get("bet_type")
-        total_bets += 1
+        stats["total_bets"] += 1
+        stats["total_stake"] += item["stake"]
 
-        if odds > 0:
-            odds_values.append(odds)
+        if item["odds"] > 0:
+            odds_sum += item["odds"]
+            odds_count += 1
 
-        if bet_result == "win":
-            wins += 1
-            profit = stake * (odds - 1)
-            current_streak += 1
-            if current_streak > best_win_streak:
-                best_win_streak = current_streak
-        elif bet_result == "lose":
-            losses += 1
-            profit = -stake
-            current_streak = 0
-        elif bet_result == "refund":
-            refunds += 1
-            profit = 0
-            current_streak = 0
-        else:
-            profit = 0
+        result = item["bet_result"]
+        if result in SETTLED_RESULTS:
+            stats["settled_bets"] += 1
+            stats["settled_stake"] += item["stake"]
+        if result == "pending":
+            stats["pending_bets"] += 1
 
-        total_stake += stake
-        total_profit += profit
+        if result == "win":
+            stats["wins"] += 1
+            current_win_streak += 1
+            current_lose_streak = 0
+            best_win_streak = max(best_win_streak, current_win_streak)
+        elif result == "lose":
+            stats["losses"] += 1
+            current_lose_streak += 1
+            current_win_streak = 0
+            worst_lose_streak = max(worst_lose_streak, current_lose_streak)
+        elif result == "refund":
+            stats["refunds"] += 1
+            current_win_streak = 0
+            current_lose_streak = 0
+        elif result == "pending":
+            pass
 
-        if bet_result != "pending":
-            last_results_list.append(_result_to_symbol(bet_result))
+        stats["net_profit"] += item["profit"]
 
-        if bet_type == "total":
-            total_type_count += 1
-            total_type_profit += profit
-        elif bet_type == "result":
-            result_type_count += 1
-            result_type_profit += profit
+        if result != "pending":
+            last_results_list.append(_result_to_symbol(result))
 
-        if odds > 0:
-            if odds < 2:
-                under_2_count += 1
-                under_2_profit += profit
-            else:
-                over_2_count += 1
-                over_2_profit += profit
+        if item["bet_type"] in stats["types"]:
+            _update_bucket(stats["types"][item["bet_type"]], item)
 
-    settled_bets = wins + losses
-    win_rate = round((wins / settled_bets) * 100, 2) if settled_bets > 0 else 0.0
-    avg_odds = round(sum(odds_values) / len(odds_values), 2) if odds_values else 0.0
-    roi = round((total_profit / total_stake) * 100, 2) if total_stake > 0 else 0.0
-    win_streak = current_streak
+        odds_bucket = _get_odds_bucket(item["odds"])
+        if odds_bucket == "lt2":
+            _update_bucket(stats["odds_lt2"], item)
+        elif odds_bucket == "mid":
+            _update_bucket(stats["odds_mid"], item)
+        elif odds_bucket == "high":
+            _update_bucket(stats["odds_high"], item)
 
-    return {
-        "total_bets": total_bets,
-        "wins": wins,
-        "losses": losses,
-        "refunds": refunds,
-        "win_rate": win_rate,
-        "avg_odds": avg_odds,
-        "total_stake": round(total_stake, 2),
-        "net_profit": round(total_profit, 2),
-        "roi": roi,
-        "win_streak": win_streak,
-        "best_win_streak": best_win_streak,
-        "total_type_count": total_type_count,
-        "result_type_count": result_type_count,
-        "total_type_profit": round(total_type_profit, 2),
-        "result_type_profit": round(result_type_profit, 2),
-        "under_2_count": under_2_count,
-        "over_2_count": over_2_count,
-        "under_2_profit": round(under_2_profit, 2),
-        "over_2_profit": round(over_2_profit, 2),
-        "last_results": " ".join(last_results_list[-5:]) if last_results_list else "-",
-    }
+    settled_for_wr = stats["wins"] + stats["losses"]
+    stats["win_rate"] = round((stats["wins"] / settled_for_wr) * 100, 2) if settled_for_wr > 0 else 0.0
+    stats["avg_odds"] = round(odds_sum / odds_count, 2) if odds_count > 0 else 0.0
+    stats["total_stake"] = round(stats["total_stake"], 2)
+    stats["settled_stake"] = round(stats["settled_stake"], 2)
+    stats["net_profit"] = round(stats["net_profit"], 2)
+    stats["roi"] = round((stats["net_profit"] / stats["settled_stake"]) * 100, 2) if stats["settled_stake"] > 0 else 0.0
+    stats["current_win_streak"] = current_win_streak
+    stats["best_win_streak"] = best_win_streak
+    stats["current_lose_streak"] = current_lose_streak
+    stats["worst_lose_streak"] = worst_lose_streak
+    stats["win_streak"] = current_win_streak
+    stats["last_results"] = " ".join(last_results_list[-5:]) if last_results_list else "-"
+
+    for bucket_name in TYPE_BUCKETS:
+        stats["types"][bucket_name] = _finalize_bucket(stats["types"][bucket_name])
+    stats["odds_lt2"] = _finalize_bucket(stats["odds_lt2"])
+    stats["odds_mid"] = _finalize_bucket(stats["odds_mid"])
+    stats["odds_high"] = _finalize_bucket(stats["odds_high"])
+
+    stats["total_type_count"] = stats["types"]["total"]["count"]
+    stats["result_type_count"] = stats["types"]["result"]["count"]
+    stats["total_type_profit"] = stats["types"]["total"]["profit"]
+    stats["result_type_profit"] = stats["types"]["result"]["profit"]
+    stats["under_2_count"] = stats["odds_lt2"]["count"]
+    stats["over_2_count"] = stats["odds_mid"]["count"] + stats["odds_high"]["count"]
+    stats["under_2_profit"] = stats["odds_lt2"]["profit"]
+    stats["over_2_profit"] = round(stats["odds_mid"]["profit"] + stats["odds_high"]["profit"], 2)
+
+    return stats
 
 
 def _get_rows_between(user_id: int, start_dt, end_dt, include_trial: bool = False):
     conn = get_conn()
     cur = conn.cursor()
 
-    cur.execute("""
+    cur.execute(
+        """
         SELECT *
         FROM bets
         WHERE user_id = ?
@@ -243,16 +460,52 @@ def _get_rows_between(user_id: int, start_dt, end_dt, include_trial: bool = Fals
           AND created_at <= ?
           AND COALESCE(is_trial, 0) = ?
         ORDER BY created_at ASC
-    """, (
-        user_id,
-        start_dt.isoformat(),
-        end_dt.isoformat(),
-        1 if include_trial else 0,
-    ))
+    """,
+        (
+            user_id,
+            start_dt.isoformat(),
+            end_dt.isoformat(),
+            1 if include_trial else 0,
+        ),
+    )
     rows = cur.fetchall()
 
     conn.close()
     return rows
+
+
+def _filter_rows_by_range(rows, start_dt, end_dt):
+    filtered = []
+    for row in rows:
+        created_at_raw = row.get("created_at")
+        if not created_at_raw:
+            continue
+        try:
+            created_at = datetime.fromisoformat(created_at_raw)
+        except Exception:
+            continue
+        if start_dt <= created_at <= end_dt:
+            filtered.append(row)
+    return filtered
+
+
+def _comparison_stats(rows, end_dt: datetime, days: int = 3):
+    recent_start = end_dt - timedelta(days=days)
+    previous_end = recent_start
+    previous_start = previous_end - timedelta(days=days)
+
+    recent_stats = _calc_stats(_filter_rows_by_range(rows, recent_start, end_dt))
+    previous_stats = _calc_stats(_filter_rows_by_range(rows, previous_start, previous_end))
+    return recent_stats, previous_stats
+
+
+def _period_comparison(rows, end_dt: datetime, days: int):
+    current_start = end_dt - timedelta(days=days)
+    previous_end = current_start
+    previous_start = previous_end - timedelta(days=days)
+    current_stats = _calc_stats(_filter_rows_by_range(rows, current_start, end_dt))
+    previous_stats = _calc_stats(_filter_rows_by_range(rows, previous_start, previous_end))
+    return current_stats, previous_stats
 
 
 def get_basic_stats_between(user_id: int, start_dt, end_dt, include_trial: bool = False):
@@ -263,7 +516,7 @@ def get_basic_stats_between(user_id: int, start_dt, end_dt, include_trial: bool 
         "roi": stats["roi"],
         "win_rate": stats["win_rate"],
         "avg_odds": stats["avg_odds"],
-        "win_streak": stats["win_streak"],
+        "win_streak": stats["current_win_streak"],
     }
 
 
@@ -272,57 +525,82 @@ def get_full_stats_between(user_id: int, start_dt, end_dt, include_trial: bool =
     return _calc_stats(rows)
 
 
-def get_analytics_between(user_id: int, start_dt, end_dt, include_trial: bool = False):
+def get_analytics_between(user_id: int, start_dt, end_dt, plan: str = "basic", include_trial: bool = False):
     rows = _get_rows_between(user_id, start_dt, end_dt, include_trial=include_trial)
     stats = _calc_stats(rows)
 
-    best_type = "total" if stats["total_type_profit"] >= stats["result_type_profit"] else "result"
-    worst_type = "result" if best_type == "total" else "total"
+    recent_stats, previous_stats = _comparison_stats(rows, end_dt, days=3)
+    week_current, week_previous = _period_comparison(rows, end_dt, days=7)
+    month_current, month_previous = _period_comparison(rows, end_dt, days=30)
 
-    recent_profit = stats["net_profit"]
-    previous_profit = 0.0
+    best_type = _pick_best_bucket(stats["types"])
+    weak_type = _pick_weak_bucket(stats["types"])
+    best_odds_bucket = _pick_best_bucket(
+        {"lt2": stats["odds_lt2"], "mid": stats["odds_mid"], "high": stats["odds_high"]}
+    )
+    weak_odds_bucket = _pick_weak_bucket(
+        {"lt2": stats["odds_lt2"], "mid": stats["odds_mid"], "high": stats["odds_high"]}
+    )
 
-    if stats["win_rate"] >= 60:
-        conclusion_code = "good"
-    elif stats["win_rate"] >= 45:
-        conclusion_code = "neutral"
-    else:
-        conclusion_code = "bad"
+    profile_code = _profile_code(stats)
+    overall_status_code = _overall_status_code(stats)
+    trend_code = _trend_code(recent_stats, previous_stats)
+    recommendation_code = _recommendation_code(stats)
+    risk_codes = _risk_codes(stats, recent_stats, previous_stats)
 
-    if stats["avg_odds"] < 2:
-        coeff_code = "coeff_under_2"
-    else:
-        coeff_code = "coeff_over_2"
-
-    losing_streak = 0
-    if stats["last_results"] != "-":
-        parts = stats["last_results"].split()
-        for item in reversed(parts):
-            if item == "❌":
-                losing_streak += 1
-            else:
-                break
-
-    risk_code = ""
-    if losing_streak >= 3:
-        risk_code = "losing_streak"
-    elif stats["roi"] < -15:
-        risk_code = "roi_drop"
-
-    if stats["total_type_count"] > stats["result_type_count"]:
-        profile_code = "system"
-    else:
-        profile_code = "mixed"
+    strengths = []
+    if best_type in stats["types"] and stats["types"][best_type]["count"] > 0:
+        strengths.append(f"type:{best_type}")
+    if best_odds_bucket in ODDS_BUCKETS and stats[f"odds_{best_odds_bucket}"]["count"] > 0:
+        strengths.append(f"odds:{best_odds_bucket}")
 
     return {
         **stats,
+        "plan": (plan or "basic").lower(),
+        "overall_status_code": overall_status_code,
         "best_type": best_type,
-        "worst_type": worst_type,
-        "conclusion_code": conclusion_code,
-        "coeff_code": coeff_code,
-        "risk_code": risk_code,
-        "losing_streak": losing_streak,
-        "recent_profit": recent_profit,
-        "previous_profit": previous_profit,
+        "weak_type": weak_type,
+        "best_odds_bucket": best_odds_bucket,
+        "weak_odds_bucket": weak_odds_bucket,
+        "recent": {
+            "profit": recent_stats["net_profit"],
+            "roi": recent_stats["roi"],
+            "win_rate": recent_stats["win_rate"],
+            "settled_bets": recent_stats["settled_bets"],
+        },
+        "previous": {
+            "profit": previous_stats["net_profit"],
+            "roi": previous_stats["roi"],
+            "win_rate": previous_stats["win_rate"],
+            "settled_bets": previous_stats["settled_bets"],
+        },
+        "week_current": {
+            "profit": week_current["net_profit"],
+            "roi": week_current["roi"],
+            "win_rate": week_current["win_rate"],
+            "settled_bets": week_current["settled_bets"],
+        },
+        "week_previous": {
+            "profit": week_previous["net_profit"],
+            "roi": week_previous["roi"],
+            "win_rate": week_previous["win_rate"],
+            "settled_bets": week_previous["settled_bets"],
+        },
+        "month_current": {
+            "profit": month_current["net_profit"],
+            "roi": month_current["roi"],
+            "win_rate": month_current["win_rate"],
+            "settled_bets": month_current["settled_bets"],
+        },
+        "month_previous": {
+            "profit": month_previous["net_profit"],
+            "roi": month_previous["roi"],
+            "win_rate": month_previous["win_rate"],
+            "settled_bets": month_previous["settled_bets"],
+        },
+        "trend_code": trend_code,
         "profile_code": profile_code,
+        "risk_codes": risk_codes,
+        "recommendation_code": recommendation_code,
+        "strengths": strengths,
     }

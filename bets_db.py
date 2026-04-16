@@ -296,7 +296,9 @@ def _overall_status_code(stats: dict) -> str:
 
 
 def _trend_code(recent: dict, previous: dict) -> str:
-    diff = recent["profit"] - previous["profit"]
+    recent_profit = recent.get("profit", recent.get("net_profit", 0.0))
+    previous_profit = previous.get("profit", previous.get("net_profit", 0.0))
+    diff = recent_profit - previous_profit
     if diff > 0.01:
         return "up"
     if diff < -0.01:
@@ -326,7 +328,11 @@ def _risk_codes(stats: dict, recent: dict, previous: dict) -> list[str]:
         codes.append("high_odds_drag")
     if stats["win_rate"] and stats["win_rate"] < 45:
         codes.append("low_winrate")
-    if recent["profit"] < previous["profit"] and recent["roi"] < previous["roi"]:
+    recent_profit = recent.get("profit", recent.get("net_profit", 0.0))
+    previous_profit = previous.get("profit", previous.get("net_profit", 0.0))
+    recent_roi = recent.get("roi", 0.0)
+    previous_roi = previous.get("roi", 0.0)
+    if recent_profit < previous_profit and recent_roi < previous_roi:
         codes.append("downtrend")
     return codes[:3]
 

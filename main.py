@@ -119,16 +119,6 @@ def format_odds_breakdown(lang: str, bucket_label_key: str, bucket: dict) -> str
     )
 
 
-def format_market_breakdown(lang: str, market_key: str, bucket: dict) -> str:
-    return get_text(lang, "analytics_market_breakdown_line").format(
-        label=get_text(lang, f"market_type_{market_key}"),
-        count=bucket["count"],
-        win_rate=bucket["win_rate"],
-        roi=bucket["roi"],
-        profit=bucket["profit"],
-    )
-
-
 def format_risk_block(lang: str, stats: dict) -> str:
     if not stats["risk_codes"]:
         return get_text(lang, "analytics_no_risks")
@@ -306,14 +296,6 @@ async def analytics_callback_handler(update: Update, context: ContextTypes.DEFAU
                 profit=stats[f"odds_{stats['weak_odds_bucket']}"]["profit"],
             )
         )
-    if plan == "vip" and stats["weak_market_type"] in stats["market_types"] and stats["market_types"][stats["weak_market_type"]]["count"] > 0:
-        weak_parts.append(
-            get_text(lang, "analytics_weak_market_line").format(
-                label=get_text(lang, f"market_type_{stats['weak_market_type']}"),
-                roi=stats["market_types"][stats["weak_market_type"]]["roi"],
-                profit=stats["market_types"][stats["weak_market_type"]]["profit"],
-            )
-        )
     weak_spot_text = "\n".join(weak_parts) if weak_parts else get_text(lang, "analytics_no_weak_spot")
 
     dynamics_text = format_compare_block(lang=lang, current=stats["recent"], previous=stats["previous"], current_label_key="period_recent_3days", previous_label_key="period_previous_3days")
@@ -330,19 +312,7 @@ async def analytics_callback_handler(update: Update, context: ContextTypes.DEFAU
                 strengths_lines.append(get_text(lang, "analytics_strength_type").format(label=get_text(lang, f"bet_type_{value}")))
             elif kind == "odds":
                 strengths_lines.append(get_text(lang, "analytics_strength_odds").format(label=get_text(lang, f"analytics_odds_bucket_{value}")))
-            elif kind == "market":
-                strengths_lines.append(get_text(lang, "analytics_strength_market").format(label=get_text(lang, f"market_type_{value}")))
         strengths_block = "\n".join(strengths_lines) if strengths_lines else get_text(lang, "analytics_no_strengths")
-
-        market_order = ["1x2", "total", "btts", "handicap", "double_chance", "corners", "cards"]
-        market_lines = [
-            format_market_breakdown(lang, market_key, stats["market_types"][market_key])
-            for market_key in market_order
-            if stats["market_types"][market_key]["count"] > 0
-        ]
-        if stats["market_types"]["other"]["count"] > 0:
-            market_lines.append(format_market_breakdown(lang, "other", stats["market_types"]["other"]))
-        market_breakdown_block = "\n".join(market_lines) if market_lines else get_text(lang, "analytics_no_market_data")
 
         await query.message.reply_text(
             get_text(lang, "analytics_result_vip").format(

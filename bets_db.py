@@ -8,7 +8,6 @@ VALID_RESULTS = {"win", "lose", "refund", "pending"}
 SETTLED_RESULTS = {"win", "lose", "refund"}
 ODDS_BUCKETS = ("lt2", "mid", "high")
 TYPE_BUCKETS = ("total", "result")
-MARKET_TYPE_BUCKETS = ("1x2", "total", "btts", "handicap", "double_chance", "corners", "cards", "other")
 
 
 def add_column_if_not_exists(table_name: str, column_name: str, column_def: str):
@@ -144,29 +143,6 @@ def _result_to_symbol(result: str) -> str:
     if result == "pending":
         return "⏳"
     return "?"
-
-
-def _normalize_market_type(raw_type: str | None, raw_subtype: str | None) -> str:
-    raw_type = (raw_type or "").strip().lower()
-    raw_subtype = (raw_subtype or "").strip().lower()
-
-    if raw_type in MARKET_TYPE_BUCKETS:
-        return raw_type
-    if raw_type == "total":
-        return "total"
-    if raw_type == "result":
-        if raw_subtype in {"win", "draw", "home", "away"}:
-            return "1x2"
-        if raw_subtype in {"double_chance", "1x", "x2", "12"}:
-            return "double_chance"
-        if raw_subtype == "handicap":
-            return "handicap"
-        return "other"
-    return "other"
-
-
-def _market_family(market_type: str) -> str:
-    return "total" if market_type == "total" else "result"
 
 
 def _normalize_row(row):
@@ -380,7 +356,6 @@ def _calc_stats(rows):
         "worst_lose_streak": 0,
         "last_results": "-",
         "types": {name: _empty_bucket() for name in TYPE_BUCKETS},
-        "market_types": {name: _empty_bucket() for name in MARKET_TYPE_BUCKETS},
         "odds_lt2": _empty_bucket(),
         "odds_mid": _empty_bucket(),
         "odds_high": _empty_bucket(),
@@ -437,8 +412,6 @@ def _calc_stats(rows):
 
         if item["bet_type"] in stats["types"]:
             _update_bucket(stats["types"][item["bet_type"]], item)
-        if item["market_type"] in stats["market_types"]:
-            _update_bucket(stats["market_types"][item["market_type"]], item)
 
         odds_bucket = _get_odds_bucket(item["odds"])
         if odds_bucket == "lt2":
@@ -464,8 +437,6 @@ def _calc_stats(rows):
 
     for bucket_name in TYPE_BUCKETS:
         stats["types"][bucket_name] = _finalize_bucket(stats["types"][bucket_name])
-    for bucket_name in MARKET_TYPE_BUCKETS:
-        stats["market_types"][bucket_name] = _finalize_bucket(stats["market_types"][bucket_name])
     stats["odds_lt2"] = _finalize_bucket(stats["odds_lt2"])
     stats["odds_mid"] = _finalize_bucket(stats["odds_mid"])
     stats["odds_high"] = _finalize_bucket(stats["odds_high"])
@@ -576,8 +547,6 @@ def get_analytics_between(user_id: int, start_dt, end_dt, plan: str = "basic", i
     weak_odds_bucket = _pick_weak_bucket(
         {"lt2": stats["odds_lt2"], "mid": stats["odds_mid"], "high": stats["odds_high"]}
     )
-    best_market_type = _pick_best_bucket(stats["market_types"])
-    weak_market_type = _pick_weak_bucket(stats["market_types"])
 
     profile_code = _profile_code(stats)
     overall_status_code = _overall_status_code(stats)
@@ -590,8 +559,6 @@ def get_analytics_between(user_id: int, start_dt, end_dt, plan: str = "basic", i
         strengths.append(f"type:{best_type}")
     if best_odds_bucket in ODDS_BUCKETS and stats[f"odds_{best_odds_bucket}"]["count"] > 0:
         strengths.append(f"odds:{best_odds_bucket}")
-    if best_market_type in stats["market_types"] and stats["market_types"][best_market_type]["count"] > 0:
-        strengths.append(f"market:{best_market_type}")
 
     return {
         **stats,
@@ -601,8 +568,6 @@ def get_analytics_between(user_id: int, start_dt, end_dt, plan: str = "basic", i
         "weak_type": weak_type,
         "best_odds_bucket": best_odds_bucket,
         "weak_odds_bucket": weak_odds_bucket,
-        "best_market_type": best_market_type,
-        "weak_market_type": weak_market_type,
         "recent": {
             "profit": recent_stats["net_profit"],
             "roi": recent_stats["roi"],

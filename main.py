@@ -214,7 +214,7 @@ async def full_stats_callback_handler(update: Update, context: ContextTypes.DEFA
 
     user_id = update.effective_user.id
     lang = get_user_lang(user_id)
-    plan = get_user_plan(user_id)
+    plan = (get_user_plan(user_id) or "basic").strip().lower()
 
     if not user_has_access(user_id):
         await query.message.reply_text(get_text(lang, "no_access"))
@@ -271,7 +271,7 @@ async def analytics_callback_handler(update: Update, context: ContextTypes.DEFAU
 
     user_id = update.effective_user.id
     lang = get_user_lang(user_id)
-    plan = get_user_plan(user_id)
+    plan = (get_user_plan(user_id) or "basic").strip().lower()
 
     if not user_has_access(user_id):
         await query.message.reply_text(get_text(lang, "no_access"))
@@ -323,6 +323,15 @@ async def analytics_callback_handler(update: Update, context: ContextTypes.DEFAU
     risk_block = format_risk_block(lang, stats)
     profile_title = get_text(lang, f"profile_{stats['profile_code']}_title")
     profile_desc = get_text(lang, f"profile_{stats['profile_code']}_desc")
+
+    recommendation_code = stats.get("recommendation_code", "keep_discipline")
+    recommendation_text = get_text(lang, f"analytics_recommendation_{recommendation_code}")
+    if plan == "vip":
+        best_market = stats.get("best_market")
+        if recommendation_code in {"focus_total", "focus_result"} and best_market in stats.get("markets", {}):
+            recommendation_text = get_text(lang, "analytics_recommendation_focus_market").format(
+                market=get_text(lang, f"bet_market_{best_market}")
+            )
 
     if plan == "vip":
         strengths_lines = []

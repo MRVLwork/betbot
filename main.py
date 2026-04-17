@@ -290,22 +290,24 @@ async def analytics_callback_handler(update: Update, context: ContextTypes.DEFAU
     best_odds_label = get_text(lang, f"analytics_odds_bucket_{stats['best_odds_bucket']}") if stats["best_odds_bucket"] in ("lt2", "mid", "high") else get_text(lang, "analytics_odds_bucket_none")
 
     weak_parts = []
-    if plan == "vip" and stats.get("weak_market") in stats.get("markets", {}) and stats["markets"][stats["weak_market"]]["count"] > 0:
-        weak_parts.append(
-            get_text(lang, "analytics_weak_market_line").format(
-                label=get_text(lang, f"bet_market_{stats['weak_market']}"),
-                roi=stats["markets"][stats["weak_market"]]["roi"],
-                profit=stats["markets"][stats["weak_market"]]["profit"],
+    if plan == "vip":
+        if stats.get("weak_market") in stats.get("markets", {}) and stats["markets"][stats["weak_market"]]["count"] > 0:
+            weak_parts.append(
+                get_text(lang, "analytics_weak_market_line").format(
+                    label=get_text(lang, f"bet_market_{stats['weak_market']}"),
+                    roi=stats["markets"][stats["weak_market"]]["roi"],
+                    profit=stats["markets"][stats["weak_market"]]["profit"],
+                )
             )
-        )
-    if stats["weak_type"] in ("total", "result") and stats["types"][stats["weak_type"]]["count"] > 0:
-        weak_parts.append(
-            get_text(lang, "analytics_weak_type_line").format(
-                label=get_text(lang, f"bet_type_{stats['weak_type']}"),
-                roi=stats["types"][stats["weak_type"]]["roi"],
-                profit=stats["types"][stats["weak_type"]]["profit"],
+    else:
+        if stats["weak_type"] in ("total", "result") and stats["types"][stats["weak_type"]]["count"] > 0:
+            weak_parts.append(
+                get_text(lang, "analytics_weak_type_line").format(
+                    label=get_text(lang, f"bet_type_{stats['weak_type']}"),
+                    roi=stats["types"][stats["weak_type"]]["roi"],
+                    profit=stats["types"][stats["weak_type"]]["profit"],
+                )
             )
-        )
     if stats["weak_odds_bucket"] in ("lt2", "mid", "high") and stats[f"odds_{stats['weak_odds_bucket']}"]["count"] > 0:
         weak_parts.append(
             get_text(lang, "analytics_weak_odds_line").format(
@@ -370,7 +372,7 @@ async def analytics_callback_handler(update: Update, context: ContextTypes.DEFAU
                 profile_desc=profile_desc,
                 strengths_block=strengths_block,
                 weak_spot_text=weak_spot_text,
-                recommendation_text=get_text(lang, f"analytics_recommendation_{stats['recommendation_code']}"),
+                recommendation_text=recommendation_text,
                 risk_block=risk_block,
             )
         )

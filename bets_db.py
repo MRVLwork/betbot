@@ -306,9 +306,17 @@ def _pick_best_bucket(buckets: dict) -> str:
 
 
 def _pick_weak_bucket(buckets: dict) -> str:
-    candidates = [(name, data) for name, data in buckets.items() if data["settled_count"] >= 3]
+    candidates = [
+        (name, data)
+        for name, data in buckets.items()
+        if data["settled_count"] >= 3 and data["roi"] < 0
+    ]
     if not candidates:
-        candidates = [(name, data) for name, data in buckets.items() if data["count"] > 0]
+        candidates = [
+            (name, data)
+            for name, data in buckets.items()
+            if data["count"] > 0 and data["roi"] < 0
+        ]
     if not candidates:
         return "none"
     candidates.sort(key=lambda item: (item[1]["roi"], item[1]["profit"], item[1]["win_rate"], -item[1]["count"]))
@@ -611,8 +619,6 @@ def get_analytics_between(user_id: int, start_dt, end_dt, plan: str = "basic", i
     risk_codes = _risk_codes(stats, recent_stats, previous_stats)
 
     strengths = []
-    if best_type in stats["types"] and stats["types"][best_type]["count"] > 0:
-        strengths.append(f"type:{best_type}")
     if best_market in stats["markets"] and stats["markets"][best_market]["count"] > 0:
         strengths.append(f"market:{best_market}")
     if best_odds_bucket in ODDS_BUCKETS and stats[f"odds_{best_odds_bucket}"]["count"] > 0:

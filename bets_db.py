@@ -119,6 +119,7 @@ def create_bet(
             extraction_error,
             bet_type,
             bet_subtype,
+            bet_market,
             1 if is_trial else 0,
             datetime.now().isoformat(),
         ),

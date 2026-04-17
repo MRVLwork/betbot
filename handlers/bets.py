@@ -42,24 +42,50 @@ def _result_label(lang: str, result: str) -> str:
     return result
 
 
-def _bet_type_label(lang: str, bet_type: str) -> str:
+def _bet_type_label(lang: str, bet_type: str | None = None, bet_market: str | None = None) -> str:
     lang = _normalize_lang(lang)
 
-    if bet_type == "total":
-        if lang == "ua":
-            return "тотал"
-        if lang == "ru":
-            return "тотал"
-        return "total"
+    labels = {
+        "ua": {
+            "1x2": "1X2",
+            "total": "тотал",
+            "btts": "обидві заб'ють",
+            "handicap": "фора",
+            "double_chance": "1X/2X",
+            "corners": "кутові",
+            "cards": "картки",
+            "other": "інше",
+            "result": "результат",
+        },
+        "ru": {
+            "1x2": "1X2",
+            "total": "тотал",
+            "btts": "обе забьют",
+            "handicap": "фора",
+            "double_chance": "1X/2X",
+            "corners": "угловые",
+            "cards": "карточки",
+            "other": "другое",
+            "result": "результат",
+        },
+        "en": {
+            "1x2": "1X2",
+            "total": "total",
+            "btts": "both teams to score",
+            "handicap": "handicap",
+            "double_chance": "1X/2X",
+            "corners": "corners",
+            "cards": "cards",
+            "other": "other",
+            "result": "result",
+        },
+    }
 
-    if bet_type == "result":
-        if lang == "ua":
-            return "результат"
-        if lang == "ru":
-            return "результат"
-        return "result"
-
-    return bet_type
+    if bet_market:
+        return labels.get(lang, labels["en"]).get(bet_market, bet_market)
+    if bet_type:
+        return labels.get(lang, labels["en"]).get(bet_type, bet_type)
+    return "-"
 
 
 def _trial_progress_text(lang: str, used_trial: int, remaining_trial: int) -> str:
@@ -451,6 +477,7 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             raw_json=result.get("raw_json"),
             bet_type=result.get("bet_type"),
             bet_subtype=result.get("bet_subtype"),
+            bet_market=result.get("bet_market"),
             is_trial=not has_access,
         )
 
@@ -462,7 +489,7 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     get_text(lang, "bet_pending_saved").format(
                         stake_amount=result["stake_amount"],
                         odds=result["odds"],
-                        bet_type=_bet_type_label(lang, result["bet_type"]),
+                        bet_type=_bet_type_label(lang, result.get("bet_type"), result.get("bet_market")),
                         remaining=remaining,
                         limit=daily_limit
                     )
@@ -474,7 +501,7 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     bet_result=_result_label(lang, result["bet_result"]),
                     stake_amount=result["stake_amount"],
                     odds=result["odds"],
-                    bet_type=_bet_type_label(lang, result["bet_type"]),
+                    bet_type=_bet_type_label(lang, result.get("bet_type"), result.get("bet_market")),
                     remaining=remaining,
                     limit=daily_limit
                 )

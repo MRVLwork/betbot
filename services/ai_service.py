@@ -36,7 +36,8 @@ def analyze_basic_bet_screenshot(image_bytes: bytes) -> dict:
     - odds
     - currency
     - bet_type: total / result
-    - bet_subtype: tb / tm / win / draw / double_chance / handicap / qualification / other
+    - bet_market: 1x2 / total / btts / handicap / double_chance / corners / cards / other
+    - bet_subtype: tb / tm / win / draw / yes / no / double_chance / handicap / qualification / other
     """
 
     if not OPENAI_API_KEY:
@@ -118,6 +119,7 @@ def analyze_basic_bet_screenshot(image_bytes: bytes) -> dict:
         odds_raw = _extract_line(text, "ODDS")
         currency = (_extract_line(text, "CURRENCY") or "UAH").upper()
         bet_type = (_extract_line(text, "BET_TYPE") or "").lower()
+        bet_market = (_extract_line(text, "BET_MARKET") or "").lower()
         bet_subtype = (_extract_line(text, "BET_SUBTYPE") or "").lower()
 
         stake_amount = _to_float(stake_raw)
@@ -125,7 +127,8 @@ def analyze_basic_bet_screenshot(image_bytes: bytes) -> dict:
 
         valid_results = {"win", "lose", "refund", "pending"}
         valid_types = {"total", "result"}
-        valid_subtypes = {"tb", "tm", "win", "draw", "double_chance", "handicap", "qualification", "other"}
+        valid_markets = {"1x2", "total", "btts", "handicap", "double_chance", "corners", "cards", "other"}
+        valid_subtypes = {"tb", "tm", "win", "draw", "yes", "no", "double_chance", "handicap", "qualification", "other"}
 
         if result not in valid_results:
             return {"ok": False, "error": f"Invalid RESULT: {result}", "raw_text": text}
@@ -135,6 +138,8 @@ def analyze_basic_bet_screenshot(image_bytes: bytes) -> dict:
             return {"ok": False, "error": f"Invalid ODDS: {odds_raw}", "raw_text": text}
         if bet_type not in valid_types:
             return {"ok": False, "error": f"Invalid BET_TYPE: {bet_type}", "raw_text": text}
+        if bet_market not in valid_markets:
+            return {"ok": False, "error": f"Invalid BET_MARKET: {bet_market}", "raw_text": text}
         if bet_subtype not in valid_subtypes:
             return {"ok": False, "error": f"Invalid BET_SUBTYPE: {bet_subtype}", "raw_text": text}
 
@@ -145,6 +150,7 @@ def analyze_basic_bet_screenshot(image_bytes: bytes) -> dict:
             "odds": round(odds, 2),
             "currency": currency,
             "bet_type": bet_type,
+            "bet_market": bet_market,
             "bet_subtype": bet_subtype,
             "raw_json": {
                 "raw_text": text,
@@ -153,6 +159,7 @@ def analyze_basic_bet_screenshot(image_bytes: bytes) -> dict:
                 "ODDS": odds,
                 "CURRENCY": currency,
                 "BET_TYPE": bet_type,
+                "BET_MARKET": bet_market,
                 "BET_SUBTYPE": bet_subtype
             }
         }

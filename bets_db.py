@@ -8,6 +8,7 @@ VALID_RESULTS = {"win", "lose", "refund", "pending"}
 SETTLED_RESULTS = {"win", "lose", "refund"}
 ODDS_BUCKETS = ("lt2", "mid", "high")
 TYPE_BUCKETS = ("total", "result")
+MARKET_BUCKETS = ("1x2", "total", "btts", "handicap", "double_chance", "corners", "cards", "other")
 
 
 def add_column_if_not_exists(table_name: str, column_name: str, column_def: str):
@@ -61,6 +62,7 @@ def init_bets_table():
 
     add_column_if_not_exists("bets", "bet_type", "TEXT")
     add_column_if_not_exists("bets", "bet_subtype", "TEXT")
+    add_column_if_not_exists("bets", "bet_market", "TEXT")
     add_column_if_not_exists("bets", "is_trial", "INTEGER DEFAULT 0")
 
 
@@ -76,6 +78,7 @@ def create_bet(
     extraction_error: str | None = None,
     bet_type: str | None = None,
     bet_subtype: str | None = None,
+    bet_market: str | None = None,
     is_trial: bool = False,
 ):
     conn = get_conn()
@@ -97,10 +100,11 @@ def create_bet(
             extraction_error,
             bet_type,
             bet_subtype,
+            bet_market,
             is_trial,
             created_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         RETURNING id
     """,
         (
@@ -169,15 +173,59 @@ def _normalize_row(row):
     else:
         profit = 0.0
 
+    market = _normalize_market(row.get("bet_market")) or _infer_market_from_legacy(row.get("bet_type"), row.get("bet_subtype"))
+    legacy_group = row.get("bet_type") if row.get("bet_type") in TYPE_BUCKETS else _legacy_group_from_market(market)
+
     return {
         "stake": stake,
         "odds": odds,
         "bet_result": result,
-        "bet_type": row.get("bet_type") if row.get("bet_type") in TYPE_BUCKETS else None,
+        "bet_type": legacy_group,
+        "bet_market": market,
         "profit": profit,
         "created_at": created_at,
     }
 
+
+
+
+def _normalize_market(value: str | None) -> str | None:
+    if not value:
+        return None
+    value = (value or "").strip().lower()
+    return value if value in MARKET_BUCKETS else None
+
+
+def _infer_market_from_legacy(bet_type: str | None, bet_subtype: str | None) -> str | None:
+    bet_type = (bet_type or "").strip().lower()
+    bet_subtype = (bet_subtype or "").strip().lower()
+
+    if bet_type in MARKET_BUCKETS:
+        return bet_type
+    if bet_subtype in MARKET_BUCKETS:
+        return bet_subtype
+
+    if bet_type == "total":
+        return "total"
+    if bet_subtype in {"tb", "tm"}:
+        return "total"
+    if bet_subtype == "double_chance":
+        return "double_chance"
+    if bet_subtype == "handicap":
+        return "handicap"
+    if bet_subtype in {"yes", "no"}:
+        return "btts"
+    if bet_type == "result":
+        return "1x2"
+    return None
+
+
+def _legacy_group_from_market(market: str | None) -> str | None:
+    if market in {"total", "corners", "cards"}:
+        return "total"
+    if market in {"1x2", "btts", "handicap", "double_chance", "other"}:
+        return "result"
+    return None
 
 def _empty_bucket():
     return {
@@ -356,6 +404,7 @@ def _calc_stats(rows):
         "worst_lose_streak": 0,
         "last_results": "-",
         "types": {name: _empty_bucket() for name in TYPE_BUCKETS},
+        "markets": {name: _empty_bucket() for name in MARKET_BUCKETS},
         "odds_lt2": _empty_bucket(),
         "odds_mid": _empty_bucket(),
         "odds_high": _empty_bucket(),
@@ -412,6 +461,8 @@ def _calc_stats(rows):
 
         if item["bet_type"] in stats["types"]:
             _update_bucket(stats["types"][item["bet_type"]], item)
+        if item.get("bet_market") in stats["markets"]:
+            _update_bucket(stats["markets"][item["bet_market"]], item)
 
         odds_bucket = _get_odds_bucket(item["odds"])
         if odds_bucket == "lt2":
@@ -437,6 +488,8 @@ def _calc_stats(rows):
 
     for bucket_name in TYPE_BUCKETS:
         stats["types"][bucket_name] = _finalize_bucket(stats["types"][bucket_name])
+    for bucket_name in MARKET_BUCKETS:
+        stats["markets"][bucket_name] = _finalize_bucket(stats["markets"][bucket_name])
     stats["odds_lt2"] = _finalize_bucket(stats["odds_lt2"])
     stats["odds_mid"] = _finalize_bucket(stats["odds_mid"])
     stats["odds_high"] = _finalize_bucket(stats["odds_high"])
@@ -541,6 +594,8 @@ def get_analytics_between(user_id: int, start_dt, end_dt, plan: str = "basic", i
 
     best_type = _pick_best_bucket(stats["types"])
     weak_type = _pick_weak_bucket(stats["types"])
+    best_market = _pick_best_bucket(stats["markets"])
+    weak_market = _pick_weak_bucket(stats["markets"])
     best_odds_bucket = _pick_best_bucket(
         {"lt2": stats["odds_lt2"], "mid": stats["odds_mid"], "high": stats["odds_high"]}
     )
@@ -557,6 +612,8 @@ def get_analytics_between(user_id: int, start_dt, end_dt, plan: str = "basic", i
     strengths = []
     if best_type in stats["types"] and stats["types"][best_type]["count"] > 0:
         strengths.append(f"type:{best_type}")
+    if best_market in stats["markets"] and stats["markets"][best_market]["count"] > 0:
+        strengths.append(f"market:{best_market}")
     if best_odds_bucket in ODDS_BUCKETS and stats[f"odds_{best_odds_bucket}"]["count"] > 0:
         strengths.append(f"odds:{best_odds_bucket}")
 
@@ -566,6 +623,8 @@ def get_analytics_between(user_id: int, start_dt, end_dt, plan: str = "basic", i
         "overall_status_code": overall_status_code,
         "best_type": best_type,
         "weak_type": weak_type,
+        "best_market": best_market,
+        "weak_market": weak_market,
         "best_odds_bucket": best_odds_bucket,
         "weak_odds_bucket": weak_odds_bucket,
         "recent": {

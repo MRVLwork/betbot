@@ -64,7 +64,7 @@ from handlers.admin import (
     admin_vip_bet_day_photo_handler,
 )
 from handlers.bets import process_bet_photo
-from handlers.tools import open_tools_menu, tools_callback_handler
+from handlers.tools import open_tools_menu, tools_callback_handler, handle_ai_analysis_input
 from states import WAITING_PROMO, WAITING_PAYMENT_SCREEN
 
 
@@ -441,6 +441,21 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     lang = get_user_lang(user_id)
     text = update.message.text
+
+    ai_menu_labels = {
+        "📤 Надіслати результат", "📤 Отправить результат", "📤 Send result",
+        "📊 Моя статистика", "📊 My stats",
+        "📈 Повна статистика", "📈 Полная статистика", "📈 Full stats",
+        "🧠 Аналітика", "🧠 Аналитика", "🧠 Analytics",
+        "🛠 Усі інструменти", "🛠 Все инструменты", "🛠 All tools",
+        "💳 Купити доступ", "💳 Купить доступ", "💳 Buy access",
+        "🌐 Мова", "🌐 Язык", "🌐 Language",
+        "🔑 Ввести промокод", "🔑 Enter promo code",
+    }
+
+    if context.user_data.get("awaiting_ai_match_analysis") and text not in ai_menu_labels:
+        await handle_ai_analysis_input(update, context)
+        return ConversationHandler.END
 
     if text in ("📤 Надіслати результат", "📤 Отправить результат", "📤 Send result"):
         if not user_has_access(user_id):

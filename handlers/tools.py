@@ -12,6 +12,8 @@ from db import (
 )
 from keyboards import bet_day_menu_keyboard, bet_day_basic_keyboard, bet_day_vip_keyboard, access_keyboard
 from services.tools_service import get_tools_menu
+from services.match_analysis_service import analyze_match_screenshot, analyze_match_text
+from languages import get_text
 
 
 def _normalize_lang(lang: str) -> str:
@@ -176,12 +178,12 @@ async def tools_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
         return
 
     if query.data == "tool_ai":
-        text = {
-            "ua": "🤖 AI-аналіз\n\nAI-аналіз підключимо наступним етапом.",
-            "ru": "🤖 AI-анализ\n\nAI-анализ подключим следующим этапом.",
-            "en": "🤖 AI analysis\n\nAI analysis will be connected in the next step.",
-        }[lang]
-        await query.message.reply_text(text)
+        if not has_access:
+            await query.message.reply_text(get_text(lang, "ai_analysis_no_access"), reply_markup=access_keyboard(lang))
+            return
+
+        context.user_data["awaiting_ai_match_analysis"] = True
+        await query.message.reply_text(get_text(lang, "ai_analysis_send_prompt"))
         return
 
     if query.data == "tool_challenge":
@@ -192,3 +194,41 @@ async def tools_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
         }[lang]
         await query.message.reply_text(text)
         return
+
+
+async def handle_ai_analysis_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    user = get_user(user_id) or {}
+    lang = _normalize_lang(user.get("lang", "en"))
+
+    if not context.user_data.get("awaiting_ai_match_analysis"):
+        return
+
+    await_target = update.message
+    if not await_target:
+        return
+
+    processing_text = get_text(lang, "ai_analysis_processing")
+    await await_target.reply_text(processing_text)
+
+    result = None
+    try:
+        if update.message.photo:
+            photo = update.message.photo[-1]
+            tg_file = await photo.get_file()
+            image_bytes = bytes(await tg_file.download_as_bytearray())
+            result = analyze_match_screenshot(image_bytes, lang=lang)
+        elif update.message.text:
+            result = analyze_match_text(update.message.text, lang=lang)
+        else:
+            result = {"ok": False, "error": "Unsupported input"}
+    finally:
+        context.user_data.pop("awaiting_ai_match_analysis", None)
+
+    if not result or not result.get("ok"):
+        error = (result or {}).get("error", "Unknown error")
+        await await_target.reply_text(get_text(lang, "ai_analysis_failed").format(error=error))
+        return
+
+    await await_target.reply_text(result["report_text"])
+    await await_target.reply_text(get_text(lang, "ai_analysis_done_hint"))

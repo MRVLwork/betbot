@@ -19,6 +19,7 @@ from db import (
 from keyboards import access_keyboard, welcome_offer_keyboard
 from languages import get_text
 from services.ai_service import analyze_basic_bet_screenshot
+from handlers.tools import handle_ai_analysis_input
 
 
 def _normalize_lang(lang: str) -> str:
@@ -419,6 +420,10 @@ def _build_limit_pitch(lang: str, stats: dict) -> str:
 
 
 async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if context.user_data.get("awaiting_ai_match_analysis"):
+        await handle_ai_analysis_input(update, context)
+        return
+
     if not update.message or not update.message.photo:
         return
 

@@ -316,7 +316,7 @@ async def analytics_callback_handler(update: Update, context: ContextTypes.DEFAU
         )
     weak_spot_text = "\n".join(weak_parts) if weak_parts else get_text(lang, "analytics_no_weak_spot")
 
-    dynamics_text = format_compare_block(lang=lang, current=stats["recent"], previous=stats["previous"], current_label_key="period_recent_3days", previous_label_key="period_previous_3days")
+    dynamics_text = format_compare_block(stats["recent"], stats["previous"], lang, "period_recent_3days", "period_previous_3days")
     trend_text = get_text(lang, f"analytics_trend_{stats['trend_code']}")
     risk_block = format_risk_block(lang, stats)
     profile_title = get_text(lang, f"profile_{stats['profile_code']}_title")

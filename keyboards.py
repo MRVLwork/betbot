@@ -82,21 +82,18 @@ def stars_plans_keyboard(lang: str, promo_available: bool = True):
             keyboard = [
                 [InlineKeyboardButton("🧪 Попробовать — 99 ⭐", callback_data="stars_basic_week")],
                 [InlineKeyboardButton("🔥 Basic 1 месяц: 499 → 399 ⭐", callback_data="stars_basic_month")],
-                [InlineKeyboardButton("VIP 7 дней — 499 ⭐", callback_data="stars_vip_week")],
                 [InlineKeyboardButton("🔥 VIP 1 месяц: 1999 → 1499 ⭐", callback_data="stars_vip_month_promo")],
             ]
         elif lang == "en":
             keyboard = [
                 [InlineKeyboardButton("🧪 Try — 99 ⭐", callback_data="stars_basic_week")],
                 [InlineKeyboardButton("🔥 Basic 1 month: 499 → 399 ⭐", callback_data="stars_basic_month")],
-                [InlineKeyboardButton("VIP 7 days — 499 ⭐", callback_data="stars_vip_week")],
                 [InlineKeyboardButton("🔥 VIP 1 month: 1999 → 1499 ⭐", callback_data="stars_vip_month_promo")],
             ]
         else:
             keyboard = [
                 [InlineKeyboardButton("🧪 Спробувати — 99 ⭐", callback_data="stars_basic_week")],
                 [InlineKeyboardButton("🔥 Basic 1 місяць: 499 → 399 ⭐", callback_data="stars_basic_month")],
-                [InlineKeyboardButton("VIP 7 днів — 499 ⭐", callback_data="stars_vip_week")],
                 [InlineKeyboardButton("🔥 VIP 1 місяць: 1999 → 1499 ⭐", callback_data="stars_vip_month_promo")],
             ]
     else:
@@ -104,21 +101,18 @@ def stars_plans_keyboard(lang: str, promo_available: bool = True):
             keyboard = [
                 [InlineKeyboardButton("🧪 Попробовать — 99 ⭐", callback_data="stars_basic_week")],
                 [InlineKeyboardButton("Basic 1 месяц — 499 ⭐", callback_data="stars_basic_month_full")],
-                [InlineKeyboardButton("VIP 7 дней — 499 ⭐", callback_data="stars_vip_week")],
                 [InlineKeyboardButton("VIP 1 месяц — 1999 ⭐", callback_data="stars_vip_month_full")],
             ]
         elif lang == "en":
             keyboard = [
                 [InlineKeyboardButton("🧪 Try — 99 ⭐", callback_data="stars_basic_week")],
                 [InlineKeyboardButton("Basic 1 month — 499 ⭐", callback_data="stars_basic_month_full")],
-                [InlineKeyboardButton("VIP 7 days — 499 ⭐", callback_data="stars_vip_week")],
                 [InlineKeyboardButton("VIP 1 month — 1999 ⭐", callback_data="stars_vip_month_full")],
             ]
         else:
             keyboard = [
                 [InlineKeyboardButton("🧪 Спробувати — 99 ⭐", callback_data="stars_basic_week")],
                 [InlineKeyboardButton("Basic 1 місяць — 499 ⭐", callback_data="stars_basic_month_full")],
-                [InlineKeyboardButton("VIP 7 днів — 499 ⭐", callback_data="stars_vip_week")],
                 [InlineKeyboardButton("VIP 1 місяць — 1999 ⭐", callback_data="stars_vip_month_full")],
             ]
     return InlineKeyboardMarkup(keyboard)

@@ -29,16 +29,6 @@ STARS_PLANS = {
         "is_promo": False,
         "full_price_xtr": 499,
     },
-    "stars_vip_week": {
-        "title_ua": "VIP 7 днів",
-        "title_ru": "VIP 7 дней",
-        "title_en": "VIP 7 days",
-        "plan_type": "vip",
-        "duration_days": 7,
-        "amount_xtr": 499,
-        "is_promo": False,
-        "full_price_xtr": 499,
-    },
     "stars_vip_month_promo": {
         "title_ua": "VIP 1 місяць",
         "title_ru": "VIP 1 месяц",
@@ -77,13 +67,11 @@ def get_stars_plan(plan_key: str):
 
 
 def get_default_stars_plan_keys():
-    return ["stars_basic_week", "stars_basic_month", "stars_vip_week", "stars_vip_month_promo", "stars_vip_bet_day_month"]
+    return ["stars_basic_week", "stars_basic_month", "stars_vip_month_promo", "stars_vip_bet_day_month"]
 
 
 def get_renewal_stars_plan_key(plan_type: str, duration_days: int = 30):
     if plan_type == "vip":
-        if duration_days == 7:
-            return "stars_vip_week"
         return "stars_vip_month_full"
     if duration_days == 7:
         return "stars_basic_week"

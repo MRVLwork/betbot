@@ -634,6 +634,30 @@ def check_tilt_signals(user_id: int) -> list[str]:
     return get_tilt_signal_context(user_id)["signals"]
 
 
+def check_discipline_for_day(user_id, date) -> bool:
+    if hasattr(date, "year") and hasattr(date, "month") and hasattr(date, "day"):
+        target_date = date
+    else:
+        target_date = datetime.fromisoformat(str(date)).date()
+
+    start_dt = datetime.combine(target_date, datetime.min.time())
+    end_dt = start_dt + timedelta(days=1)
+    rows = _get_rows_between(user_id, start_dt, end_dt, include_trial=False)
+
+    if not rows:
+        return True
+
+    if len(rows) > 3:
+        return False
+
+    for row in rows:
+        emotion = (row.get("emotion") or "").strip().lower()
+        if emotion in {"tilt", "anxiety"}:
+            return False
+
+    return True
+
+
 def _comparison_stats(rows, end_dt: datetime, days: int = 3):
     recent_start = end_dt - timedelta(days=days)
     previous_end = recent_start

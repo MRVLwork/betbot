@@ -64,6 +64,7 @@ from handlers.admin import (
     admin_vip_bet_day_photo_handler,
 )
 from handlers.bets import process_bet_photo, emotion_callback_handler, tilt_warning_callback_handler
+from handlers.discipline import show_streak
 from handlers.tools import open_tools_menu, tools_callback_handler, handle_ai_analysis_input
 from states import WAITING_PROMO, WAITING_PAYMENT_SCREEN
 
@@ -599,6 +600,7 @@ def main():
     app.add_handler(
         MessageHandler(filters.PHOTO & filters.CaptionRegex(r"^/sendpost(?:@\w+)?(?:\s|$)"), admin_broadcast_photo_handler)
     )
+    app.add_handler(MessageHandler(filters.Regex(r"^(🔥 Streak|🔥 Серия)$"), show_streak))
     app.add_handler(MessageHandler(filters.PHOTO, process_bet_photo))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, menu_handler))
 

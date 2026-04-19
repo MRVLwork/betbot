@@ -176,6 +176,16 @@ def init_db():
         )
     """)
 
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS discipline_streak (
+            user_id BIGINT PRIMARY KEY,
+            current_streak INTEGER DEFAULT 0,
+            best_streak INTEGER DEFAULT 0,
+            last_checked_date TEXT,
+            streak_broken_at TEXT
+        )
+    """)
+
     conn.commit()
     conn.close()
 
@@ -273,6 +283,87 @@ def get_user(user_id: int):
 
     conn.close()
     return row
+
+
+def get_streak(user_id: int) -> dict:
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT current_streak, best_streak
+        FROM discipline_streak
+        WHERE user_id = ?
+    """, (user_id,))
+    row = cur.fetchone()
+    conn.close()
+
+    if not row:
+        return {"current_streak": 0, "best_streak": 0}
+    return {
+        "current_streak": int(row.get("current_streak") or 0),
+        "best_streak": int(row.get("best_streak") or 0),
+    }
+
+
+def update_streak(user_id: int, discipline_ok: bool) -> int:
+    conn = get_conn()
+    cur = conn.cursor()
+
+    checked_date = (datetime.now() - timedelta(days=1)).date().isoformat()
+
+    cur.execute("""
+        SELECT current_streak, best_streak, last_checked_date
+        FROM discipline_streak
+        WHERE user_id = ?
+    """, (user_id,))
+    row = cur.fetchone()
+
+    if not row:
+        cur.execute("""
+            INSERT INTO discipline_streak (
+                user_id,
+                current_streak,
+                best_streak,
+                last_checked_date,
+                streak_broken_at
+            )
+            VALUES (?, 0, 0, NULL, NULL)
+        """, (user_id,))
+        current_streak = 0
+        best_streak = 0
+        last_checked_date = None
+    else:
+        current_streak = int(row.get("current_streak") or 0)
+        best_streak = int(row.get("best_streak") or 0)
+        last_checked_date = row.get("last_checked_date")
+
+    if last_checked_date == checked_date:
+        conn.close()
+        return current_streak
+
+    if discipline_ok:
+        new_streak = current_streak + 1
+        new_best = max(best_streak, new_streak)
+        cur.execute("""
+            UPDATE discipline_streak
+            SET current_streak = ?,
+                best_streak = ?,
+                last_checked_date = ?
+            WHERE user_id = ?
+        """, (new_streak, new_best, checked_date, user_id))
+    else:
+        new_streak = 0
+        cur.execute("""
+            UPDATE discipline_streak
+            SET current_streak = 0,
+                last_checked_date = ?,
+                streak_broken_at = ?
+            WHERE user_id = ?
+        """, (checked_date, datetime.now().isoformat(), user_id))
+
+    conn.commit()
+    conn.close()
+    return new_streak
 
 
 def has_used_promo_offer(user_id: int) -> bool:
@@ -1131,6 +1222,7 @@ def _delete_user_records(cur, user_id: int):
     cur.execute("DELETE FROM star_payments WHERE user_id = ?", (user_id,))
     cur.execute("DELETE FROM photo_logs WHERE user_id = ?", (user_id,))
     cur.execute("DELETE FROM bets WHERE user_id = ?", (user_id,))
+    cur.execute("DELETE FROM discipline_streak WHERE user_id = ?", (user_id,))
     cur.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
     return cur.rowcount
 

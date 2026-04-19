@@ -3,7 +3,7 @@ from datetime import datetime
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
-from bets_db import create_bet, get_basic_stats_between, update_bet_emotion
+from bets_db import create_bet, get_basic_stats_between, get_tilt_signal_context, update_bet_emotion
 from db import (
     get_user,
     user_has_access,
@@ -487,6 +487,108 @@ async def emotion_callback_handler(update: Update, context: ContextTypes.DEFAULT
     )
 
 
+def _tilt_warning_keyboard(lang: str) -> InlineKeyboardMarkup:
+    labels = {
+        "ua": ("✅ Зрозумів, продовжую", "🛑 Зробити паузу"),
+        "ru": ("✅ Понял, продолжаю", "🛑 Сделать паузу"),
+        "en": ("✅ Got it, continue", "🛑 Take a break"),
+    }
+    continue_label, pause_label = labels.get(lang, labels["en"])
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(continue_label, callback_data="tilt_warning_ack")],
+        [InlineKeyboardButton(pause_label, callback_data="tilt_warning_pause")],
+    ])
+
+
+def _tilt_warning_text(lang: str, signal_code: str, signal_context: dict) -> str:
+    count = signal_context.get("count_last_60m", 0)
+    hour = signal_context.get("hour", datetime.now().hour)
+
+    if signal_code == "chasing_losses":
+        if lang == "ua":
+            return (
+                "🚨 Стоп-сигнал!\n\n"
+                "Останні 3 ставки  програш. Схоже на спробу відіграти.\n"
+                "Статистика: в такій ситуації більшість беттерів програє ще більше.\n\n"
+                "Рекомендую зробити паузу 30 хвилин."
+            )
+        if lang == "ru":
+            return (
+                "🚨 Стоп-сигнал!\n\n"
+                "Последние 3 ставки  проигрыш. Похоже на попытку отыграться.\n"
+                "Статистика: в такой ситуации большинство беттеров проигрывает еще больше.\n\n"
+                "Рекомендую сделать паузу 30 минут."
+            )
+        return (
+            "🚨 Stop signal!\n\n"
+            "Your last 3 bets were losses. This looks like chasing losses.\n"
+            "Statistics show that in this situation most bettors lose even more.\n\n"
+            "I recommend taking a 30-minute break."
+        )
+
+    if signal_code == "rapid_betting":
+        if lang == "ua":
+            return (
+                "⚠️ Увага!\n\n"
+                f"Ти поставив {count} ставки за останню годину.\n"
+                "Швидке беттінгування знижує якість рішень.\n\n"
+                "Сповільнись."
+            )
+        if lang == "ru":
+            return (
+                "⚠️ Внимание!\n\n"
+                f"Ты сделал {count} ставки за последний час.\n"
+                "Быстрый беттинг снижает качество решений.\n\n"
+                "Притормози."
+            )
+        return (
+            "⚠️ Warning!\n\n"
+            f"You placed {count} bets in the last hour.\n"
+            "Rapid betting lowers decision quality.\n\n"
+            "Slow down."
+        )
+
+    if lang == "ua":
+        return (
+            "🌙 Пізній час.\n\n"
+            f"Вже {hour}:00. Твій winrate після 23:00 зазвичай нижчий.\n"
+            "Подумай двічі перед наступною ставкою."
+        )
+    if lang == "ru":
+        return (
+            "🌙 Позднее время.\n\n"
+            f"Уже {hour}:00. Твой winrate после 23:00 обычно ниже.\n"
+            "Подумай дважды перед следующей ставкой."
+        )
+    return (
+        "🌙 Late hour.\n\n"
+        f"It is already {hour}:00. Your win rate after 23:00 is usually lower.\n"
+        "Think twice before the next bet."
+    )
+
+
+def _tilt_break_text(lang: str) -> str:
+    if lang == "ua":
+        return "Гарне рішення! Побачимось через 30 хвилин 💪"
+    if lang == "ru":
+        return "Хорошее решение! Увидимся через 30 минут 💪"
+    return "Good call! See you in 30 minutes 💪"
+
+
+async def tilt_warning_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    user_id = update.effective_user.id
+    user = get_user(user_id)
+    lang = _normalize_lang(user["lang"] if user and user.get("lang") else "en")
+
+    await query.message.edit_reply_markup(None)
+
+    if query.data == "tilt_warning_pause":
+        await query.message.reply_text(_tilt_break_text(lang))
+
+
 async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get("awaiting_ai_match_analysis"):
         await handle_ai_analysis_input(update, context)
@@ -555,9 +657,19 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         if has_access:
+            signal_context = get_tilt_signal_context(user_id)
+            signals = signal_context["signals"]
+
             context.user_data["last_bet_id"] = bet_id
             context.user_data["last_bet_result"] = result
             context.user_data["last_bet_daily_limit"] = daily_limit
+
+            for signal_code in signals:
+                await update.message.reply_text(
+                    _tilt_warning_text(lang, signal_code, signal_context),
+                    reply_markup=_tilt_warning_keyboard(lang),
+                )
+
             await update.message.reply_text(
                 _emotion_prompt_text(lang),
                 reply_markup=_emotion_keyboard(),

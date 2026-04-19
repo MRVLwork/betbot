@@ -63,7 +63,7 @@ from handlers.admin import (
     admin_basic_bet_day_photo_handler,
     admin_vip_bet_day_photo_handler,
 )
-from handlers.bets import process_bet_photo, emotion_callback_handler
+from handlers.bets import process_bet_photo, emotion_callback_handler, tilt_warning_callback_handler
 from handlers.tools import open_tools_menu, tools_callback_handler, handle_ai_analysis_input
 from states import WAITING_PROMO, WAITING_PAYMENT_SCREEN
 
@@ -585,6 +585,7 @@ def main():
     app.add_handler(CallbackQueryHandler(full_stats_callback_handler, pattern="^fullstats_"))
     app.add_handler(CallbackQueryHandler(analytics_callback_handler, pattern="^analytics_"))
     app.add_handler(CallbackQueryHandler(language_handler, pattern="^lang_"))
+    app.add_handler(CallbackQueryHandler(tilt_warning_callback_handler, pattern="^tilt_warning_"))
     app.add_handler(CallbackQueryHandler(emotion_callback_handler, pattern="^emotion_"))
     app.add_handler(CallbackQueryHandler(tools_callback_handler, pattern="^(tool_|betday_|tools_back|usdt_vip_bet_day_month|stars_vip_bet_day_month)"))
 

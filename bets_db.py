@@ -576,6 +576,64 @@ def _filter_rows_by_range(rows, start_dt, end_dt):
     return filtered
 
 
+def _parse_bet_created_at(row) -> datetime | None:
+    created_at_raw = row.get("created_at")
+    if not created_at_raw:
+        return None
+    try:
+        return datetime.fromisoformat(created_at_raw)
+    except Exception:
+        return None
+
+
+def get_tilt_signal_context(user_id: int) -> dict:
+    now = datetime.now()
+    start_2h = now - timedelta(hours=2)
+    rows = _get_rows_between(user_id, start_2h, now, include_trial=False)
+
+    parsed_rows = []
+    for row in rows:
+        if row.get("parse_status") != "parsed":
+            continue
+        created_at = _parse_bet_created_at(row)
+        if not created_at:
+            continue
+        parsed_rows.append({**row, "_created_at_dt": created_at})
+
+    parsed_rows.sort(key=lambda row: row["_created_at_dt"])
+
+    last_90_start = now - timedelta(minutes=90)
+    last_60_start = now - timedelta(minutes=60)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    rows_90 = [row for row in parsed_rows if row["_created_at_dt"] >= last_90_start]
+    rows_60 = [row for row in parsed_rows if row["_created_at_dt"] >= last_60_start]
+    rows_today = [row for row in parsed_rows if row["_created_at_dt"] >= today_start]
+
+    recent_results = [row.get("bet_result") for row in rows_90 if row.get("bet_result")]
+    signals: list[str] = []
+
+    if len(rows_90) >= 3 and len(recent_results) >= 3 and recent_results[-3:] == ["lose", "lose", "lose"]:
+        signals.append("chasing_losses")
+
+    if len(rows_60) >= 4:
+        signals.append("rapid_betting")
+
+    if now.hour >= 23 and len(rows_today) >= 3:
+        signals.append("late_night")
+
+    return {
+        "signals": signals,
+        "count_last_60m": len(rows_60),
+        "count_today": len(rows_today),
+        "hour": now.hour,
+    }
+
+
+def check_tilt_signals(user_id: int) -> list[str]:
+    return get_tilt_signal_context(user_id)["signals"]
+
+
 def _comparison_stats(rows, end_dt: datetime, days: int = 3):
     recent_start = end_dt - timedelta(days=days)
     previous_end = recent_start

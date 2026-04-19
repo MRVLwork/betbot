@@ -1126,31 +1126,32 @@ def get_trial_stats(trial_session_id: int) -> dict:
     }
 
 
+def _delete_user_records(cur, user_id: int):
+    cur.execute("DELETE FROM payments WHERE user_id = ?", (user_id,))
+    cur.execute("DELETE FROM star_payments WHERE user_id = ?", (user_id,))
+    cur.execute("DELETE FROM photo_logs WHERE user_id = ?", (user_id,))
+    cur.execute("DELETE FROM bets WHERE user_id = ?", (user_id,))
+    cur.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+    return cur.rowcount
+
+
 def delete_user_by_id(user_id: int):
     conn = get_conn()
     cur = conn.cursor()
+    try:
+        cur.execute("SELECT user_id FROM users WHERE user_id = ?", (user_id,))
+        user = cur.fetchone()
+        if not user:
+            return 0
 
-    cur.execute("""
-        UPDATE users
-        SET is_active = 0,
-            access_until = NULL,
-            trial_started_at = NULL,
-            trial_used_count = 0,
-            trial_completed = 0,
-            promo_offer_used = 0,
-            bet_day_basic_subscribed = 0,
-            bet_day_vip_subscribed = 0,
-            vip_bet_day_until = NULL,
-            ai_daily_used = 0,
-            ai_daily_reset_at = NULL
-        WHERE user_id = ?
-    """, (user_id,))
-
-    affected = cur.rowcount
-
-    conn.commit()
-    conn.close()
-    return affected
+        affected = _delete_user_records(cur, user_id)
+        conn.commit()
+        return affected
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 def delete_user_by_username(username: str):
@@ -1158,28 +1159,22 @@ def delete_user_by_username(username: str):
     cur = conn.cursor()
 
     clean_username = username.replace("@", "")
+    try:
+        cur.execute("SELECT user_id FROM users WHERE username = ?", (clean_username,))
+        users = cur.fetchall()
+        if not users:
+            return 0
 
-    cur.execute("""
-        UPDATE users
-        SET is_active = 0,
-            access_until = NULL,
-            trial_started_at = NULL,
-            trial_used_count = 0,
-            trial_completed = 0,
-            promo_offer_used = 0,
-            bet_day_basic_subscribed = 0,
-            bet_day_vip_subscribed = 0,
-            vip_bet_day_until = NULL,
-            ai_daily_used = 0,
-            ai_daily_reset_at = NULL
-        WHERE username = ?
-    """, (clean_username,))
-
-    affected = cur.rowcount
-
-    conn.commit()
-    conn.close()
-    return affected
+        affected = 0
+        for user in users:
+            affected += _delete_user_records(cur, user["user_id"])
+        conn.commit()
+        return affected
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 def _normalize_lang_code(lang: str) -> str:

@@ -141,7 +141,7 @@ async def _send_standard_welcome(update: Update, lang: str):
             "ru": "✔ Доступ активен.",
             "en": "✔ Access is active.",
         }[lang]
-        await update.message.reply_text(active_text, reply_markup=main_menu_keyboard(lang))
+        await update.message.reply_text(active_text, reply_markup=main_menu_keyboard(lang, (get_user(user_id) or {}).get("plan", "basic")))
         return
 
     promo_available = not has_used_promo_offer(user_id)

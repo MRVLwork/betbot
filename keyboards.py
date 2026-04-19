@@ -20,13 +20,16 @@ def welcome_offer_keyboard(lang: str):
     return InlineKeyboardMarkup(keyboard)
 
 
-def main_menu_keyboard(lang: str):
+def main_menu_keyboard(lang: str, plan: str = "basic"):
+    is_vip = (plan or "basic").lower() == "vip"
+    coach_label = "🧠 AI Тренер" if is_vip and lang in ("ua", "ru") else "🧠 AI Coach" if is_vip else "🔒 AI Тренер VIP" if lang in ("ua", "ru") else "🔒 AI Coach VIP"
     if lang == "ru":
         keyboard = [
             ["📤 Отправить результат"],
             ["📊 Моя статистика"],
             ["📈 Полная статистика"],
             ["📊 Wrapped"],
+            [coach_label],
             ["🧠 Аналитика"],
             ["🔥 Streak"],
             ["🛠 Все инструменты"],
@@ -39,6 +42,7 @@ def main_menu_keyboard(lang: str):
             ["📊 My stats"],
             ["📈 Full stats"],
             ["📊 Wrapped"],
+            [coach_label],
             ["🧠 Analytics"],
             ["🔥 Streak"],
             ["🛠 All tools"],
@@ -51,6 +55,7 @@ def main_menu_keyboard(lang: str):
             ["📊 Моя статистика"],
             ["📈 Повна статистика"],
             ["📊 Wrapped"],
+            [coach_label],
             ["🧠 Аналітика"],
             ["🔥 Streak"],
             ["🛠 Усі інструменти"],

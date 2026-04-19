@@ -146,7 +146,7 @@ async def send_standard_start(update: Update, lang: str):
 
         await update.message.reply_text(
             active_text,
-            reply_markup=main_menu_keyboard(lang)
+            reply_markup=main_menu_keyboard(lang, (db_user or {}).get("plan", "basic"))
         )
         return
 
@@ -177,7 +177,7 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
 
         await query.message.reply_text(
             active_text,
-            reply_markup=main_menu_keyboard(lang)
+            reply_markup=main_menu_keyboard(lang, (user or {}).get("plan", "basic"))
         )
         return
 
@@ -217,7 +217,7 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
 
             await query.message.reply_text(
                 trial_text,
-                reply_markup=main_menu_keyboard(lang)
+                reply_markup=main_menu_keyboard(lang, (user or {}).get("plan", "basic"))
             )
         else:
             remaining = get_trial_remaining(tg_user.id)

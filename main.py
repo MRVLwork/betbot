@@ -72,6 +72,7 @@ from handlers.admin import (
     admin_vip_bet_day_photo_handler,
 )
 from handlers.bets import process_bet_photo, emotion_callback_handler, tilt_warning_callback_handler
+from handlers.coach import coach_end_callback, handle_coach_message, open_coach
 from handlers.discipline import show_streak
 from handlers.tools import open_tools_menu, tools_callback_handler, handle_ai_analysis_input
 from handlers.weekly_wrap import send_weekly_wrap, send_weekly_wrap_broadcast
@@ -473,7 +474,7 @@ async def language_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.message.reply_text(
         get_text(lang, "language_changed"),
-        reply_markup=main_menu_keyboard(lang)
+        reply_markup=main_menu_keyboard(lang, get_user_plan(user_id))
     )
 
 
@@ -490,6 +491,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "📊 Моя статистика", "📊 My stats",
         "📈 Повна статистика", "📈 Полная статистика", "📈 Full stats",
         "📊 Wrapped",
+        "🧠 AI Тренер", "🧠 AI Coach", "🔒 AI Тренер VIP", "🔒 AI Coach VIP",
         "🧠 Аналітика", "🧠 Аналитика", "🧠 Analytics",
         "🛠 Усі інструменти", "🛠 Все инструменты", "🛠 All tools",
         "💳 Купити доступ", "💳 Купить доступ", "💳 Buy access",
@@ -499,6 +501,10 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if context.user_data.get("awaiting_ai_match_analysis") and text not in ai_menu_labels:
         await handle_ai_analysis_input(update, context)
+        return ConversationHandler.END
+
+    if context.user_data.get("awaiting_coach_reply") and text not in ai_menu_labels:
+        await handle_coach_message(update, context)
         return ConversationHandler.END
 
     if text in ("📤 Надіслати результат", "📤 Отправить результат", "📤 Send result"):
@@ -544,6 +550,9 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif text == "📊 Wrapped":
         await send_weekly_wrap(update, context)
+
+    elif text in ("🧠 AI Тренер", "🧠 AI Coach", "🔒 AI Тренер VIP", "🔒 AI Coach VIP"):
+        await open_coach(update, context)
 
     elif text in ("🧠 Аналітика", "🧠 Аналитика", "🧠 Analytics"):
         if not user_has_access(user_id):
@@ -649,6 +658,7 @@ def main():
     app.add_handler(CallbackQueryHandler(full_stats_callback_handler, pattern="^fullstats_"))
     app.add_handler(CallbackQueryHandler(analytics_callback_handler, pattern="^analytics_"))
     app.add_handler(CallbackQueryHandler(language_handler, pattern="^lang_"))
+    app.add_handler(CallbackQueryHandler(coach_end_callback, pattern="^coach_end$"))
     app.add_handler(CallbackQueryHandler(tilt_warning_callback_handler, pattern="^tilt_warning_"))
     app.add_handler(CallbackQueryHandler(emotion_callback_handler, pattern="^emotion_"))
     app.add_handler(CallbackQueryHandler(tools_callback_handler, pattern="^(tool_|betday_|tools_back|usdt_vip_bet_day_month|stars_vip_bet_day_month)"))

@@ -595,13 +595,11 @@ def get_ai_daily_remaining(user_id: int) -> int:
     if not user:
         return 0
 
-    if (user.get("plan") or "").lower() == "vip":
-        return 999999
-
     reset_ai_usage_if_needed(user_id)
     user = get_user(user_id)
     used = int(user.get("ai_daily_used") or 0)
-    remaining = 1 - used
+    limit = 10 if (user.get("plan") or "").lower() == "vip" else 1
+    remaining = limit - used
     return remaining if remaining > 0 else 0
 
 

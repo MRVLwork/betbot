@@ -57,7 +57,7 @@ async def promo_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
             plan=plan,
             days=promo["days"]
         ),
-        reply_markup=main_menu_keyboard(updated_lang)
+        reply_markup=main_menu_keyboard(updated_lang, updated_user.get("plan", "basic"))
     )
 
     return ConversationHandler.END

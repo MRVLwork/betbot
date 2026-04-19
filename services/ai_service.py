@@ -1,11 +1,14 @@
 import base64
 import re
+from datetime import datetime, timedelta
 
-from openai import OpenAI
+from openai import AsyncOpenAI, OpenAI
 from config import OPENAI_API_KEY, OPENAI_MODEL_BASIC
+from db import get_ai_daily_remaining, increment_ai_daily_usage
 
 
 client = OpenAI(api_key=OPENAI_API_KEY)
+async_client = AsyncOpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
 
 def _to_float(value: str | None):
@@ -240,3 +243,125 @@ def analyze_basic_bet_screenshot(image_bytes: bytes) -> dict:
 
     except Exception as e:
         return {"ok": False, "error": str(e)}
+
+
+async def ai_coach_reply(user_id: int, user_message: str, lang: str, plan: str) -> str:
+    """
+    Персональний AI тренер з повним контекстом юзера.
+    Тільки для VIP юзерів.
+    """
+    lang = (lang or "en").lower()
+    plan = (plan or "basic").lower()
+
+    if plan != "vip":
+        if lang.startswith("ru"):
+            return "🧠 AI Тренер доступен только для VIP подписки."
+        if lang.startswith("ua"):
+            return "🧠 AI Тренер доступний тільки для VIP підписки."
+        return "🧠 AI Coach is available only for VIP users."
+
+    if not OPENAI_API_KEY or not async_client:
+        if lang.startswith("ru"):
+            return "AI сервис временно недоступен."
+        if lang.startswith("ua"):
+            return "AI сервіс тимчасово недоступний."
+        return "AI service is temporarily unavailable."
+
+    remaining = get_ai_daily_remaining(user_id)
+    if remaining <= 0:
+        if lang.startswith("ru"):
+            return "Лимит AI запросов на сегодня исчерпан."
+        if lang.startswith("ua"):
+            return "Ліміт AI запитів на сьогодні вичерпано."
+        return "Your AI daily limit has been reached for today."
+
+    from bets_db import get_analytics_between
+
+    end_dt = datetime.now()
+    start_dt = end_dt - timedelta(days=30)
+    stats = get_analytics_between(user_id, start_dt, end_dt, plan="vip")
+
+    system_prompts = {
+        "ua": f"""Ти персональний тренер з беттингу для конкретного юзера.
+
+Статистика юзера за 30 днів:
+- ROI: {stats['roi']}%
+- Winrate: {stats['win_rate']}%
+- Прибуток: {stats['net_profit']}
+- Ставок: {stats['total_bets']}
+- Найгірша серія програшів: {stats['worst_lose_streak']}
+- Найкращий тип ставок: {stats.get('best_type', 'невідомо')}
+- Слабке місце: {stats.get('weak_type', 'невідомо')}
+- Профіль: {stats.get('profile_code', 'mixed')}
+
+Правила відповідей:
+- Відповідай ТІЛЬКИ на теми беттінгу, статистики, дисципліни
+- Давай конкретні поради з цифрами
+- Ніколи не давай прогнози на конкретні матчі
+- Будь прямим, не лий воду
+- Максимум 200 слів""",
+        "ru": f"""Ты персональный тренер по беттингу для конкретного юзера.
+
+Статистика юзера за 30 дней:
+- ROI: {stats['roi']}%
+- Winrate: {stats['win_rate']}%
+- Прибыль: {stats['net_profit']}
+- Ставок: {stats['total_bets']}
+- Худшая серия проигрышей: {stats['worst_lose_streak']}
+- Лучший тип ставок: {stats.get('best_type', 'неизвестно')}
+- Слабое место: {stats.get('weak_type', 'неизвестно')}
+- Профиль: {stats.get('profile_code', 'mixed')}
+
+Правила ответов:
+- Отвечай ТОЛЬКО на темы беттинга, статистики, дисциплины
+- Давай конкретные советы с цифрами
+- Никогда не давай прогнозы на конкретные матчи
+- Будь прямым, без воды
+- Максимум 200 слов""",
+        "en": f"""You are a personal betting coach for a specific user.
+
+User stats for the last 30 days:
+- ROI: {stats['roi']}%
+- Win rate: {stats['win_rate']}%
+- Profit: {stats['net_profit']}
+- Bets: {stats['total_bets']}
+- Worst losing streak: {stats['worst_lose_streak']}
+- Best bet type: {stats.get('best_type', 'unknown')}
+- Weak spot: {stats.get('weak_type', 'unknown')}
+- Profile: {stats.get('profile_code', 'mixed')}
+
+Reply rules:
+- Answer ONLY about betting, statistics, discipline
+- Give concrete advice with numbers
+- Never give predictions for specific matches
+- Be direct, no fluff
+- Maximum 200 words""",
+    }
+
+    try:
+        response = await async_client.responses.create(
+            model=OPENAI_MODEL_BASIC,
+            input=[
+                {
+                    "role": "system",
+                    "content": [{"type": "input_text", "text": system_prompts.get(lang, system_prompts["en"])}],
+                },
+                {
+                    "role": "user",
+                    "content": [{"type": "input_text", "text": user_message}],
+                },
+            ],
+            max_output_tokens=300,
+        )
+        increment_ai_daily_usage(user_id)
+        text = (response.output_text or "").strip()
+        if text:
+            return text
+    except Exception:
+        pass
+
+    if lang.startswith("ru"):
+        return "Не удалось получить ответ AI тренера. Попробуй еще раз."
+    if lang.startswith("ua"):
+        return "Не вдалося отримати відповідь AI тренера. Спробуй ще раз."
+    return "Failed to get an AI coach reply. Try again."

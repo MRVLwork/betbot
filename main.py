@@ -38,6 +38,12 @@ from keyboards import (
 )
 from languages import get_text
 from handlers.start import start, start_offer_buttons
+from handlers.onboarding import (
+    onboarding_deposit,
+    onboarding_experience,
+    onboarding_goal,
+    onboarding_sport,
+)
 from handlers.promo import access_buttons, promo_input, cancel_promo
 from handlers.payment import payment_buttons, handle_payment_screenshot, payment_sent, admin_payment_reply_handler
 from handlers.stars_payment import (
@@ -69,7 +75,14 @@ from handlers.bets import process_bet_photo, emotion_callback_handler, tilt_warn
 from handlers.discipline import show_streak
 from handlers.tools import open_tools_menu, tools_callback_handler, handle_ai_analysis_input
 from handlers.weekly_wrap import send_weekly_wrap, send_weekly_wrap_broadcast
-from states import WAITING_PROMO, WAITING_PAYMENT_SCREEN
+from states import (
+    ONBOARDING_DEPOSIT,
+    ONBOARDING_EXPERIENCE,
+    ONBOARDING_GOAL,
+    ONBOARDING_SPORT,
+    WAITING_PAYMENT_SCREEN,
+    WAITING_PROMO,
+)
 
 
 def get_user_lang(user_id: int) -> str:
@@ -581,7 +594,18 @@ def main():
         .build()
     )
 
-    app.add_handler(CommandHandler("start", start))
+    onboarding_conv = ConversationHandler(
+        entry_points=[CommandHandler("start", start)],
+        states={
+            ONBOARDING_SPORT: [MessageHandler(filters.TEXT & ~filters.COMMAND, onboarding_sport)],
+            ONBOARDING_EXPERIENCE: [MessageHandler(filters.TEXT & ~filters.COMMAND, onboarding_experience)],
+            ONBOARDING_DEPOSIT: [MessageHandler(filters.TEXT & ~filters.COMMAND, onboarding_deposit)],
+            ONBOARDING_GOAL: [MessageHandler(filters.TEXT & ~filters.COMMAND, onboarding_goal)],
+        },
+        fallbacks=[CommandHandler("start", start)],
+        per_message=False,
+    )
+    app.add_handler(onboarding_conv)
 
     app.add_handler(CommandHandler("addpromo", addpromo))
     app.add_handler(CommandHandler("genbasicweek", genbasicweek))

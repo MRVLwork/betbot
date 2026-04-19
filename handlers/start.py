@@ -1,16 +1,18 @@
 from telegram import Update
-from telegram.ext import ContextTypes
+from telegram.ext import ContextTypes, ConversationHandler
 
 from keyboards import main_menu_keyboard, welcome_offer_keyboard, access_keyboard
 from db import (
     create_user_if_not_exists,
     get_user,
+    is_onboarding_completed,
     user_has_access,
     is_trial_available,
     get_trial_remaining,
     start_trial_mode,
     has_used_promo_offer,
 )
+from handlers.onboarding import start_onboarding
 
 
 def _normalize_lang(lang: str) -> str:
@@ -124,6 +126,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     db_user = get_user(user.id)
     lang = _normalize_lang((db_user or {}).get("lang", "en"))
+
+    if not is_onboarding_completed(user.id):
+        return await start_onboarding(update, context)
+
+    await send_standard_start(update, lang)
+    return ConversationHandler.END
+
+
+async def send_standard_start(update: Update, lang: str):
+    user = update.effective_user
 
     if user_has_access(user.id):
         active_text = {

@@ -1,5 +1,6 @@
 import os
 from datetime import datetime, timedelta
+import json
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -201,6 +202,8 @@ def init_db():
     add_column_if_not_exists("users", "vip_bet_day_until", "TEXT")
     add_column_if_not_exists("users", "ai_daily_used", "INTEGER DEFAULT 0")
     add_column_if_not_exists("users", "ai_daily_reset_at", "TEXT")
+    add_column_if_not_exists("users", "onboarding_completed", "INTEGER DEFAULT 0")
+    add_column_if_not_exists("users", "onboarding_data", "TEXT")
 
     add_column_if_not_exists("promo_codes", "plan_type", "TEXT DEFAULT 'basic'")
 
@@ -283,6 +286,43 @@ def get_user(user_id: int):
 
     conn.close()
     return row
+
+
+def is_onboarding_completed(user_id: int) -> bool:
+    user = get_user(user_id)
+    if not user:
+        return False
+    return int(user.get("onboarding_completed") or 0) == 1
+
+
+def complete_onboarding(user_id: int):
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("""
+        UPDATE users
+        SET onboarding_completed = 1
+        WHERE user_id = ?
+    """, (user_id,))
+    conn.commit()
+    conn.close()
+
+
+def save_onboarding_data(user_id: int, sport: str, experience: str, monthly_deposit: str, main_goal: str):
+    conn = get_conn()
+    cur = conn.cursor()
+    payload = json.dumps({
+        "sport": sport,
+        "experience": experience,
+        "monthly_deposit": monthly_deposit,
+        "main_goal": main_goal,
+    }, ensure_ascii=False)
+    cur.execute("""
+        UPDATE users
+        SET onboarding_data = ?
+        WHERE user_id = ?
+    """, (payload, user_id))
+    conn.commit()
+    conn.close()
 
 
 def get_streak(user_id: int) -> dict:

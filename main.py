@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
@@ -66,6 +68,7 @@ from handlers.admin import (
 from handlers.bets import process_bet_photo, emotion_callback_handler, tilt_warning_callback_handler
 from handlers.discipline import show_streak
 from handlers.tools import open_tools_menu, tools_callback_handler, handle_ai_analysis_input
+from handlers.weekly_wrap import send_weekly_wrap, send_weekly_wrap_broadcast
 from states import WAITING_PROMO, WAITING_PAYMENT_SCREEN
 
 
@@ -85,6 +88,32 @@ def get_user_plan(user_id: int) -> str:
 
 def is_user_vip(user_id: int) -> bool:
     return get_user_plan(user_id) == "vip" and user_has_access(user_id)
+
+
+async def run_weekly_wrap_broadcast(application):
+    await send_weekly_wrap_broadcast(application.bot)
+
+
+async def post_init(application):
+    scheduler = AsyncIOScheduler(timezone=ZoneInfo("Europe/Kiev"))
+    scheduler.add_job(
+        run_weekly_wrap_broadcast,
+        "cron",
+        day_of_week="mon",
+        hour=9,
+        minute=0,
+        kwargs={"application": application},
+        id="weekly_wrap_broadcast",
+        replace_existing=True,
+    )
+    scheduler.start()
+    application.bot_data["scheduler"] = scheduler
+
+
+async def post_shutdown(application):
+    scheduler = application.bot_data.get("scheduler")
+    if scheduler:
+        scheduler.shutdown(wait=False)
 
 
 def format_compare_block(current: dict, previous: dict, lang: str, current_label_key: str, previous_label_key: str) -> str:
@@ -447,6 +476,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "📤 Надіслати результат", "📤 Отправить результат", "📤 Send result",
         "📊 Моя статистика", "📊 My stats",
         "📈 Повна статистика", "📈 Полная статистика", "📈 Full stats",
+        "📊 Wrapped",
         "🧠 Аналітика", "🧠 Аналитика", "🧠 Analytics",
         "🛠 Усі інструменти", "🛠 Все инструменты", "🛠 All tools",
         "💳 Купити доступ", "💳 Купить доступ", "💳 Buy access",
@@ -499,6 +529,9 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=stats_periods_keyboard(is_vip, lang, prefix="fullstats")
         )
 
+    elif text == "📊 Wrapped":
+        await send_weekly_wrap(update, context)
+
     elif text in ("🧠 Аналітика", "🧠 Аналитика", "🧠 Analytics"):
         if not user_has_access(user_id):
             await update.message.reply_text(get_text(lang, "no_active_access_start"))
@@ -540,7 +573,13 @@ def main():
     init_db()
     init_bets_table()
 
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    app = (
+        ApplicationBuilder()
+        .token(BOT_TOKEN)
+        .post_init(post_init)
+        .post_shutdown(post_shutdown)
+        .build()
+    )
 
     app.add_handler(CommandHandler("start", start))
 

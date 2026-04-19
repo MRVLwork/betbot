@@ -64,6 +64,7 @@ def init_bets_table():
     add_column_if_not_exists("bets", "bet_subtype", "TEXT")
     add_column_if_not_exists("bets", "bet_market", "TEXT")
     add_column_if_not_exists("bets", "is_trial", "INTEGER DEFAULT 0")
+    add_column_if_not_exists("bets", "emotion", "TEXT")
 
 
 def create_bet(
@@ -129,6 +130,24 @@ def create_bet(
     conn.commit()
     conn.close()
     return row["id"] if row else None
+
+
+def update_bet_emotion(bet_id: int, emotion: str):
+    """Зберігає емоцію до ставки"""
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        UPDATE bets
+        SET emotion = ?
+        WHERE id = ?
+    """,
+        (emotion, bet_id),
+    )
+
+    conn.commit()
+    conn.close()
 
 
 def _safe_float(value) -> float:

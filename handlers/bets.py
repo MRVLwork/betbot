@@ -1,9 +1,9 @@
 from datetime import datetime
 
-from telegram import Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
-from bets_db import create_bet, get_basic_stats_between
+from bets_db import create_bet, get_basic_stats_between, update_bet_emotion
 from db import (
     get_user,
     user_has_access,
@@ -419,6 +419,74 @@ def _build_limit_pitch(lang: str, stats: dict) -> str:
     )
 
 
+def _emotion_prompt_text(lang: str) -> str:
+    if lang == "ua":
+        return "Як ти себе почував перед цією ставкою?"
+    if lang == "ru":
+        return "Как ты себя чувствовал перед этой ставкой?"
+    return "How did you feel before this bet?"
+
+
+def _emotion_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("😤 Тілт", callback_data="emotion_tilt")],
+        [InlineKeyboardButton("😰 Тривога", callback_data="emotion_anxiety")],
+        [InlineKeyboardButton("😎 Впевнений", callback_data="emotion_confident")],
+        [InlineKeyboardButton("🤔 Нейтрально", callback_data="emotion_neutral")],
+    ])
+
+
+def _bet_saved_confirmation_text(lang: str, result: dict, remaining: int, daily_limit: int) -> str:
+    if result["bet_result"] == "pending":
+        return get_text(lang, "bet_pending_saved").format(
+            stake_amount=result["stake_amount"],
+            odds=result["odds"],
+            bet_type=_bet_type_label(lang, result.get("bet_type"), result.get("bet_market")),
+            remaining=remaining,
+            limit=daily_limit,
+        )
+
+    return get_text(lang, "bet_saved").format(
+        bet_result=_result_label(lang, result["bet_result"]),
+        stake_amount=result["stake_amount"],
+        odds=result["odds"],
+        bet_type=_bet_type_label(lang, result.get("bet_type"), result.get("bet_market")),
+        remaining=remaining,
+        limit=daily_limit,
+    )
+
+
+async def emotion_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    user_id = update.effective_user.id
+    user = get_user(user_id)
+    lang = _normalize_lang(user["lang"] if user and user.get("lang") else "en")
+
+    bet_id = context.user_data.get("last_bet_id")
+    result = context.user_data.get("last_bet_result")
+    daily_limit = context.user_data.get("last_bet_daily_limit")
+
+    if not bet_id or not result or daily_limit is None:
+        await query.message.reply_text(get_text(lang, "bet_parse_failed"))
+        return
+
+    emotion = query.data.removeprefix("emotion_")
+    update_bet_emotion(bet_id, emotion)
+
+    context.user_data.pop("last_bet_id", None)
+    context.user_data.pop("last_bet_result", None)
+    context.user_data.pop("last_bet_daily_limit", None)
+
+    remaining = get_user_remaining_photos_today(user_id)
+
+    await query.message.edit_reply_markup(None)
+    await query.message.reply_text(
+        _bet_saved_confirmation_text(lang, result, remaining, daily_limit)
+    )
+
+
 async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get("awaiting_ai_match_analysis"):
         await handle_ai_analysis_input(update, context)
@@ -471,7 +539,7 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     result = analyze_basic_bet_screenshot(bytes(image_bytes))
 
     if result["ok"]:
-        create_bet(
+        bet_id = create_bet(
             user_id=user_id,
             photo_file_id=file_id,
             stake_amount=result["stake_amount"],
@@ -487,29 +555,12 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         if has_access:
-            remaining = get_user_remaining_photos_today(user_id)
-
-            if result["bet_result"] == "pending":
-                await update.message.reply_text(
-                    get_text(lang, "bet_pending_saved").format(
-                        stake_amount=result["stake_amount"],
-                        odds=result["odds"],
-                        bet_type=_bet_type_label(lang, result.get("bet_type"), result.get("bet_market")),
-                        remaining=remaining,
-                        limit=daily_limit
-                    )
-                )
-                return
-
+            context.user_data["last_bet_id"] = bet_id
+            context.user_data["last_bet_result"] = result
+            context.user_data["last_bet_daily_limit"] = daily_limit
             await update.message.reply_text(
-                get_text(lang, "bet_saved").format(
-                    bet_result=_result_label(lang, result["bet_result"]),
-                    stake_amount=result["stake_amount"],
-                    odds=result["odds"],
-                    bet_type=_bet_type_label(lang, result.get("bet_type"), result.get("bet_market")),
-                    remaining=remaining,
-                    limit=daily_limit
-                )
+                _emotion_prompt_text(lang),
+                reply_markup=_emotion_keyboard(),
             )
             return
 

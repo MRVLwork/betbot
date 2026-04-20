@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 TEXTS = {'ua': {'start': 'Вітаю 👋\nОбери дію:',
         'choose_lang': 'Оберіть мову:',
         'language_changed': '✅ Мову змінено',

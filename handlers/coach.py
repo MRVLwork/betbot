@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 

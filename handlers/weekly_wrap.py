@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from io import BytesIO
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, InputFile, Update

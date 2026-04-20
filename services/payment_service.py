@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from config import TRC20_WALLET
 
 USDT_PLANS = {

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 WAITING_PROMO = 1
 WAITING_PAYMENT_SCREEN = 2
 ONBOARDING_SPORT = "onboarding_sport"

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 STARS_PLANS = {
     "stars_basic_week": {
         "title_ua": "Спробувати",

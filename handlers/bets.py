@@ -1,4 +1,5 @@
-﻿from datetime import datetime
+# -*- coding: utf-8 -*-
+from datetime import datetime
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
@@ -14,6 +15,7 @@ from db import (
     log_user_photo,
     is_trial_available,
     get_trial_remaining,
+    get_trial_used_count,
     increment_trial_usage,
     get_trial_start,
 )
@@ -50,25 +52,25 @@ def _bet_type_label(lang: str, bet_type: str | None = None, bet_market: str | No
     labels = {
         "ua": {
             "1x2": "1X2",
-            "total": "С‚РѕС‚Р°Р»",
-            "btts": "РѕР±РёРґРІС– Р·Р°Р±'СЋС‚СЊ",
-            "handicap": "С„РѕСЂР°",
+            "total": "тотал",
+            "btts": "обидві заб'ють",
+            "handicap": "фора",
             "double_chance": "1X/2X",
-            "corners": "РєСѓС‚РѕРІС–",
-            "cards": "РєР°СЂС‚РєРё",
-            "other": "С–РЅС€Рµ",
-            "result": "СЂРµР·СѓР»СЊС‚Р°С‚",
+            "corners": "кутові",
+            "cards": "картки",
+            "other": "інше",
+            "result": "результат",
         },
         "ru": {
             "1x2": "1X2",
-            "total": "С‚РѕС‚Р°Р»",
-            "btts": "РѕР±Рµ Р·Р°Р±СЊСЋС‚",
-            "handicap": "С„РѕСЂР°",
+            "total": "тотал",
+            "btts": "обе забьют",
+            "handicap": "фора",
             "double_chance": "1X/2X",
-            "corners": "СѓРіР»РѕРІС‹Рµ",
-            "cards": "РєР°СЂС‚РѕС‡РєРё",
-            "other": "РґСЂСѓРіРѕРµ",
-            "result": "СЂРµР·СѓР»СЊС‚Р°С‚",
+            "corners": "угловые",
+            "cards": "карточки",
+            "other": "другое",
+            "result": "результат",
         },
         "en": {
             "1x2": "1X2",
@@ -96,55 +98,19 @@ def _daily_limit_reached_text(lang: str, plan: str, limit: int) -> str:
 
     texts = {
         "ua": {
-            "trial": (
-                f"рџљ« Р›С–РјС–С‚ РЅР° СЃСЊРѕРіРѕРґРЅС–: {limit}/{limit} СЃРєСЂС–РЅС–РІ РІРёРєРѕСЂРёСЃС‚Р°РЅРѕ\n\n"
-                "Р’ Basic: 15 СЃРєСЂС–РЅС–РІ/РґРµРЅСЊ\n"
-                "Р’ VIP: 30 СЃРєСЂС–РЅС–РІ/РґРµРЅСЊ\n\n"
-                "рџ‘‡ РћРЅРѕРІРёС‚Рё РїР»Р°РЅ"
-            ),
-            "basic": (
-                f"рџљ« Р›С–РјС–С‚ РЅР° СЃСЊРѕРіРѕРґРЅС–: {limit}/{limit} СЃРєСЂС–РЅС–РІ РІРёРєРѕСЂРёСЃС‚Р°РЅРѕ\n\n"
-                "Р’ VIP: 30 СЃРєСЂС–РЅС–РІ/РґРµРЅСЊ + AI РўСЂРµРЅРµСЂ\n\n"
-                "рџ‘‡ РћРЅРѕРІРёС‚Рё РґРѕ VIP"
-            ),
-            "vip": (
-                f"рџљ« Р›С–РјС–С‚ РЅР° СЃСЊРѕРіРѕРґРЅС–: {limit}/{limit} СЃРєСЂС–РЅС–РІ РІРёРєРѕСЂРёСЃС‚Р°РЅРѕ\n"
-                "РџРѕРІРµСЂРЅРёСЃСЊ Р·Р°РІС‚СЂР° рџЊ™"
-            ),
+            "trial": f"🚫 Ліміт на сьогодні: {limit}/{limit} скрінів використано\n\nВ Basic: 15 скрінів/день\nВ VIP: 30 скрінів/день\n\n👇 Оновити план",
+            "basic": f"🚫 Ліміт на сьогодні: {limit}/{limit} скрінів використано\n\nВ VIP: 30 скрінів/день + AI Тренер\n\n👇 Оновити до VIP",
+            "vip": f"🚫 Ліміт на сьогодні: {limit}/{limit} скрінів використано\nПовернись завтра 🌙",
         },
         "ru": {
-            "trial": (
-                f"рџљ« Р›РёРјРёС‚ РЅР° СЃРµРіРѕРґРЅСЏ: {limit}/{limit} СЃРєСЂРёРЅРѕРІ РёСЃРїРѕР»СЊР·РѕРІР°РЅРѕ\n\n"
-                "Р’ Basic: 15 СЃРєСЂРёРЅРѕРІ/РґРµРЅСЊ\n"
-                "Р’ VIP: 30 СЃРєСЂРёРЅРѕРІ/РґРµРЅСЊ\n\n"
-                "рџ‘‡ РћР±РЅРѕРІРёС‚СЊ РїР»Р°РЅ"
-            ),
-            "basic": (
-                f"рџљ« Р›РёРјРёС‚ РЅР° СЃРµРіРѕРґРЅСЏ: {limit}/{limit} СЃРєСЂРёРЅРѕРІ РёСЃРїРѕР»СЊР·РѕРІР°РЅРѕ\n\n"
-                "Р’ VIP: 30 СЃРєСЂРёРЅРѕРІ/РґРµРЅСЊ + AI РўСЂРµРЅРµСЂ\n\n"
-                "рџ‘‡ РћР±РЅРѕРІРёС‚СЊ РґРѕ VIP"
-            ),
-            "vip": (
-                f"рџљ« Р›РёРјРёС‚ РЅР° СЃРµРіРѕРґРЅСЏ: {limit}/{limit} СЃРєСЂРёРЅРѕРІ РёСЃРїРѕР»СЊР·РѕРІР°РЅРѕ\n"
-                "Р’РѕР·РІСЂР°С‰Р°Р№СЃСЏ Р·Р°РІС‚СЂР° рџЊ™"
-            ),
+            "trial": f"🚫 Лимит на сегодня: {limit}/{limit} скринов использовано\n\nВ Basic: 15 скринов/день\nВ VIP: 30 скринов/день\n\n👇 Обновить план",
+            "basic": f"🚫 Лимит на сегодня: {limit}/{limit} скринов использовано\n\nВ VIP: 30 скринов/день + AI Тренер\n\n👇 Обновить до VIP",
+            "vip": f"🚫 Лимит на сегодня: {limit}/{limit} скринов использовано\nВозвращайся завтра 🌙",
         },
         "en": {
-            "trial": (
-                f"рџљ« Today's limit reached: {limit}/{limit} screenshots used\n\n"
-                "In Basic: 15 screenshots/day\n"
-                "In VIP: 30 screenshots/day\n\n"
-                "рџ‘‡ Upgrade plan"
-            ),
-            "basic": (
-                f"рџљ« Today's limit reached: {limit}/{limit} screenshots used\n\n"
-                "In VIP: 30 screenshots/day + AI Coach\n\n"
-                "рџ‘‡ Upgrade to VIP"
-            ),
-            "vip": (
-                f"рџљ« Today's limit reached: {limit}/{limit} screenshots used\n"
-                "Come back tomorrow рџЊ™"
-            ),
+            "trial": f"🚫 Today's limit reached: {limit}/{limit} screenshots used\n\nIn Basic: 15 screenshots/day\nIn VIP: 30 screenshots/day\n\n👇 Upgrade plan",
+            "basic": f"🚫 Today's limit reached: {limit}/{limit} screenshots used\n\nIn VIP: 30 screenshots/day + AI Coach\n\n👇 Upgrade to VIP",
+            "vip": f"🚫 Today's limit reached: {limit}/{limit} screenshots used\nCome back tomorrow 🌙",
         },
     }
 
@@ -155,102 +121,29 @@ def _trial_progress_text(lang: str, used_trial: int, remaining_trial: int) -> st
     lang = _normalize_lang(lang)
 
     if lang == "ua":
-        text = f"вњ… РЎРєСЂС–РЅ Р·Р°СЂР°С…РѕРІР°РЅРѕ.\nР’РёРєРѕСЂРёСЃС‚Р°РЅРѕ: {used_trial}/3"
-        if remaining_trial > 0:
-            text += f"\nР—Р°Р»РёС€РёР»РѕСЃСЊ: {remaining_trial}/3"
-        return text
-
+        return f"✅ Скрін зараховано.\nЗалишилось днів пробного доступу: {remaining_trial}"
     if lang == "ru":
-        text = f"вњ… РЎРєСЂРёРЅ Р·Р°СЃС‡РёС‚Р°РЅ.\nРСЃРїРѕР»СЊР·РѕРІР°РЅРѕ: {used_trial}/3"
-        if remaining_trial > 0:
-            text += f"\nРћСЃС‚Р°Р»РѕСЃСЊ: {remaining_trial}/3"
-        return text
-
-    text = f"вњ… Screenshot counted.\nUsed: {used_trial}/3"
-    if remaining_trial > 0:
-        text += f"\nRemaining: {remaining_trial}/3"
-    return text
+        return f"✅ Скрин засчитан.\nОсталось дней пробного доступа: {remaining_trial}"
+    return f"✅ Screenshot saved.\nTrial days remaining: {remaining_trial}"
 
 
 def _trial_fail_text(lang: str, used_trial: int, remaining_trial: int) -> str:
     lang = _normalize_lang(lang)
 
     if lang == "ua":
-        text = (
-            f"вљ пёЏ Р¦РµР№ СЃРєСЂС–РЅ РЅРµ РІРґР°Р»РѕСЃСЏ СЂРѕР·РїС–Р·РЅР°С‚Рё, Р°Р»Рµ РІС–РЅ Р·Р°СЂР°С…РѕРІР°РЅРёР№ Сѓ С‚РµСЃС‚.\n"
-            f"Р’РёРєРѕСЂРёСЃС‚Р°РЅРѕ: {used_trial}/3"
+        return (
+            "⚠️ Цей скрін не вдалося розпізнати, але він зарахований у trial.\n"
+            f"Залишилось днів пробного доступу: {remaining_trial}"
         )
-        if remaining_trial > 0:
-            text += f"\nР—Р°Р»РёС€РёР»РѕСЃСЊ: {remaining_trial}/3"
-        return text
-
     if lang == "ru":
-        text = (
-            f"вљ пёЏ Р­С‚РѕС‚ СЃРєСЂРёРЅ РЅРµ СѓРґР°Р»РѕСЃСЊ СЂР°СЃРїРѕР·РЅР°С‚СЊ, РЅРѕ РѕРЅ Р·Р°СЃС‡РёС‚Р°РЅ РІ С‚РµСЃС‚.\n"
-            f"РСЃРїРѕР»СЊР·РѕРІР°РЅРѕ: {used_trial}/3"
+        return (
+            "⚠️ Этот скрин не удалось распознать, но он засчитан в trial.\n"
+            f"Осталось дней пробного доступа: {remaining_trial}"
         )
-        if remaining_trial > 0:
-            text += f"\nРћСЃС‚Р°Р»РѕСЃСЊ: {remaining_trial}/3"
-        return text
-
-    text = (
-        f"вљ пёЏ This screenshot could not be recognized, but it was counted in the trial.\n"
-        f"Used: {used_trial}/3"
+    return (
+        "⚠️ This screenshot could not be recognized, but it was counted in the trial.\n"
+        f"Trial days remaining: {remaining_trial}"
     )
-    if remaining_trial > 0:
-        text += f"\nRemaining: {remaining_trial}/3"
-    return text
-
-
-def _trial_progress_text(lang: str, used_trial: int, remaining_trial: int) -> str:
-    lang = _normalize_lang(lang)
-
-    if lang == "ua":
-        text = f"вњ… РЎРєСЂС–РЅ Р·Р°СЂР°С…РѕРІР°РЅРѕ.\nР’РёРєРѕСЂРёСЃС‚Р°РЅРѕ: {used_trial}/{TRIAL_SCREEN_LIMIT}"
-        if remaining_trial > 0:
-            text += f"\nР—Р°Р»РёС€РёР»РѕСЃСЊ: {remaining_trial}/{TRIAL_SCREEN_LIMIT}"
-        return text
-
-    if lang == "ru":
-        text = f"вњ… РЎРєСЂРёРЅ Р·Р°СЃС‡РёС‚Р°РЅ.\nРСЃРїРѕР»СЊР·РѕРІР°РЅРѕ: {used_trial}/{TRIAL_SCREEN_LIMIT}"
-        if remaining_trial > 0:
-            text += f"\nРћСЃС‚Р°Р»РѕСЃСЊ: {remaining_trial}/{TRIAL_SCREEN_LIMIT}"
-        return text
-
-    text = f"вњ… Screenshot counted.\nUsed: {used_trial}/{TRIAL_SCREEN_LIMIT}"
-    if remaining_trial > 0:
-        text += f"\nRemaining: {remaining_trial}/{TRIAL_SCREEN_LIMIT}"
-    return text
-
-
-def _trial_fail_text(lang: str, used_trial: int, remaining_trial: int) -> str:
-    lang = _normalize_lang(lang)
-
-    if lang == "ua":
-        text = (
-            "вљ пёЏ Р¦РµР№ СЃРєСЂС–РЅ РЅРµ РІРґР°Р»РѕСЃСЏ СЂРѕР·РїС–Р·РЅР°С‚Рё, Р°Р»Рµ РІС–РЅ Р·Р°СЂР°С…РѕРІР°РЅРёР№ Сѓ С‚РµСЃС‚.\n"
-            f"Р’РёРєРѕСЂРёСЃС‚Р°РЅРѕ: {used_trial}/{TRIAL_SCREEN_LIMIT}"
-        )
-        if remaining_trial > 0:
-            text += f"\nР—Р°Р»РёС€РёР»РѕСЃСЊ: {remaining_trial}/{TRIAL_SCREEN_LIMIT}"
-        return text
-
-    if lang == "ru":
-        text = (
-            "вљ пёЏ Р­С‚РѕС‚ СЃРєСЂРёРЅ РЅРµ СѓРґР°Р»РѕСЃСЊ СЂР°СЃРїРѕР·РЅР°С‚СЊ, РЅРѕ РѕРЅ Р·Р°СЃС‡РёС‚Р°РЅ РІ С‚РµСЃС‚.\n"
-            f"РСЃРїРѕР»СЊР·РѕРІР°РЅРѕ: {used_trial}/{TRIAL_SCREEN_LIMIT}"
-        )
-        if remaining_trial > 0:
-            text += f"\nРћСЃС‚Р°Р»РѕСЃСЊ: {remaining_trial}/{TRIAL_SCREEN_LIMIT}"
-        return text
-
-    text = (
-        "вљ пёЏ This screenshot could not be recognized, but it was counted in the trial.\n"
-        f"Used: {used_trial}/{TRIAL_SCREEN_LIMIT}"
-    )
-    if remaining_trial > 0:
-        text += f"\nRemaining: {remaining_trial}/{TRIAL_SCREEN_LIMIT}"
-    return text
 
 
 def _build_trial_pitch(lang: str, stats: dict, used_trial: int) -> str | None:
@@ -263,124 +156,35 @@ def _build_trial_pitch(lang: str, stats: dict, used_trial: int) -> str | None:
     win_rate = float(stats.get("win_rate", 0) or 0)
     avg_odds = float(stats.get("avg_odds", 0) or 0)
 
-    if lang == "en":
-        if profit > 0:
-            return (
-                "рџ“Љ Now the picture is clearer\n\n"
-                f"рџ’° Profit: {profit}\n"
-                f"рџ“€ ROI: {roi}%\n"
-                f"рџЋЇ Winrate: {win_rate}%\n"
-                f"рџ“Љ Average odds: {avg_odds}\n\n"
-                "рџ”Ґ Good result.\n\n"
-                "But here is the key point:\n\n"
-                "You are in profit now вЂ”\n"
-                "but without a system it is easy to lose it.\n\n"
-                "рџ“Љ Only distance shows\n"
-                "whether this is luck or a stable edge.\n\n"
-                "рџ‘‡ Continue the analysis or lock in the result"
-            )
-
-        if profit < 0:
-            return (
-                "рџ“Љ Now the picture is clearer\n\n"
-                f"рџ’° Profit: {profit}\n"
-                f"рџ“€ ROI: {roi}%\n"
-                f"рџЋЇ Winrate: {win_rate}%\n"
-                f"рџ“Љ Average odds: {avg_odds}\n\n"
-                "вќ— Important point:\n\n"
-                "At this stage most users realize\n"
-                "that they are not earning вЂ” they are losing.\n\n"
-                "You are at the same stage now.\n\n"
-                "рџ‘‡ Continue the analysis or unlock full access"
-            )
-
+    if lang == "ua":
         return (
-            "рџ“Љ You already have the first picture\n\n"
-            f"рџ’° Profit: {profit}\n"
-            f"рџ“€ ROI: {roi}%\n"
-            f"рџЋЇ Winrate: {win_rate}%\n"
-            f"рџ“Љ Average odds: {avg_odds}\n\n"
-            "For now the result is around zero.\n"
-            "The next few bets will show\n"
-            "whether you really have a system.\n\n"
-            "рџ‘‡ Continue to see the real picture"
+            "📊 Уже вимальовується перша картина\n\n"
+            f"💰 Прибуток: {profit}\n"
+            f"📈 ROI: {roi}%\n"
+            f"🎯 Winrate: {win_rate}%\n"
+            f"📊 Середній коефіцієнт: {avg_odds}\n\n"
+            "Ще кілька ставок покажуть, чи це система, чи випадковість.\n\n"
+            "👇 Продовжуй аналіз або відкрий повний доступ"
         )
-
-    if profit > 0:
-        header = "рџ“Љ РўРµРїРµСЂ РІР¶Рµ С” РєР°СЂС‚РёРЅР°\n\n" if lang == "ua" else "рџ“Љ РўРµРїРµСЂСЊ СѓР¶Рµ РµСЃС‚СЊ РєР°СЂС‚РёРЅР°\n\n"
-        body = (
-            f"рџ’° РџСЂРёР±СѓС‚РѕРє: {profit}\n"
-            f"рџ“€ ROI: {roi}%\n"
-            f"рџЋЇ Winrate: {win_rate}%\n"
-            f"рџ“Љ РЎРµСЂРµРґРЅС–Р№ РєРѕРµС„С–С†С–С”РЅС‚: {avg_odds}\n\n"
-            "рџ”Ґ РќРµРїРѕРіР°РЅРёР№ СЂРµР·СѓР»СЊС‚Р°С‚.\n\n"
-            "РђР»Рµ С” РЅСЋР°РЅСЃ:\n\n"
-            "РўРё Р·Р°СЂР°Р· РІ РїР»СЋСЃС– вЂ”\n"
-            "Р°Р»Рµ Р±РµР· СЃРёСЃС‚РµРјРё С†Рµ Р»РµРіРєРѕ РІС‚СЂР°С‚РёС‚Рё.\n\n"
-            "рџ“Љ РЎР°РјРµ РЅР° РґРёСЃС‚Р°РЅС†С–С— СЃС‚Р°С” РІРёРґРЅРѕ,\n"
-            "С‡Рё С†Рµ РІРёРїР°РґРєРѕРІС–СЃС‚СЊ С‡Рё СЃС‚Р°Р±С–Р»СЊРЅРёР№ РїР»СЋСЃ.\n\n"
-            "рџ‘‡ РџСЂРѕРґРѕРІР¶СѓР№ Р°РЅР°Р»С–Р· Р°Р±Рѕ Р·Р°РєСЂС–РїРё СЂРµР·СѓР»СЊС‚Р°С‚"
-            if lang == "ua" else
-            f"рџ’° РџСЂРёР±С‹Р»СЊ: {profit}\n"
-            f"рџ“€ ROI: {roi}%\n"
-            f"рџЋЇ Winrate: {win_rate}%\n"
-            f"рџ“Љ РЎСЂРµРґРЅРёР№ РєРѕСЌС„С„РёС†РёРµРЅС‚: {avg_odds}\n\n"
-            "рџ”Ґ РќРµРїР»РѕС…РѕР№ СЂРµР·СѓР»СЊС‚Р°С‚.\n\n"
-            "РќРѕ РµСЃС‚СЊ РЅСЋР°РЅСЃ:\n\n"
-            "РўС‹ СЃРµР№С‡Р°СЃ РІ РїР»СЋСЃРµ вЂ”\n"
-            "РЅРѕ Р±РµР· СЃРёСЃС‚РµРјС‹ СЌС‚Рѕ Р»РµРіРєРѕ РїРѕС‚РµСЂСЏС‚СЊ.\n\n"
-            "рџ“Љ РРјРµРЅРЅРѕ РЅР° РґРёСЃС‚Р°РЅС†РёРё СЃС‚Р°РЅРѕРІРёС‚СЃСЏ РІРёРґРЅРѕ,\n"
-            "СЃР»СѓС‡Р°Р№РЅРѕСЃС‚СЊ СЌС‚Рѕ РёР»Рё СЃС‚Р°Р±РёР»СЊРЅС‹Р№ РїР»СЋСЃ.\n\n"
-            "рџ‘‡ РџСЂРѕРґРѕР»Р¶Р°Р№ Р°РЅР°Р»РёР· РёР»Рё Р·Р°РєСЂРµРїРё СЂРµР·СѓР»СЊС‚Р°С‚"
+    if lang == "ru":
+        return (
+            "📊 Уже вырисовывается первая картина\n\n"
+            f"💰 Прибыль: {profit}\n"
+            f"📈 ROI: {roi}%\n"
+            f"🎯 Winrate: {win_rate}%\n"
+            f"📊 Средний коэффициент: {avg_odds}\n\n"
+            "Ещё несколько ставок покажут, это система или случайность.\n\n"
+            "👇 Продолжай анализ или открой полный доступ"
         )
-        return header + body
-
-    if profit < 0:
-        header = "рџ“Љ РўРµРїРµСЂ РІР¶Рµ С” РєР°СЂС‚РёРЅР°\n\n" if lang == "ua" else "рџ“Љ РўРµРїРµСЂСЊ СѓР¶Рµ РµСЃС‚СЊ РєР°СЂС‚РёРЅР°\n\n"
-        body = (
-            f"рџ’° РџСЂРёР±СѓС‚РѕРє: {profit}\n"
-            f"рџ“€ ROI: {roi}%\n"
-            f"рџЋЇ Winrate: {win_rate}%\n"
-            f"рџ“Љ РЎРµСЂРµРґРЅС–Р№ РєРѕРµС„С–С†С–С”РЅС‚: {avg_odds}\n\n"
-            "вќ—пёЏ Р’Р°Р¶Р»РёРІРёР№ РјРѕРјРµРЅС‚:\n\n"
-            "Р—Р°Р·РІРёС‡Р°Р№ РЅР° С†СЊРѕРјСѓ РµС‚Р°РїС– Р»СЋРґРё СЂРѕР·СѓРјС–СЋС‚СЊ,\n"
-            "С‰Рѕ РІРѕРЅРё РЅРµ Р·Р°СЂРѕР±Р»СЏСЋС‚СЊ, Р° РІС‚СЂР°С‡Р°СЋС‚СЊ.\n\n"
-            "РўРё Р·Р°СЂР°Р· РЅР° С†СЊРѕРјСѓ Р¶ РµС‚Р°РїС–.\n\n"
-            "рџ‘‡ РџСЂРѕРґРѕРІР¶СѓР№ Р°РЅР°Р»С–Р· Р°Р±Рѕ РІС–РґРєСЂРёР№ РїРѕРІРЅРёР№ РґРѕСЃС‚СѓРї"
-            if lang == "ua" else
-            f"рџ’° РџСЂРёР±С‹Р»СЊ: {profit}\n"
-            f"рџ“€ ROI: {roi}%\n"
-            f"рџЋЇ Winrate: {win_rate}%\n"
-            f"рџ“Љ РЎСЂРµРґРЅРёР№ РєРѕСЌС„С„РёС†РёРµРЅС‚: {avg_odds}\n\n"
-            "вќ—пёЏ Р’Р°Р¶РЅС‹Р№ РјРѕРјРµРЅС‚:\n\n"
-            "РћР±С‹С‡РЅРѕ РЅР° СЌС‚РѕРј СЌС‚Р°РїРµ Р»СЋРґРё РїРѕРЅРёРјР°СЋС‚,\n"
-            "С‡С‚Рѕ РѕРЅРё РЅРµ Р·Р°СЂР°Р±Р°С‚С‹РІР°СЋС‚, Р° С‚РµСЂСЏСЋС‚.\n\n"
-            "РўС‹ СЃРµР№С‡Р°СЃ РЅР° СЌС‚РѕРј Р¶Рµ СЌС‚Р°РїРµ.\n\n"
-            "рџ‘‡ РџСЂРѕРґРѕР»Р¶Р°Р№ Р°РЅР°Р»РёР· РёР»Рё РѕС‚РєСЂРѕР№ РїРѕР»РЅС‹Р№ РґРѕСЃС‚СѓРї"
-        )
-        return header + body
-
-    header = "рџ“Љ РЈР¶Рµ С” РїРµСЂС€Р° РєР°СЂС‚РёРЅР°\n\n" if lang == "ua" else "рџ“Љ РЈР¶Рµ РµСЃС‚СЊ РїРµСЂРІР°СЏ РєР°СЂС‚РёРЅР°\n\n"
-    body = (
-        f"рџ’° РџСЂРёР±СѓС‚РѕРє: {profit}\n"
-        f"рџ“€ ROI: {roi}%\n"
-        f"рџЋЇ Winrate: {win_rate}%\n"
-        f"рџ“Љ РЎРµСЂРµРґРЅС–Р№ РєРѕРµС„С–С†С–С”РЅС‚: {avg_odds}\n\n"
-        "РџРѕРєРё СЂРµР·СѓР»СЊС‚Р°С‚ Р±С–Р»СЏ РЅСѓР»СЏ.\n"
-        "РЎР°РјРµ РєС–Р»СЊРєР° РЅР°СЃС‚СѓРїРЅРёС… СЃС‚Р°РІРѕРє РїРѕРєР°Р¶СѓС‚СЊ,\n"
-        "С‡Рё С” Сѓ С‚РµР±Рµ СЃРёСЃС‚РµРјР°.\n\n"
-        "рџ‘‡ РџСЂРѕРґРѕРІР¶СѓР№, С‰РѕР± РїРѕР±Р°С‡РёС‚Рё СЂРµР°Р»СЊРЅСѓ РєР°СЂС‚РёРЅСѓ"
-        if lang == "ua" else
-        f"рџ’° РџСЂРёР±С‹Р»СЊ: {profit}\n"
-        f"рџ“€ ROI: {roi}%\n"
-        f"рџЋЇ Winrate: {win_rate}%\n"
-        f"рџ“Љ РЎСЂРµРґРЅРёР№ РєРѕСЌС„С„РёС†РёРµРЅС‚: {avg_odds}\n\n"
-        "РџРѕРєР° СЂРµР·СѓР»СЊС‚Р°С‚ РѕРєРѕР»Рѕ РЅСѓР»СЏ.\n"
-        "РРјРµРЅРЅРѕ РЅРµСЃРєРѕР»СЊРєРѕ СЃР»РµРґСѓСЋС‰РёС… СЃС‚Р°РІРѕРє РїРѕРєР°Р¶СѓС‚,\n"
-        "РµСЃС‚СЊ Р»Рё Сѓ С‚РµР±СЏ СЃРёСЃС‚РµРјР°.\n\n"
-        "рџ‘‡ РџСЂРѕРґРѕР»Р¶Р°Р№, С‡С‚РѕР±С‹ СѓРІРёРґРµС‚СЊ СЂРµР°Р»СЊРЅСѓСЋ РєР°СЂС‚РёРЅСѓ"
+    return (
+        "📊 The first picture is already forming\n\n"
+        f"💰 Profit: {profit}\n"
+        f"📈 ROI: {roi}%\n"
+        f"🎯 Winrate: {win_rate}%\n"
+        f"📊 Average odds: {avg_odds}\n\n"
+        "A few more bets will show whether this is a system or just variance.\n\n"
+        "👇 Keep going or unlock full access"
     )
-    return header + body
 
 
 def _build_limit_pitch(lang: str, stats: dict) -> str:
@@ -389,161 +193,56 @@ def _build_limit_pitch(lang: str, stats: dict) -> str:
     roi = float(stats.get("roi", 0) or 0)
     win_rate = float(stats.get("win_rate", 0) or 0)
     avg_odds = float(stats.get("avg_odds", 0) or 0)
-    trial_ended_prefix = {
-        "ua": "\u0422\u0432\u0456\u0439 7-\u0434\u0435\u043d\u043d\u0438\u0439 \u043f\u0440\u043e\u0431\u043d\u0438\u0439 \u0434\u043e\u0441\u0442\u0443\u043f \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u043e.\n\n",
-        "ru": "\u0422\u0432\u043e\u0439 7-\u0434\u043d\u0435\u0432\u043d\u044b\u0439 \u043f\u0440\u043e\u0431\u043d\u044b\u0439 \u0434\u043e\u0441\u0442\u0443\u043f \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043d.\n\n",
-        "en": "Your 7-day free trial has ended.\n\n",
-    }.get(lang, "Your 7-day free trial has ended.\n\n")
-    if lang == "en":
-        if profit > 0:
-            return (trial_ended_prefix + "рџљ« Limit reached\n\n"
-                "рџ“Љ So far:\n"
-                f"рџ’° Profit: {profit}\n"
-                f"рџ“€ ROI: {roi}%\n"
-                f"рџЋЇ Winrate: {win_rate}%\n"
-                f"рџ“Љ Average odds: {avg_odds}\n\n"
-                "рџ”Ґ You are already showing profit.\n\n"
-                "But the main question is:\n\n"
-                "рџ‘‰ is it a system or just a short streak?\n\n"
-                "вќ— This is exactly where most users:\n"
-                "вЂ” lose their profit\n"
-                "вЂ” start playing more aggressively\n"
-                "вЂ” drain their bankroll\n\n"
-                "вљЎ Full access is needed\n"
-                "to lock in and scale your result\n\n"
-                "рџ‘‡ DonвЂ™t stop here"
-            )
-        if profit < 0:
-            return (trial_ended_prefix + "рџљ« Limit reached\n\n"
-                "рџ“Љ So far:\n"
-                f"рџ’° Profit: {profit}\n"
-                f"рџ“€ ROI: {roi}%\n"
-                f"рџЋЇ Winrate: {win_rate}%\n"
-                f"рџ“Љ Average odds: {avg_odds}\n\n"
-                "вќ— And this is only the beginning.\n\n"
-                "Without statistics, you will keep repeating the same mistakes.\n\n"
-                "вљЎ Full access unlocks:\n"
-                "вЂ” full statistics\n"
-                "вЂ” bet analysis\n"
-                "вЂ” result control\n\n"
-                "рџ‘‡ DonвЂ™t leave it like this"
-            )
-        return (trial_ended_prefix + "рџљ« Limit reached\n\n"
-            "рџ“Љ So far:\n"
-            f"рџ’° Profit: {profit}\n"
-            f"рџ“€ ROI: {roi}%\n"
-            f"рџЋЇ Winrate: {win_rate}%\n"
-            f"рџ“Љ Average odds: {avg_odds}\n\n"
-            "Right now the result is almost flat.\n"
-            "Only distance will show\n"
-            "whether your strategy really works.\n\n"
-            "рџ‘‡ Unlock full access and continue"
-        )
 
-    if profit > 0:
-        return (trial_ended_prefix + "рџљ« Р›С–РјС–С‚ РґРѕСЃСЏРіРЅСѓС‚Рѕ\n\n"
-            "рџ“Љ Р—Р° С†РµР№ С‡Р°СЃ:\n"
-            f"рџ’° РџСЂРёР±СѓС‚РѕРє: {profit}\n"
-            f"рџ“€ ROI: {roi}%\n"
-            f"рџЋЇ Winrate: {win_rate}%\n"
-            f"рџ“Љ РЎРµСЂРµРґРЅС–Р№ РєРѕРµС„С–С†С–С”РЅС‚: {avg_odds}\n\n"
-            "рџ”Ґ РўРё РІР¶Рµ РїРѕРєР°Р·СѓС”С€ РїР»СЋСЃ.\n\n"
-            "РђР»Рµ РіРѕР»РѕРІРЅРµ РїРёС‚Р°РЅРЅСЏ:\n\n"
-            "рџ‘‰ С†Рµ СЃРёСЃС‚РµРјР° С‡Рё РїСЂРѕСЃС‚Рѕ РєРѕСЂРѕС‚РєР° СЃРµСЂС–СЏ?\n\n"
-            "вќ—пёЏ РЎР°РјРµ С‚СѓС‚ Р±С–Р»СЊС€С–СЃС‚СЊ РіСЂР°РІС†С–РІ:\n"
-            "вЂ” РІС‚СЂР°С‡Р°СЋС‚СЊ РїСЂРёР±СѓС‚РѕРє\n"
-            "вЂ” РїРѕС‡РёРЅР°СЋС‚СЊ РіСЂР°С‚Рё Р°РіСЂРµСЃРёРІРЅС–С€Рµ\n"
-            "вЂ” Р·Р»РёРІР°СЋС‚СЊ Р±Р°РЅРє\n\n"
-            "вљЎпёЏ РџРѕРІРЅРёР№ РґРѕСЃС‚СѓРї РїРѕС‚СЂС–Р±РµРЅ,\n"
-            "С‰РѕР± Р·Р°С„С–РєСЃСѓРІР°С‚Рё С– РјР°СЃС€С‚Р°Р±СѓРІР°С‚Рё СЂРµР·СѓР»СЊС‚Р°С‚\n\n"
-            "рџ‘‡ РќРµ Р·СѓРїРёРЅСЏР№СЃСЏ РЅР° С†СЊРѕРјСѓ"
-            if lang == "ua" else
-            "рџљ« Р›РёРјРёС‚ РґРѕСЃС‚РёРіРЅСѓС‚\n\n"
-            "рџ“Љ Р—Р° СЌС‚Рѕ РІСЂРµРјСЏ:\n"
-            f"рџ’° РџСЂРёР±С‹Р»СЊ: {profit}\n"
-            f"рџ“€ ROI: {roi}%\n"
-            f"рџЋЇ Winrate: {win_rate}%\n"
-            f"рџ“Љ РЎСЂРµРґРЅРёР№ РєРѕСЌС„С„РёС†РёРµРЅС‚: {avg_odds}\n\n"
-            "рџ”Ґ РўС‹ СѓР¶Рµ РїРѕРєР°Р·С‹РІР°РµС€СЊ РїР»СЋСЃ.\n\n"
-            "РќРѕ РіР»Р°РІРЅС‹Р№ РІРѕРїСЂРѕСЃ:\n\n"
-            "рџ‘‰ СЌС‚Рѕ СЃРёСЃС‚РµРјР° РёР»Рё РїСЂРѕСЃС‚Рѕ РєРѕСЂРѕС‚РєР°СЏ СЃРµСЂРёСЏ?\n\n"
-            "вќ—пёЏ РРјРµРЅРЅРѕ Р·РґРµСЃСЊ Р±РѕР»СЊС€РёРЅСЃС‚РІРѕ РёРіСЂРѕРєРѕРІ:\n"
-            "вЂ” С‚РµСЂСЏСЋС‚ РїСЂРёР±С‹Р»СЊ\n"
-            "вЂ” РЅР°С‡РёРЅР°СЋС‚ РёРіСЂР°С‚СЊ Р°РіСЂРµСЃСЃРёРІРЅРµРµ\n"
-            "вЂ” СЃР»РёРІР°СЋС‚ Р±Р°РЅРє\n\n"
-            "вљЎпёЏ РџРѕР»РЅС‹Р№ РґРѕСЃС‚СѓРї РЅСѓР¶РµРЅ,\n"
-            "С‡С‚РѕР±С‹ Р·Р°С„РёРєСЃРёСЂРѕРІР°С‚СЊ Рё РјР°СЃС€С‚Р°Р±РёСЂРѕРІР°С‚СЊ СЂРµР·СѓР»СЊС‚Р°С‚\n\n"
-            "рџ‘‡ РќРµ РѕСЃС‚Р°РЅР°РІР»РёРІР°Р№СЃСЏ РЅР° СЌС‚РѕРј"
-        )
+    prefixes = {
+        "ua": "⛔ Твій 7-денний пробний доступ завершено.\n\n",
+        "ru": "⛔ Твой 7-дневный пробный доступ завершён.\n\n",
+        "en": "⛔ Your 7-day free trial has ended.\n\n",
+    }
+    prefix = prefixes.get(lang, prefixes["en"])
 
-    if profit < 0:
-        return (trial_ended_prefix + "рџљ« Р›С–РјС–С‚ РґРѕСЃСЏРіРЅСѓС‚Рѕ\n\n"
-            "рџ“Љ Р—Р° С†РµР№ С‡Р°СЃ:\n"
-            f"рџ’° РџСЂРёР±СѓС‚РѕРє: {profit}\n"
-            f"рџ“€ ROI: {roi}%\n"
-            f"рџЋЇ Winrate: {win_rate}%\n"
-            f"рџ“Љ РЎРµСЂРµРґРЅС–Р№ РєРѕРµС„С–С†С–С”РЅС‚: {avg_odds}\n\n"
-            "вќ—пёЏ Р† С†Рµ С‚С–Р»СЊРєРё РїРѕС‡Р°С‚РѕРє.\n\n"
-            "Р‘РµР· СЃС‚Р°С‚РёСЃС‚РёРєРё С‚Рё Р±СѓРґРµС€ РїРѕРІС‚РѕСЂСЋРІР°С‚Рё С‚С– Р¶ РїРѕРјРёР»РєРё.\n\n"
-            "вљЎпёЏ РџРѕРІРЅРёР№ РґРѕСЃС‚СѓРї РІС–РґРєСЂРёС”:\n"
-            "вЂ” РІСЃСЋ СЃС‚Р°С‚РёСЃС‚РёРєСѓ\n"
-            "вЂ” Р°РЅР°Р»С–Р· СЃС‚Р°РІРѕРє\n"
-            "вЂ” РєРѕРЅС‚СЂРѕР»СЊ СЂРµР·СѓР»СЊС‚Р°С‚С–РІ\n\n"
-            "рџ‘‡ РќРµ Р·Р°Р»РёС€Р°Р№ С†Рµ РїСЂРѕСЃС‚Рѕ С‚Р°Рє"
-            if lang == "ua" else
-            "рџљ« Р›РёРјРёС‚ РґРѕСЃС‚РёРіРЅСѓС‚\n\n"
-            "рџ“Љ Р—Р° СЌС‚Рѕ РІСЂРµРјСЏ:\n"
-            f"рџ’° РџСЂРёР±С‹Р»СЊ: {profit}\n"
-            f"рџ“€ ROI: {roi}%\n"
-            f"рџЋЇ Winrate: {win_rate}%\n"
-            f"рџ“Љ РЎСЂРµРґРЅРёР№ РєРѕСЌС„С„РёС†РёРµРЅС‚: {avg_odds}\n\n"
-            "вќ—пёЏ Р СЌС‚Рѕ С‚РѕР»СЊРєРѕ РЅР°С‡Р°Р»Рѕ.\n\n"
-            "Р‘РµР· СЃС‚Р°С‚РёСЃС‚РёРєРё С‚С‹ Р±СѓРґРµС€СЊ РїРѕРІС‚РѕСЂСЏС‚СЊ С‚Рµ Р¶Рµ РѕС€РёР±РєРё.\n\n"
-            "вљЎпёЏ РџРѕР»РЅС‹Р№ РґРѕСЃС‚СѓРї РѕС‚РєСЂРѕРµС‚:\n"
-            "вЂ” РІСЃСЋ СЃС‚Р°С‚РёСЃС‚РёРєСѓ\n"
-            "вЂ” Р°РЅР°Р»РёР· СЃС‚Р°РІРѕРє\n"
-            "вЂ” РєРѕРЅС‚СЂРѕР»СЊ СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ\n\n"
-            "рџ‘‡ РќРµ РѕСЃС‚Р°РІР»СЏР№ СЌС‚Рѕ РїСЂРѕСЃС‚Рѕ С‚Р°Рє"
+    if lang == "ua":
+        return prefix + (
+            "📊 За цей час:\n"
+            f"💰 Прибуток: {profit}\n"
+            f"📈 ROI: {roi}%\n"
+            f"🎯 Winrate: {win_rate}%\n"
+            f"📊 Середній коефіцієнт: {avg_odds}\n\n"
+            "Щоб побачити повну картину та продовжити аналіз, відкрий доступ."
         )
-
-    return (trial_ended_prefix + "рџљ« Р›С–РјС–С‚ РґРѕСЃСЏРіРЅСѓС‚Рѕ\n\n"
-        "рџ“Љ Р—Р° С†РµР№ С‡Р°СЃ:\n"
-        f"рџ’° РџСЂРёР±СѓС‚РѕРє: {profit}\n"
-        f"рџ“€ ROI: {roi}%\n"
-        f"рџЋЇ Winrate: {win_rate}%\n"
-        f"рџ“Љ РЎРµСЂРµРґРЅС–Р№ РєРѕРµС„С–С†С–С”РЅС‚: {avg_odds}\n\n"
-        "Р—Р°СЂР°Р· СЂРµР·СѓР»СЊС‚Р°С‚ РјР°Р№Р¶Рµ СЂС–РІРЅРёР№.\n"
-        "РЎР°РјРµ РЅР° РґРёСЃС‚Р°РЅС†С–С— СЃС‚Р°РЅРµ РІРёРґРЅРѕ,\n"
-        "С‡Рё РїСЂР°С†СЋС” С‚РІРѕСЏ СЃС‚СЂР°С‚РµРіС–СЏ.\n\n"
-        "рџ‘‡ Р’С–РґРєСЂРёР№ РїРѕРІРЅРёР№ РґРѕСЃС‚СѓРї С– РїСЂРѕРґРѕРІР¶СѓР№ Р°РЅР°Р»С–Р·"
-        if lang == "ua" else
-        "рџљ« Р›РёРјРёС‚ РґРѕСЃС‚РёРіРЅСѓС‚\n\n"
-        "рџ“Љ Р—Р° СЌС‚Рѕ РІСЂРµРјСЏ:\n"
-        f"рџ’° РџСЂРёР±С‹Р»СЊ: {profit}\n"
-        f"рџ“€ ROI: {roi}%\n"
-        f"рџЋЇ Winrate: {win_rate}%\n"
-        f"рџ“Љ РЎСЂРµРґРЅРёР№ РєРѕСЌС„С„РёС†РёРµРЅС‚: {avg_odds}\n\n"
-        "РЎРµР№С‡Р°СЃ СЂРµР·СѓР»СЊС‚Р°С‚ РїРѕС‡С‚Рё СЂР°РІРЅС‹Р№.\n"
-        "РРјРµРЅРЅРѕ РЅР° РґРёСЃС‚Р°РЅС†РёРё СЃС‚Р°РЅРµС‚ РІРёРґРЅРѕ,\n"
-        "СЂР°Р±РѕС‚Р°РµС‚ Р»Рё С‚РІРѕСЏ СЃС‚СЂР°С‚РµРіРёСЏ.\n\n"
-        "рџ‘‡ РћС‚РєСЂРѕР№ РїРѕР»РЅС‹Р№ РґРѕСЃС‚СѓРї Рё РїСЂРѕРґРѕР»Р¶Р°Р№ Р°РЅР°Р»РёР·"
+    if lang == "ru":
+        return prefix + (
+            "📊 За это время:\n"
+            f"💰 Прибыль: {profit}\n"
+            f"📈 ROI: {roi}%\n"
+            f"🎯 Winrate: {win_rate}%\n"
+            f"📊 Средний коэффициент: {avg_odds}\n\n"
+            "Чтобы увидеть полную картину и продолжить анализ, открой доступ."
+        )
+    return prefix + (
+        "📊 So far:\n"
+        f"💰 Profit: {profit}\n"
+        f"📈 ROI: {roi}%\n"
+        f"🎯 Winrate: {win_rate}%\n"
+        f"📊 Average odds: {avg_odds}\n\n"
+        "Unlock full access to continue the analysis."
     )
 
 
 def _emotion_prompt_text(lang: str) -> str:
     if lang == "ua":
-        return "РЇРє С‚Рё СЃРµР±Рµ РїРѕС‡СѓРІР°РІ РїРµСЂРµРґ С†С–С”СЋ СЃС‚Р°РІРєРѕСЋ?"
+        return "Як ти себе почував перед цією ставкою?"
     if lang == "ru":
-        return "РљР°Рє С‚С‹ СЃРµР±СЏ С‡СѓРІСЃС‚РІРѕРІР°Р» РїРµСЂРµРґ СЌС‚РѕР№ СЃС‚Р°РІРєРѕР№?"
+        return "Как ты себя чувствовал перед этой ставкой?"
     return "How did you feel before this bet?"
 
 
 def _emotion_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("рџ¤ РўС–Р»С‚", callback_data="emotion_tilt")],
-        [InlineKeyboardButton("рџ° РўСЂРёРІРѕРіР°", callback_data="emotion_anxiety")],
-        [InlineKeyboardButton("рџЋ Р’РїРµРІРЅРµРЅРёР№", callback_data="emotion_confident")],
-        [InlineKeyboardButton("рџ¤” РќРµР№С‚СЂР°Р»СЊРЅРѕ", callback_data="emotion_neutral")],
+        [InlineKeyboardButton("😤 Тільт", callback_data="emotion_tilt")],
+        [InlineKeyboardButton("😰 Тривога", callback_data="emotion_anxiety")],
+        [InlineKeyboardButton("😎 Впевнений", callback_data="emotion_confident")],
+        [InlineKeyboardButton("🤔 Нейтрально", callback_data="emotion_neutral")],
     ])
 
 
@@ -600,9 +299,9 @@ async def emotion_callback_handler(update: Update, context: ContextTypes.DEFAULT
 
 def _tilt_warning_keyboard(lang: str) -> InlineKeyboardMarkup:
     labels = {
-        "ua": ("вњ… Р—СЂРѕР·СѓРјС–РІ, РїСЂРѕРґРѕРІР¶СѓСЋ", "рџ›‘ Р—СЂРѕР±РёС‚Рё РїР°СѓР·Сѓ"),
-        "ru": ("вњ… РџРѕРЅСЏР», РїСЂРѕРґРѕР»Р¶Р°СЋ", "рџ›‘ РЎРґРµР»Р°С‚СЊ РїР°СѓР·Сѓ"),
-        "en": ("вњ… Got it, continue", "рџ›‘ Take a break"),
+        "ua": ("✅ Зрозумів, продовжую", "🛑 Зробити паузу"),
+        "ru": ("✅ Понял, продолжаю", "🛑 Сделать паузу"),
+        "en": ("✅ Got it, continue", "🛑 Take a break"),
     }
     continue_label, pause_label = labels.get(lang, labels["en"])
     return InlineKeyboardMarkup([
@@ -618,42 +317,42 @@ def _tilt_warning_text(lang: str, signal_code: str, signal_context: dict) -> str
     if signal_code == "chasing_losses":
         if lang == "ua":
             return (
-                "рџљЁ РЎС‚РѕРї-СЃРёРіРЅР°Р»!\n\n"
-                "РћСЃС‚Р°РЅРЅС– 3 СЃС‚Р°РІРєРё  РїСЂРѕРіСЂР°С€. РЎС…РѕР¶Рµ РЅР° СЃРїСЂРѕР±Сѓ РІС–РґС–РіСЂР°С‚Рё.\n"
-                "РЎС‚Р°С‚РёСЃС‚РёРєР°: РІ С‚Р°РєС–Р№ СЃРёС‚СѓР°С†С–С— Р±С–Р»СЊС€С–СЃС‚СЊ Р±РµС‚С‚РµСЂС–РІ РїСЂРѕРіСЂР°С” С‰Рµ Р±С–Р»СЊС€Рµ.\n\n"
-                "Р РµРєРѕРјРµРЅРґСѓСЋ Р·СЂРѕР±РёС‚Рё РїР°СѓР·Сѓ 30 С…РІРёР»РёРЅ."
+                "🚨 Стоп-сигнал!\n\n"
+                "Останні 3 ставки були мінусовими. Це схоже на спробу відігратися.\n"
+                "У таких ситуаціях більшість беттерів втрачають ще більше.\n\n"
+                "Рекомендую зробити паузу на 30 хвилин."
             )
         if lang == "ru":
             return (
-                "рџљЁ РЎС‚РѕРї-СЃРёРіРЅР°Р»!\n\n"
-                "РџРѕСЃР»РµРґРЅРёРµ 3 СЃС‚Р°РІРєРё  РїСЂРѕРёРіСЂС‹С€. РџРѕС…РѕР¶Рµ РЅР° РїРѕРїС‹С‚РєСѓ РѕС‚С‹РіСЂР°С‚СЊСЃСЏ.\n"
-                "РЎС‚Р°С‚РёСЃС‚РёРєР°: РІ С‚Р°РєРѕР№ СЃРёС‚СѓР°С†РёРё Р±РѕР»СЊС€РёРЅСЃС‚РІРѕ Р±РµС‚С‚РµСЂРѕРІ РїСЂРѕРёРіСЂС‹РІР°РµС‚ РµС‰Рµ Р±РѕР»СЊС€Рµ.\n\n"
-                "Р РµРєРѕРјРµРЅРґСѓСЋ СЃРґРµР»Р°С‚СЊ РїР°СѓР·Сѓ 30 РјРёРЅСѓС‚."
+                "🚨 Стоп-сигнал!\n\n"
+                "Последние 3 ставки были минусовыми. Это похоже на попытку отыграться.\n"
+                "В таких ситуациях большинство беттеров теряют ещё больше.\n\n"
+                "Рекомендую сделать паузу на 30 минут."
             )
         return (
-            "рџљЁ Stop signal!\n\n"
+            "🚨 Stop signal!\n\n"
             "Your last 3 bets were losses. This looks like chasing losses.\n"
-            "Statistics show that in this situation most bettors lose even more.\n\n"
+            "In this situation most bettors lose even more.\n\n"
             "I recommend taking a 30-minute break."
         )
 
     if signal_code == "rapid_betting":
         if lang == "ua":
             return (
-                "вљ пёЏ РЈРІР°РіР°!\n\n"
-                f"РўРё РїРѕСЃС‚Р°РІРёРІ {count} СЃС‚Р°РІРєРё Р·Р° РѕСЃС‚Р°РЅРЅСЋ РіРѕРґРёРЅСѓ.\n"
-                "РЁРІРёРґРєРµ Р±РµС‚С‚С–РЅРіСѓРІР°РЅРЅСЏ Р·РЅРёР¶СѓС” СЏРєС–СЃС‚СЊ СЂС–С€РµРЅСЊ.\n\n"
-                "РЎРїРѕРІС–Р»СЊРЅРёСЃСЊ."
+                "⚠️ Увага!\n\n"
+                f"Ти зробив {count} ставок за останню годину.\n"
+                "Швидкий betting знижує якість рішень.\n\n"
+                "Сповільнись."
             )
         if lang == "ru":
             return (
-                "вљ пёЏ Р’РЅРёРјР°РЅРёРµ!\n\n"
-                f"РўС‹ СЃРґРµР»Р°Р» {count} СЃС‚Р°РІРєРё Р·Р° РїРѕСЃР»РµРґРЅРёР№ С‡Р°СЃ.\n"
-                "Р‘С‹СЃС‚СЂС‹Р№ Р±РµС‚С‚РёРЅРі СЃРЅРёР¶Р°РµС‚ РєР°С‡РµСЃС‚РІРѕ СЂРµС€РµРЅРёР№.\n\n"
-                "РџСЂРёС‚РѕСЂРјРѕР·Рё."
+                "⚠️ Внимание!\n\n"
+                f"Ты сделал {count} ставок за последний час.\n"
+                "Быстрый betting снижает качество решений.\n\n"
+                "Притормози."
             )
         return (
-            "вљ пёЏ Warning!\n\n"
+            "⚠️ Warning!\n\n"
             f"You placed {count} bets in the last hour.\n"
             "Rapid betting lowers decision quality.\n\n"
             "Slow down."
@@ -661,18 +360,18 @@ def _tilt_warning_text(lang: str, signal_code: str, signal_context: dict) -> str
 
     if lang == "ua":
         return (
-            "рџЊ™ РџС–Р·РЅС–Р№ С‡Р°СЃ.\n\n"
-            f"Р’Р¶Рµ {hour}:00. РўРІС–Р№ winrate РїС–СЃР»СЏ 23:00 Р·Р°Р·РІРёС‡Р°Р№ РЅРёР¶С‡РёР№.\n"
-            "РџРѕРґСѓРјР°Р№ РґРІС–С‡С– РїРµСЂРµРґ РЅР°СЃС‚СѓРїРЅРѕСЋ СЃС‚Р°РІРєРѕСЋ."
+            "🌙 Пізній час.\n\n"
+            f"Вже {hour}:00. Твій winrate після 23:00 зазвичай нижчий.\n"
+            "Подумай двічі перед наступною ставкою."
         )
     if lang == "ru":
         return (
-            "рџЊ™ РџРѕР·РґРЅРµРµ РІСЂРµРјСЏ.\n\n"
-            f"РЈР¶Рµ {hour}:00. РўРІРѕР№ winrate РїРѕСЃР»Рµ 23:00 РѕР±С‹С‡РЅРѕ РЅРёР¶Рµ.\n"
-            "РџРѕРґСѓРјР°Р№ РґРІР°Р¶РґС‹ РїРµСЂРµРґ СЃР»РµРґСѓСЋС‰РµР№ СЃС‚Р°РІРєРѕР№."
+            "🌙 Позднее время.\n\n"
+            f"Уже {hour}:00. Твой winrate после 23:00 обычно ниже.\n"
+            "Подумай дважды перед следующей ставкой."
         )
     return (
-        "рџЊ™ Late hour.\n\n"
+        "🌙 Late hour.\n\n"
         f"It is already {hour}:00. Your win rate after 23:00 is usually lower.\n"
         "Think twice before the next bet."
     )
@@ -680,10 +379,10 @@ def _tilt_warning_text(lang: str, signal_code: str, signal_context: dict) -> str
 
 def _tilt_break_text(lang: str) -> str:
     if lang == "ua":
-        return "Р“Р°СЂРЅРµ СЂС–С€РµРЅРЅСЏ! РџРѕР±Р°С‡РёРјРѕСЃСЊ С‡РµСЂРµР· 30 С…РІРёР»РёРЅ рџ’Є"
+        return "Гарне рішення! Побачимось через 30 хвилин 💪"
     if lang == "ru":
-        return "РҐРѕСЂРѕС€РµРµ СЂРµС€РµРЅРёРµ! РЈРІРёРґРёРјСЃСЏ С‡РµСЂРµР· 30 РјРёРЅСѓС‚ рџ’Є"
-    return "Good call! See you in 30 minutes рџ’Є"
+        return "Хорошее решение! Увидимся через 30 минут 💪"
+    return "Good call! See you in 30 minutes 💪"
 
 
 async def tilt_warning_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -727,11 +426,11 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not has_access and not in_trial:
         no_access_text = (
-            "в›” РЈ С‚РµР±Рµ РЅРµРјР°С” Р°РєС‚РёРІРЅРѕРіРѕ РґРѕСЃС‚СѓРїСѓ.\n\nРЎРїРѕС‡Р°С‚РєСѓ РЅР°С‚РёСЃРЅРё В«РЎРїСЂРѕР±СѓРІР°С‚РёВ» Р°Р±Рѕ РѕС„РѕСЂРјРё РїС–РґРїРёСЃРєСѓ."
+            "⛔ У тебе немає активного доступу.\n\nСпочатку натисни «Спробувати» або оформи підписку."
             if lang == "ua" else
-            "в›” РЈ С‚РµР±СЏ РЅРµС‚ Р°РєС‚РёРІРЅРѕРіРѕ РґРѕСЃС‚СѓРїР°.\n\nРЎРЅР°С‡Р°Р»Р° РЅР°Р¶РјРё В«РџРѕРїСЂРѕР±РѕРІР°С‚СЊВ» РёР»Рё РѕС„РѕСЂРјРё РїРѕРґРїРёСЃРєСѓ."
+            "⛔ У тебя нет активного доступа.\n\nСначала нажми «Попробовать» или оформи подписку."
             if lang == "ru" else
-            "в›” You do not have active access.\n\nPress вЂњTryвЂќ first or buy a subscription."
+            "⛔ You do not have active access.\n\nPress \"Try\" first or buy a subscription."
         )
         await update.message.reply_text(no_access_text, reply_markup=welcome_offer_keyboard(lang))
         return
@@ -799,7 +498,7 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         remaining_trial = get_trial_remaining(user_id)
-        used_trial = 3 - remaining_trial
+        used_trial = get_trial_used_count(user_id)
 
         await update.message.reply_text(_trial_progress_text(lang, used_trial, remaining_trial))
 
@@ -835,7 +534,7 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         remaining_trial = get_trial_remaining(user_id)
-        used_trial = 3 - remaining_trial
+        used_trial = get_trial_used_count(user_id)
 
         await update.message.reply_text(_trial_fail_text(lang, used_trial, remaining_trial))
 

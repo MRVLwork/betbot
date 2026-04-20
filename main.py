@@ -1,4 +1,6 @@
-﻿from datetime import datetime, timedelta
+# -*- coding: utf-8 -*-
+from datetime import datetime, timedelta
+import sys
 from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -23,6 +25,7 @@ from db import (
     get_user_remaining_photos_today,
     get_user,
     set_user_language,
+    is_trial_available,
 )
 from bets_db import (
     init_bets_table,
@@ -85,6 +88,9 @@ from states import (
     WAITING_PROMO,
 )
 
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+
 
 def get_user_lang(user_id: int) -> str:
     user = get_user(user_id)
@@ -105,13 +111,10 @@ def _is_trial_user(user_id: int) -> bool:
     if not user:
         return False
 
-    has_access = user_has_access(user_id)
     return (
         user.get("trial_started_at") is not None
-        and not has_access
-    ) or (
-        has_access
-        and user.get("is_active") == 0
+        and is_trial_available(user_id)
+        and not user_has_access(user_id)
     )
 
 
@@ -585,16 +588,17 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
 
     ai_menu_labels = {
-        "рџ“¤ РќР°РґС–СЃР»Р°С‚Рё СЂРµР·СѓР»СЊС‚Р°С‚", "рџ“¤ РћС‚РїСЂР°РІРёС‚СЊ СЂРµР·СѓР»СЊС‚Р°С‚", "рџ“¤ Send result",
-        "рџ“Љ РњРѕСЏ СЃС‚Р°С‚РёСЃС‚РёРєР°", "рџ“Љ My stats",
-        "рџ“€ РџРѕРІРЅР° СЃС‚Р°С‚РёСЃС‚РёРєР°", "рџ“€ РџРѕР»РЅР°СЏ СЃС‚Р°С‚РёСЃС‚РёРєР°", "рџ“€ Full stats",
-        "рџ“Љ Wrapped",
-        "рџ§  AI РўСЂРµРЅРµСЂ", "рџ§  AI Coach", "рџ”’ AI РўСЂРµРЅРµСЂ VIP", "рџ”’ AI Coach VIP",
-        "рџ§  РђРЅР°Р»С–С‚РёРєР°", "рџ§  РђРЅР°Р»РёС‚РёРєР°", "рџ§  Analytics",
-        "рџ›  РЈСЃС– С–РЅСЃС‚СЂСѓРјРµРЅС‚Рё", "рџ›  Р’СЃРµ РёРЅСЃС‚СЂСѓРјРµРЅС‚С‹", "рџ›  All tools",
-        "рџ’і РљСѓРїРёС‚Рё РґРѕСЃС‚СѓРї", "рџ’і РљСѓРїРёС‚СЊ РґРѕСЃС‚СѓРї", "рџ’і Buy access",
-        "рџЊђ РњРѕРІР°", "рџЊђ РЇР·С‹Рє", "рџЊђ Language",
-        "рџ”‘ Р’РІРµСЃС‚Рё РїСЂРѕРјРѕРєРѕРґ", "рџ”‘ Enter promo code",
+        "\U0001F4E4 \u041d\u0430\u0434\u0456\u0441\u043b\u0430\u0442\u0438 \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442", "\U0001F4E4 \u041e\u0442\u043f\u0440\u0430\u0432\u0438\u0442\u044c \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442", "\U0001F4E4 Send result",
+        "\U0001F4CA \u041c\u043e\u044f \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430", "\U0001F4CA My stats",
+        "\U0001F4C8 \u041f\u043e\u0432\u043d\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430", "\U0001F4C8 \u041f\u043e\u043b\u043d\u0430\u044f \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430", "\U0001F4C8 Full stats",
+        "\U0001F4CA Wrapped",
+        "\U0001F9E0 AI \u0422\u0440\u0435\u043d\u0435\u0440", "\U0001F9E0 AI Coach", "\U0001F512 AI \u0422\u0440\u0435\u043d\u0435\u0440 VIP", "\U0001F512 AI Coach VIP",
+        "\U0001F9E0 \u0410\u043d\u0430\u043b\u0456\u0442\u0438\u043a\u0430", "\U0001F9E0 \u0410\u043d\u0430\u043b\u0438\u0442\u0438\u043a\u0430", "\U0001F9E0 Analytics",
+        "\U0001F6E0 \u0423\u0441\u0456 \u0456\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u0438", "\U0001F6E0 \u0412\u0441\u0435 \u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u044b", "\U0001F6E0 All tools",
+        "\U0001F4B3 \u041a\u0443\u043f\u0438\u0442\u0438 \u0434\u043e\u0441\u0442\u0443\u043f", "\U0001F4B3 \u041a\u0443\u043f\u0438\u0442\u044c \u0434\u043e\u0441\u0442\u0443\u043f", "\U0001F4B3 Buy access",
+        "\U0001F310 \u041c\u043e\u0432\u0430", "\U0001F310 \u042f\u0437\u044b\u043a", "\U0001F310 Language",
+        "\U0001F511 \u0412\u0432\u0435\u0441\u0442\u0438 \u043f\u0440\u043e\u043c\u043e\u043a\u043e\u0434", "\U0001F511 Enter promo code",
+        "\U0001F525 Streak",
     }
 
     if context.user_data.get("awaiting_ai_match_analysis") and text not in ai_menu_labels:
@@ -605,7 +609,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await handle_coach_message(update, context)
         return ConversationHandler.END
 
-    if text in ("рџ“¤ РќР°РґС–СЃР»Р°С‚Рё СЂРµР·СѓР»СЊС‚Р°С‚", "рџ“¤ РћС‚РїСЂР°РІРёС‚СЊ СЂРµР·СѓР»СЊС‚Р°С‚", "рџ“¤ Send result"):
+    if text in ("\U0001F4E4 \u041d\u0430\u0434\u0456\u0441\u043b\u0430\u0442\u0438 \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442", "\U0001F4E4 \u041e\u0442\u043f\u0440\u0430\u0432\u0438\u0442\u044c \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442", "\U0001F4E4 Send result"):
         if not user_has_access(user_id):
             await update.message.reply_text(get_text(lang, "activate_access_first"))
             return ConversationHandler.END
@@ -618,77 +622,63 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             get_text(lang, "send_screen_with_limit").format(
                 limit=daily_limit,
                 used=used_today,
-                remaining=remaining
+                remaining=remaining,
             )
         )
-
-    elif text in ("рџ“Љ РњРѕСЏ СЃС‚Р°С‚РёСЃС‚РёРєР°", "рџ“Љ My stats"):
+    elif text in ("\U0001F4CA \u041c\u043e\u044f \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430", "\U0001F4CA My stats"):
         if not user_has_access(user_id) and not _is_trial_user(user_id):
             await update.message.reply_text(get_text(lang, "no_active_access_start"))
             return ConversationHandler.END
 
         is_vip = is_user_vip(user_id)
-
         await update.message.reply_text(
             get_text(lang, "choose_period"),
-            reply_markup=stats_periods_keyboard(is_vip, lang, prefix="stats")
+            reply_markup=stats_periods_keyboard(is_vip, lang, prefix="stats"),
         )
-
-    elif text in ("рџ“€ РџРѕРІРЅР° СЃС‚Р°С‚РёСЃС‚РёРєР°", "рџ“€ РџРѕР»РЅР°СЏ СЃС‚Р°С‚РёСЃС‚РёРєР°", "рџ“€ Full stats"):
+    elif text in ("\U0001F4C8 \u041f\u043e\u0432\u043d\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430", "\U0001F4C8 \u041f\u043e\u043b\u043d\u0430\u044f \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430", "\U0001F4C8 Full stats"):
         if not user_has_access(user_id) and not _is_trial_user(user_id):
             await update.message.reply_text(get_text(lang, "no_active_access_start"))
             return ConversationHandler.END
 
         is_vip = is_user_vip(user_id)
-
         await update.message.reply_text(
             get_text(lang, "choose_full_stats_period"),
-            reply_markup=stats_periods_keyboard(is_vip, lang, prefix="fullstats")
+            reply_markup=stats_periods_keyboard(is_vip, lang, prefix="fullstats"),
         )
-
-    elif text == "рџ“Љ Wrapped":
+    elif text == "\U0001F4CA Wrapped":
         await send_weekly_wrap(update, context)
-
-    elif text in ("рџ§  AI РўСЂРµРЅРµСЂ", "рџ§  AI Coach", "рџ”’ AI РўСЂРµРЅРµСЂ VIP", "рџ”’ AI Coach VIP"):
+    elif text in ("\U0001F9E0 AI \u0422\u0440\u0435\u043d\u0435\u0440", "\U0001F9E0 AI Coach", "\U0001F512 AI \u0422\u0440\u0435\u043d\u0435\u0440 VIP", "\U0001F512 AI Coach VIP"):
         await open_coach(update, context)
-
-    elif text in ("рџ§  РђРЅР°Р»С–С‚РёРєР°", "рџ§  РђРЅР°Р»РёС‚РёРєР°", "рџ§  Analytics"):
+    elif text in ("\U0001F9E0 \u0410\u043d\u0430\u043b\u0456\u0442\u0438\u043a\u0430", "\U0001F9E0 \u0410\u043d\u0430\u043b\u0438\u0442\u0438\u043a\u0430", "\U0001F9E0 Analytics"):
         if not user_has_access(user_id) and not _is_trial_user(user_id):
             await update.message.reply_text(get_text(lang, "no_active_access_start"))
             return ConversationHandler.END
 
         is_vip = is_user_vip(user_id)
-
         await update.message.reply_text(
             get_text(lang, "choose_analytics_period"),
-            reply_markup=stats_periods_keyboard(is_vip, lang, prefix="analytics")
+            reply_markup=stats_periods_keyboard(is_vip, lang, prefix="analytics"),
         )
-
-    elif text in ("рџ›  РЈСЃС– С–РЅСЃС‚СЂСѓРјРµРЅС‚Рё", "рџ›  Р’СЃРµ РёРЅСЃС‚СЂСѓРјРµРЅС‚С‹", "рџ›  All tools"):
+    elif text in ("\U0001F6E0 \u0423\u0441\u0456 \u0456\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u0438", "\U0001F6E0 \u0412\u0441\u0435 \u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u044b", "\U0001F6E0 All tools"):
         await open_tools_menu(update, context)
-
-    elif text in ("рџ’і РљСѓРїРёС‚Рё РґРѕСЃС‚СѓРї", "рџ’і РљСѓРїРёС‚СЊ РґРѕСЃС‚СѓРї", "рџ’і Buy access"):
+    elif text in ("\U0001F4B3 \u041a\u0443\u043f\u0438\u0442\u0438 \u0434\u043e\u0441\u0442\u0443\u043f", "\U0001F4B3 \u041a\u0443\u043f\u0438\u0442\u044c \u0434\u043e\u0441\u0442\u0443\u043f", "\U0001F4B3 Buy access"):
         await update.message.reply_text(
             get_text(lang, "choose_access_option"),
-            reply_markup=access_keyboard(lang)
+            reply_markup=access_keyboard(lang),
         )
-
-    elif text in ("рџЊђ РњРѕРІР°", "рџЊђ РЇР·С‹Рє", "рџЊђ Language"):
+    elif text in ("\U0001F310 \u041c\u043e\u0432\u0430", "\U0001F310 \u042f\u0437\u044b\u043a", "\U0001F310 Language"):
         await update.message.reply_text(
             get_text(lang, "choose_lang"),
-            reply_markup=language_keyboard()
+            reply_markup=language_keyboard(),
         )
-
-    elif text in ("рџ”‘ Р’РІРµСЃС‚Рё РїСЂРѕРјРѕРєРѕРґ", "рџ”‘ Enter promo code"):
+    elif text in ("\U0001F511 \u0412\u0432\u0435\u0441\u0442\u0438 \u043f\u0440\u043e\u043c\u043e\u043a\u043e\u0434", "\U0001F511 Enter promo code"):
         await update.message.reply_text(get_text(lang, "enter_promo_hint"))
         return WAITING_PROMO
 
     return ConversationHandler.END
 
-
 def main():
-    if not BOT_TOKEN:
-        raise RuntimeError("РќРµ Р·РЅР°Р№РґРµРЅРѕ TELEGRAM_BOT_TOKEN Сѓ .env")
+    if not BOT_TOKEN:        raise RuntimeError("\u041d\u0435 \u0437\u043d\u0430\u0439\u0434\u0435\u043d\u043e TELEGRAM_BOT_TOKEN \u0443 .env")
 
     init_db()
     init_bets_table()
@@ -771,7 +761,7 @@ def main():
     app.add_handler(
         MessageHandler(filters.PHOTO & filters.CaptionRegex(r"^/sendpost(?:@\w+)?(?:\s|$)"), admin_broadcast_photo_handler)
     )
-    app.add_handler(MessageHandler(filters.Regex(r"^(рџ”Ґ Streak|рџ”Ґ РЎРµСЂРёСЏ)$"), show_streak))
+    app.add_handler(MessageHandler(filters.Regex(r"^(\U0001F525 Streak|\U0001F525 \u0421\u0435\u0440\u0456\u044f)$"), show_streak))
     app.add_handler(MessageHandler(filters.PHOTO, process_bet_photo))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, menu_handler))
 
@@ -781,5 +771,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 

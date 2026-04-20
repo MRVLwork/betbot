@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from telegram import ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
 
 
@@ -22,7 +23,11 @@ def welcome_offer_keyboard(lang: str):
 
 def main_menu_keyboard(lang: str, plan: str = "basic"):
     is_vip = (plan or "basic").lower() == "vip"
-    coach_label = "🧠 AI Тренер" if is_vip and lang in ("ua", "ru") else "🧠 AI Coach" if is_vip else "🔒 AI Тренер VIP" if lang in ("ua", "ru") else "🔒 AI Coach VIP"
+    if is_vip:
+        coach_label = "🧠 AI Тренер" if lang in ("ua", "ru") else "🧠 AI Coach"
+    else:
+        coach_label = "🔒 AI Тренер VIP" if lang in ("ua", "ru") else "🔒 AI Coach VIP"
+
     if lang == "ru":
         keyboard = [
             ["📤 Отправить результат"],
@@ -127,6 +132,7 @@ def stars_plans_keyboard(lang: str, promo_available: bool = True):
                 [InlineKeyboardButton("VIP 1 місяць — 1999 ⭐", callback_data="stars_vip_month_full")],
             ]
     return InlineKeyboardMarkup(keyboard)
+
 
 def usdt_plans_keyboard(lang: str, promo_available: bool = True):
     if promo_available:
@@ -254,9 +260,10 @@ def bet_day_vip_keyboard(lang: str, has_access: bool = False, is_subscribed: boo
             rows.append([InlineKeyboardButton("💸 Купити за 4.99$", callback_data="usdt_vip_bet_day_month")])
             rows.append([InlineKeyboardButton("⭐ Купити за 499 Stars", callback_data="stars_vip_bet_day_month")])
 
-    back_text = "⬅️ Назад" if lang in ("ru","ua") else "⬅️ Back"
+    back_text = "⬅️ Назад" if lang in ("ru", "ua") else "⬅️ Back"
     rows.append([InlineKeyboardButton(back_text, callback_data="tool_bet_day")])
     return InlineKeyboardMarkup(rows)
+
 
 def payment_check_keyboard(lang: str):
     if lang == "ru":
@@ -287,7 +294,6 @@ def stats_periods_keyboard(is_vip: bool, lang: str, prefix: str = "stats"):
         if is_vip:
             keyboard.append([InlineKeyboardButton("Текущая неделя", callback_data=f"{prefix}_current_week")])
             keyboard.append([InlineKeyboardButton("Текущий месяц", callback_data=f"{prefix}_current_month")])
-
     elif lang == "en":
         keyboard = [
             [InlineKeyboardButton("Today", callback_data=f"{prefix}_today")],
@@ -299,7 +305,6 @@ def stats_periods_keyboard(is_vip: bool, lang: str, prefix: str = "stats"):
         if is_vip:
             keyboard.append([InlineKeyboardButton("Current week", callback_data=f"{prefix}_current_week")])
             keyboard.append([InlineKeyboardButton("Current month", callback_data=f"{prefix}_current_month")])
-
     else:
         keyboard = [
             [InlineKeyboardButton("Сьогодні", callback_data=f"{prefix}_today")],

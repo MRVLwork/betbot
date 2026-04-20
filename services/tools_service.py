@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from keyboards import tools_keyboard
 from db import get_basic_bet_day_subscribers, get_vip_bet_day_subscribers
 

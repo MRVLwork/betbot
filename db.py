@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 from datetime import datetime, timedelta
 import json
@@ -1030,11 +1031,12 @@ def get_user_daily_limit(user_id: int) -> int:
     plan = (user.get("plan") or "basic").lower()
     is_trial = (
         user.get("trial_started_at") is not None
-        and user.get("is_active") == 0
+        and int(user.get("is_active") or 0) == 0
+        and is_trial_available(user_id)
     )
 
     if is_trial:
-        return 5
+        return TRIAL_SCREEN_LIMIT
     if plan == "vip":
         return 30
     return 15
@@ -1225,28 +1227,21 @@ def increment_trial_usage(user_id: int):
         conn.close()
         return
 
-    used = int(user.get("trial_used_count") or 0)
     now_iso = datetime.now().isoformat()
+    trial_expires = (datetime.now() + timedelta(days=7)).isoformat()
 
     if not user.get("trial_started_at"):
         cur.execute("""
             UPDATE users
             SET trial_started_at = ?,
+                trial_expires_at = COALESCE(trial_expires_at, ?),
                 trial_used_count = trial_used_count + 1
             WHERE user_id = ?
-        """, (now_iso, user_id))
+        """, (now_iso, trial_expires, user_id))
     else:
         cur.execute("""
             UPDATE users
             SET trial_used_count = trial_used_count + 1
-            WHERE user_id = ?
-        """, (user_id,))
-
-    used_after = used + 1
-    if used_after >= TRIAL_SCREEN_LIMIT:
-        cur.execute("""
-            UPDATE users
-            SET trial_completed = 1
             WHERE user_id = ?
         """, (user_id,))
 

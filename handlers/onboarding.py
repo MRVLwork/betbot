@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import ContextTypes, ConversationHandler
 

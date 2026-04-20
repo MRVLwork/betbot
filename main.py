@@ -100,6 +100,91 @@ def get_user_plan(user_id: int) -> str:
     return (user.get("plan") or "basic").strip().lower()
 
 
+def _is_trial_user(user_id: int) -> bool:
+    user = get_user(user_id)
+    if not user:
+        return False
+
+    has_access = user_has_access(user_id)
+    return (
+        user.get("trial_started_at") is not None
+        and not has_access
+    ) or (
+        has_access
+        and user.get("is_active") == 0
+    )
+
+
+def _trial_stats_upsell_text(lang: str) -> str:
+    lang = (lang or "en").lower()
+    if lang.startswith("uk"):
+        lang = "ua"
+
+    texts = {
+        "ua": (
+            "🔒 Повна статистика доступна в платних планах\n\n"
+            "Що ти бачиш ЗАРАЗ (Trial):\n"
+            "• Базова статистика (ROI, winrate)\n"
+            "• 5 скрінів на день\n"
+            "• Емоційний трекер\n\n"
+            "Що отримаєш в Basic - $5/міс:\n"
+            "📊 Повна статистика по типах ставок\n"
+            "📊 Статистика по коефіцієнтах (до 2.0 / 2.0-2.5 / 2.5+)\n"
+            "📊 Аналітика трендів і слабких місць\n"
+            "📊 15 скрінів на день\n"
+            "📈 Профіль беттера\n\n"
+            "Що отримаєш у VIP - $20/міс:\n"
+            "🧠 AI Тренер (персональний розбір)\n"
+            "📊 Поглиблена аналітика по ринках\n"
+            "📊 30 скрінів на день\n"
+            "🏆 Всі функції без обмежень\n\n"
+            "💡 Basic окупається якщо завдяки статистиці\n"
+            "ти уникнеш хоча б 1 збиткової ставки на місяць"
+        ),
+        "ru": (
+            "🔒 Полная статистика доступна в платных планах\n\n"
+            "Что ты видишь СЕЙЧАС (Trial):\n"
+            "• Базовая статистика (ROI, winrate)\n"
+            "• 5 скринов в день\n"
+            "• Эмоциональный трекер\n\n"
+            "Что получишь в Basic - $5/мес:\n"
+            "📊 Полная статистика по типам ставок\n"
+            "📊 Статистика по коэффициентам\n"
+            "📊 Аналитика трендов и слабых мест\n"
+            "📊 15 скринов в день\n"
+            "📈 Профиль беттера\n\n"
+            "Что получишь в VIP - $20/мес:\n"
+            "🧠 AI Тренер (персональный разбор)\n"
+            "📊 Углублённая аналитика по рынкам\n"
+            "📊 30 скринов в день\n"
+            "🏆 Все функции без ограничений\n\n"
+            "💡 Basic окупается если благодаря статистике\n"
+            "ты избежишь хотя бы 1 убыточной ставки в месяц"
+        ),
+        "en": (
+            "🔒 Full stats available in paid plans\n\n"
+            "What you see NOW (Trial):\n"
+            "• Basic stats (ROI, winrate)\n"
+            "• 5 screenshots per day\n"
+            "• Emotion tracker\n\n"
+            "What you get in Basic - $5/mo:\n"
+            "📊 Full stats by bet type\n"
+            "📊 Stats by odds range\n"
+            "📊 Trend & weak spot analytics\n"
+            "📊 15 screenshots per day\n"
+            "📈 Bettor profile\n\n"
+            "What you get in VIP - $20/mo:\n"
+            "🧠 AI Coach (personal analysis)\n"
+            "📊 Deep market analytics\n"
+            "📊 30 screenshots per day\n"
+            "🏆 All features unlimited\n\n"
+            "💡 Basic pays off if stats help you avoid\n"
+            "even 1 losing bet per month"
+        ),
+    }
+    return texts.get(lang, texts["en"])
+
+
 def is_user_vip(user_id: int) -> bool:
     return get_user_plan(user_id) == "vip" and user_has_access(user_id)
 
@@ -230,7 +315,7 @@ async def stats_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
     user_id = update.effective_user.id
     lang = get_user_lang(user_id)
 
-    if not user_has_access(user_id):
+    if not user_has_access(user_id) and not _is_trial_user(user_id):
         await query.message.reply_text(get_text(lang, "no_access"))
         return
 
@@ -259,6 +344,13 @@ async def full_stats_callback_handler(update: Update, context: ContextTypes.DEFA
     user_id = update.effective_user.id
     lang = get_user_lang(user_id)
     plan = (get_user_plan(user_id) or "basic").strip().lower()
+
+    if _is_trial_user(user_id):
+        await query.message.reply_text(
+            _trial_stats_upsell_text(lang),
+            reply_markup=access_keyboard(lang)
+        )
+        return
 
     if not user_has_access(user_id):
         await query.message.reply_text(get_text(lang, "no_access"))
@@ -316,6 +408,13 @@ async def analytics_callback_handler(update: Update, context: ContextTypes.DEFAU
     user_id = update.effective_user.id
     lang = get_user_lang(user_id)
     plan = (get_user_plan(user_id) or "basic").strip().lower()
+
+    if _is_trial_user(user_id):
+        await query.message.reply_text(
+            _trial_stats_upsell_text(lang),
+            reply_markup=access_keyboard(lang)
+        )
+        return
 
     if not user_has_access(user_id):
         await query.message.reply_text(get_text(lang, "no_access"))
@@ -525,7 +624,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     elif text in ("📊 Моя статистика", "📊 My stats"):
-        if not user_has_access(user_id):
+        if not user_has_access(user_id) and not _is_trial_user(user_id):
             await update.message.reply_text(get_text(lang, "no_active_access_start"))
             return ConversationHandler.END
 
@@ -537,7 +636,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     elif text in ("📈 Повна статистика", "📈 Полная статистика", "📈 Full stats"):
-        if not user_has_access(user_id):
+        if not user_has_access(user_id) and not _is_trial_user(user_id):
             await update.message.reply_text(get_text(lang, "no_active_access_start"))
             return ConversationHandler.END
 
@@ -555,7 +654,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await open_coach(update, context)
 
     elif text in ("🧠 Аналітика", "🧠 Аналитика", "🧠 Analytics"):
-        if not user_has_access(user_id):
+        if not user_has_access(user_id) and not _is_trial_user(user_id):
             await update.message.reply_text(get_text(lang, "no_active_access_start"))
             return ConversationHandler.END
 

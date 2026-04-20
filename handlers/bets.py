@@ -5,6 +5,7 @@ from telegram.ext import ContextTypes
 
 from bets_db import create_bet, get_basic_stats_between, get_tilt_signal_context, update_bet_emotion
 from db import (
+    TRIAL_SCREEN_LIMIT,
     get_user,
     user_has_access,
     get_user_daily_limit,
@@ -89,6 +90,67 @@ def _bet_type_label(lang: str, bet_type: str | None = None, bet_market: str | No
     return "-"
 
 
+def _daily_limit_reached_text(lang: str, plan: str, limit: int) -> str:
+    lang = _normalize_lang(lang)
+    plan = (plan or "basic").lower()
+
+    texts = {
+        "ua": {
+            "trial": (
+                f"🚫 Ліміт на сьогодні: {limit}/{limit} скрінів використано\n\n"
+                "В Basic: 15 скрінів/день\n"
+                "В VIP: 30 скрінів/день\n\n"
+                "👇 Оновити план"
+            ),
+            "basic": (
+                f"🚫 Ліміт на сьогодні: {limit}/{limit} скрінів використано\n\n"
+                "В VIP: 30 скрінів/день + AI Тренер\n\n"
+                "👇 Оновити до VIP"
+            ),
+            "vip": (
+                f"🚫 Ліміт на сьогодні: {limit}/{limit} скрінів використано\n"
+                "Повернись завтра 🌙"
+            ),
+        },
+        "ru": {
+            "trial": (
+                f"🚫 Лимит на сегодня: {limit}/{limit} скринов использовано\n\n"
+                "В Basic: 15 скринов/день\n"
+                "В VIP: 30 скринов/день\n\n"
+                "👇 Обновить план"
+            ),
+            "basic": (
+                f"🚫 Лимит на сегодня: {limit}/{limit} скринов использовано\n\n"
+                "В VIP: 30 скринов/день + AI Тренер\n\n"
+                "👇 Обновить до VIP"
+            ),
+            "vip": (
+                f"🚫 Лимит на сегодня: {limit}/{limit} скринов использовано\n"
+                "Возвращайся завтра 🌙"
+            ),
+        },
+        "en": {
+            "trial": (
+                f"🚫 Today's limit reached: {limit}/{limit} screenshots used\n\n"
+                "In Basic: 15 screenshots/day\n"
+                "In VIP: 30 screenshots/day\n\n"
+                "👇 Upgrade plan"
+            ),
+            "basic": (
+                f"🚫 Today's limit reached: {limit}/{limit} screenshots used\n\n"
+                "In VIP: 30 screenshots/day + AI Coach\n\n"
+                "👇 Upgrade to VIP"
+            ),
+            "vip": (
+                f"🚫 Today's limit reached: {limit}/{limit} screenshots used\n"
+                "Come back tomorrow 🌙"
+            ),
+        },
+    }
+
+    return texts.get(lang, texts["en"]).get(plan, texts.get(lang, texts["en"])["basic"])
+
+
 def _trial_progress_text(lang: str, used_trial: int, remaining_trial: int) -> str:
     lang = _normalize_lang(lang)
 
@@ -137,6 +199,57 @@ def _trial_fail_text(lang: str, used_trial: int, remaining_trial: int) -> str:
     )
     if remaining_trial > 0:
         text += f"\nRemaining: {remaining_trial}/3"
+    return text
+
+
+def _trial_progress_text(lang: str, used_trial: int, remaining_trial: int) -> str:
+    lang = _normalize_lang(lang)
+
+    if lang == "ua":
+        text = f"✅ Скрін зараховано.\nВикористано: {used_trial}/{TRIAL_SCREEN_LIMIT}"
+        if remaining_trial > 0:
+            text += f"\nЗалишилось: {remaining_trial}/{TRIAL_SCREEN_LIMIT}"
+        return text
+
+    if lang == "ru":
+        text = f"✅ Скрин засчитан.\nИспользовано: {used_trial}/{TRIAL_SCREEN_LIMIT}"
+        if remaining_trial > 0:
+            text += f"\nОсталось: {remaining_trial}/{TRIAL_SCREEN_LIMIT}"
+        return text
+
+    text = f"✅ Screenshot counted.\nUsed: {used_trial}/{TRIAL_SCREEN_LIMIT}"
+    if remaining_trial > 0:
+        text += f"\nRemaining: {remaining_trial}/{TRIAL_SCREEN_LIMIT}"
+    return text
+
+
+def _trial_fail_text(lang: str, used_trial: int, remaining_trial: int) -> str:
+    lang = _normalize_lang(lang)
+
+    if lang == "ua":
+        text = (
+            "⚠️ Цей скрін не вдалося розпізнати, але він зарахований у тест.\n"
+            f"Використано: {used_trial}/{TRIAL_SCREEN_LIMIT}"
+        )
+        if remaining_trial > 0:
+            text += f"\nЗалишилось: {remaining_trial}/{TRIAL_SCREEN_LIMIT}"
+        return text
+
+    if lang == "ru":
+        text = (
+            "⚠️ Этот скрин не удалось распознать, но он засчитан в тест.\n"
+            f"Использовано: {used_trial}/{TRIAL_SCREEN_LIMIT}"
+        )
+        if remaining_trial > 0:
+            text += f"\nОсталось: {remaining_trial}/{TRIAL_SCREEN_LIMIT}"
+        return text
+
+    text = (
+        "⚠️ This screenshot could not be recognized, but it was counted in the trial.\n"
+        f"Used: {used_trial}/{TRIAL_SCREEN_LIMIT}"
+    )
+    if remaining_trial > 0:
+        text += f"\nRemaining: {remaining_trial}/{TRIAL_SCREEN_LIMIT}"
     return text
 
 
@@ -600,9 +713,19 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user = get_user(user_id)
     lang = _normalize_lang(user["lang"] if user and user.get("lang") else "en")
+    plan = ((user.get("plan") if user else None) or "basic").lower()
 
     has_access = user_has_access(user_id)
+    trial_started = get_trial_start(user_id) is not None
+    is_trial_exhausted = (not has_access) and trial_started and not is_trial_available(user_id)
     in_trial = (not has_access) and is_trial_available(user_id) and get_trial_start(user_id) is not None
+
+    if is_trial_exhausted:
+        await update.message.reply_text(
+            _daily_limit_reached_text(lang, "trial", TRIAL_SCREEN_LIMIT),
+            reply_markup=access_keyboard(lang)
+        )
+        return
 
     if not has_access and not in_trial:
         no_access_text = (
@@ -621,7 +744,8 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if used_today >= daily_limit:
             await update.message.reply_text(
-                get_text(lang, "daily_limit_reached").format(limit=daily_limit)
+                _daily_limit_reached_text(lang, plan, daily_limit),
+                reply_markup=access_keyboard(lang) if plan == "basic" else None
             )
             return
 

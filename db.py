@@ -5,7 +5,7 @@ import json
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
-TRIAL_SCREEN_LIMIT = 3
+TRIAL_SCREEN_LIMIT = 5
 
 
 class PostgresCursorWrapper:
@@ -1026,7 +1026,17 @@ def get_user_daily_limit(user_id: int) -> int:
     if not user:
         return 0
 
-    return 30 if (user["plan"] or "basic").lower() == "vip" else 10
+    plan = (user.get("plan") or "basic").lower()
+    is_trial = (
+        user.get("trial_started_at") is not None
+        and user.get("is_active") == 0
+    )
+
+    if is_trial:
+        return 5
+    if plan == "vip":
+        return 30
+    return 15
 
 
 def count_user_photos_today(user_id: int) -> int:

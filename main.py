@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+﻿from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -122,68 +122,67 @@ def _trial_stats_upsell_text(lang: str) -> str:
 
     texts = {
         "ua": (
-            "🔒 Повна статистика доступна в платних планах\n\n"
-            "Що ти бачиш ЗАРАЗ (Trial):\n"
-            "• Базова статистика (ROI, winrate)\n"
-            "• 5 скрінів на день\n"
-            "• Емоційний трекер\n\n"
-            "Що отримаєш в Basic - $5/міс:\n"
-            "📊 Повна статистика по типах ставок\n"
-            "📊 Статистика по коефіцієнтах (до 2.0 / 2.0-2.5 / 2.5+)\n"
-            "📊 Аналітика трендів і слабких місць\n"
-            "📊 15 скрінів на день\n"
-            "📈 Профіль беттера\n\n"
-            "Що отримаєш у VIP - $20/міс:\n"
-            "🧠 AI Тренер (персональний розбір)\n"
-            "📊 Поглиблена аналітика по ринках\n"
-            "📊 30 скрінів на день\n"
-            "🏆 Всі функції без обмежень\n\n"
-            "💡 Basic окупається якщо завдяки статистиці\n"
-            "ти уникнеш хоча б 1 збиткової ставки на місяць"
+            "\U0001F512 \u041f\u043e\u0432\u043d\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u0430 \u0432 \u043f\u043b\u0430\u0442\u043d\u0438\u0445 \u043f\u043b\u0430\u043d\u0430\u0445\n\n"
+            "\u0429\u043e \u0442\u0438 \u0431\u0430\u0447\u0438\u0448 \u0417\u0410\u0420\u0410\u0417 (Trial):\n"
+            "\u2022 \u0411\u0430\u0437\u043e\u0432\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 (ROI, winrate)\n"
+            "\u2022 5 \u0441\u043a\u0440\u0456\u043d\u0456\u0432 \u043d\u0430 \u0434\u0435\u043d\u044c  7 \u0434\u043d\u0456\u0432\n"
+            "\u2022 \u0415\u043c\u043e\u0446\u0456\u0439\u043d\u0438\u0439 \u0442\u0440\u0435\u043a\u0435\u0440\n\n"
+            "\u0429\u043e \u043e\u0442\u0440\u0438\u043c\u0430\u0454\u0448 \u0432 Basic - $5/\u043c\u0456\u0441:\n"
+            "\U0001F4CA \u041f\u043e\u0432\u043d\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 \u043f\u043e \u0442\u0438\u043f\u0430\u0445 \u0441\u0442\u0430\u0432\u043e\u043a\n"
+            "\U0001F4CA \u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 \u043f\u043e \u043a\u043e\u0435\u0444\u0456\u0446\u0456\u0454\u043d\u0442\u0430\u0445 (\u0434\u043e 2.0 / 2.0-2.5 / 2.5+)\n"
+            "\U0001F4CA \u0410\u043d\u0430\u043b\u0456\u0442\u0438\u043a\u0430 \u0442\u0440\u0435\u043d\u0434\u0456\u0432 \u0456 \u0441\u043b\u0430\u0431\u043a\u0438\u0445 \u043c\u0456\u0441\u0446\u044c\n"
+            "\U0001F4CA 15 \u0441\u043a\u0440\u0456\u043d\u0456\u0432 \u043d\u0430 \u0434\u0435\u043d\u044c\n"
+            "\U0001F4C8 \u041f\u0440\u043e\u0444\u0456\u043b\u044c \u0431\u0435\u0442\u0442\u0435\u0440\u0430\n\n"
+            "\u0429\u043e \u043e\u0442\u0440\u0438\u043c\u0430\u0454\u0448 \u0443 VIP - $20/\u043c\u0456\u0441:\n"
+            "\U0001F9E0 AI \u0422\u0440\u0435\u043d\u0435\u0440 (\u043f\u0435\u0440\u0441\u043e\u043d\u0430\u043b\u044c\u043d\u0438\u0439 \u0440\u043e\u0437\u0431\u0456\u0440)\n"
+            "\U0001F4CA \u041f\u043e\u0433\u043b\u0438\u0431\u043b\u0435\u043d\u0430 \u0430\u043d\u0430\u043b\u0456\u0442\u0438\u043a\u0430 \u043f\u043e \u0440\u0438\u043d\u043a\u0430\u0445\n"
+            "\U0001F4CA 30 \u0441\u043a\u0440\u0456\u043d\u0456\u0432 \u043d\u0430 \u0434\u0435\u043d\u044c\n"
+            "\U0001F3C6 \u0412\u0441\u0456 \u0444\u0443\u043d\u043a\u0446\u0456\u0457 \u0431\u0435\u0437 \u043e\u0431\u043c\u0435\u0436\u0435\u043d\u044c\n\n"
+            "\U0001F4A1 Basic \u043e\u043a\u0443\u043f\u0430\u0454\u0442\u044c\u0441\u044f \u044f\u043a\u0449\u043e \u0437\u0430\u0432\u0434\u044f\u043a\u0438 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u0446\u0456\n"
+            "\u0442\u0438 \u0443\u043d\u0438\u043a\u043d\u0435\u0448 \u0445\u043e\u0447\u0430 \u0431 1 \u0437\u0431\u0438\u0442\u043a\u043e\u0432\u043e\u0457 \u0441\u0442\u0430\u0432\u043a\u0438 \u043d\u0430 \u043c\u0456\u0441\u044f\u0446\u044c"
         ),
         "ru": (
-            "🔒 Полная статистика доступна в платных планах\n\n"
-            "Что ты видишь СЕЙЧАС (Trial):\n"
-            "• Базовая статистика (ROI, winrate)\n"
-            "• 5 скринов в день\n"
-            "• Эмоциональный трекер\n\n"
-            "Что получишь в Basic - $5/мес:\n"
-            "📊 Полная статистика по типам ставок\n"
-            "📊 Статистика по коэффициентам\n"
-            "📊 Аналитика трендов и слабых мест\n"
-            "📊 15 скринов в день\n"
-            "📈 Профиль беттера\n\n"
-            "Что получишь в VIP - $20/мес:\n"
-            "🧠 AI Тренер (персональный разбор)\n"
-            "📊 Углублённая аналитика по рынкам\n"
-            "📊 30 скринов в день\n"
-            "🏆 Все функции без ограничений\n\n"
-            "💡 Basic окупается если благодаря статистике\n"
-            "ты избежишь хотя бы 1 убыточной ставки в месяц"
+            "\U0001F512 \u041f\u043e\u043b\u043d\u0430\u044f \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u0430 \u0432 \u043f\u043b\u0430\u0442\u043d\u044b\u0445 \u043f\u043b\u0430\u043d\u0430\u0445\n\n"
+            "\u0427\u0442\u043e \u0442\u044b \u0432\u0438\u0434\u0438\u0448\u044c \u0421\u0415\u0419\u0427\u0410\u0421 (Trial):\n"
+            "\u2022 \u0411\u0430\u0437\u043e\u0432\u0430\u044f \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 (ROI, winrate)\n"
+            "\u2022 5 \u0441\u043a\u0440\u0438\u043d\u043e\u0432 \u0432 \u0434\u0435\u043d\u044c  7 \u0434\u043d\u0435\u0439\n"
+            "\u2022 \u042d\u043c\u043e\u0446\u0438\u043e\u043d\u0430\u043b\u044c\u043d\u044b\u0439 \u0442\u0440\u0435\u043a\u0435\u0440\n\n"
+            "\u0427\u0442\u043e \u043f\u043e\u043b\u0443\u0447\u0438\u0448\u044c \u0432 Basic - $5/\u043c\u0435\u0441:\n"
+            "\U0001F4CA \u041f\u043e\u043b\u043d\u0430\u044f \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 \u043f\u043e \u0442\u0438\u043f\u0430\u043c \u0441\u0442\u0430\u0432\u043e\u043a\n"
+            "\U0001F4CA \u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 \u043f\u043e \u043a\u043e\u044d\u0444\u0444\u0438\u0446\u0438\u0435\u043d\u0442\u0430\u043c\n"
+            "\U0001F4CA \u0410\u043d\u0430\u043b\u0438\u0442\u0438\u043a\u0430 \u0442\u0440\u0435\u043d\u0434\u043e\u0432 \u0438 \u0441\u043b\u0430\u0431\u044b\u0445 \u043c\u0435\u0441\u0442\n"
+            "\U0001F4CA 15 \u0441\u043a\u0440\u0438\u043d\u043e\u0432 \u0432 \u0434\u0435\u043d\u044c\n"
+            "\U0001F4C8 \u041f\u0440\u043e\u0444\u0438\u043b\u044c \u0431\u0435\u0442\u0442\u0435\u0440\u0430\n\n"
+            "\u0427\u0442\u043e \u043f\u043e\u043b\u0443\u0447\u0438\u0448\u044c \u0432 VIP - $20/\u043c\u0435\u0441:\n"
+            "\U0001F9E0 AI \u0422\u0440\u0435\u043d\u0435\u0440 (\u043f\u0435\u0440\u0441\u043e\u043d\u0430\u043b\u044c\u043d\u044b\u0439 \u0440\u0430\u0437\u0431\u043e\u0440)\n"
+            "\U0001F4CA \u0423\u0433\u043b\u0443\u0431\u043b\u0451\u043d\u043d\u0430\u044f \u0430\u043d\u0430\u043b\u0438\u0442\u0438\u043a\u0430 \u043f\u043e \u0440\u044b\u043d\u043a\u0430\u043c\n"
+            "\U0001F4CA 30 \u0441\u043a\u0440\u0438\u043d\u043e\u0432 \u0432 \u0434\u0435\u043d\u044c\n"
+            "\U0001F3C6 \u0412\u0441\u0435 \u0444\u0443\u043d\u043a\u0446\u0438\u0438 \u0431\u0435\u0437 \u043e\u0433\u0440\u0430\u043d\u0438\u0447\u0435\u043d\u0438\u0439\n\n"
+            "\U0001F4A1 Basic \u043e\u043a\u0443\u043f\u0430\u0435\u0442\u0441\u044f \u0435\u0441\u043b\u0438 \u0431\u043b\u0430\u0433\u043e\u0434\u0430\u0440\u044f \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0435\n"
+            "\u0442\u044b \u0438\u0437\u0431\u0435\u0436\u0438\u0448\u044c \u0445\u043e\u0442\u044f \u0431\u044b 1 \u0443\u0431\u044b\u0442\u043e\u0447\u043d\u043e\u0439 \u0441\u0442\u0430\u0432\u043a\u0438 \u0432 \u043c\u0435\u0441\u044f\u0446"
         ),
         "en": (
-            "🔒 Full stats available in paid plans\n\n"
+            "\U0001F512 Full stats available in paid plans\n\n"
             "What you see NOW (Trial):\n"
-            "• Basic stats (ROI, winrate)\n"
-            "• 5 screenshots per day\n"
-            "• Emotion tracker\n\n"
+            "\u2022 Basic stats (ROI, winrate)\n"
+            "\u2022 5 screenshots per day  7 days\n"
+            "\u2022 Emotion tracker\n\n"
             "What you get in Basic - $5/mo:\n"
-            "📊 Full stats by bet type\n"
-            "📊 Stats by odds range\n"
-            "📊 Trend & weak spot analytics\n"
-            "📊 15 screenshots per day\n"
-            "📈 Bettor profile\n\n"
+            "\U0001F4CA Full stats by bet type\n"
+            "\U0001F4CA Stats by odds range\n"
+            "\U0001F4CA Trend & weak spot analytics\n"
+            "\U0001F4CA 15 screenshots per day\n"
+            "\U0001F4C8 Bettor profile\n\n"
             "What you get in VIP - $20/mo:\n"
-            "🧠 AI Coach (personal analysis)\n"
-            "📊 Deep market analytics\n"
-            "📊 30 screenshots per day\n"
-            "🏆 All features unlimited\n\n"
-            "💡 Basic pays off if stats help you avoid\n"
+            "\U0001F9E0 AI Coach (personal analysis)\n"
+            "\U0001F4CA Deep market analytics\n"
+            "\U0001F4CA 30 screenshots per day\n"
+            "\U0001F3C6 All features unlimited\n\n"
+            "\U0001F4A1 Basic pays off if stats help you avoid\n"
             "even 1 losing bet per month"
         ),
     }
     return texts.get(lang, texts["en"])
-
 
 def is_user_vip(user_id: int) -> bool:
     return get_user_plan(user_id) == "vip" and user_has_access(user_id)
@@ -586,16 +585,16 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
 
     ai_menu_labels = {
-        "📤 Надіслати результат", "📤 Отправить результат", "📤 Send result",
-        "📊 Моя статистика", "📊 My stats",
-        "📈 Повна статистика", "📈 Полная статистика", "📈 Full stats",
-        "📊 Wrapped",
-        "🧠 AI Тренер", "🧠 AI Coach", "🔒 AI Тренер VIP", "🔒 AI Coach VIP",
-        "🧠 Аналітика", "🧠 Аналитика", "🧠 Analytics",
-        "🛠 Усі інструменти", "🛠 Все инструменты", "🛠 All tools",
-        "💳 Купити доступ", "💳 Купить доступ", "💳 Buy access",
-        "🌐 Мова", "🌐 Язык", "🌐 Language",
-        "🔑 Ввести промокод", "🔑 Enter promo code",
+        "рџ“¤ РќР°РґС–СЃР»Р°С‚Рё СЂРµР·СѓР»СЊС‚Р°С‚", "рџ“¤ РћС‚РїСЂР°РІРёС‚СЊ СЂРµР·СѓР»СЊС‚Р°С‚", "рџ“¤ Send result",
+        "рџ“Љ РњРѕСЏ СЃС‚Р°С‚РёСЃС‚РёРєР°", "рџ“Љ My stats",
+        "рџ“€ РџРѕРІРЅР° СЃС‚Р°С‚РёСЃС‚РёРєР°", "рџ“€ РџРѕР»РЅР°СЏ СЃС‚Р°С‚РёСЃС‚РёРєР°", "рџ“€ Full stats",
+        "рџ“Љ Wrapped",
+        "рџ§  AI РўСЂРµРЅРµСЂ", "рџ§  AI Coach", "рџ”’ AI РўСЂРµРЅРµСЂ VIP", "рџ”’ AI Coach VIP",
+        "рџ§  РђРЅР°Р»С–С‚РёРєР°", "рџ§  РђРЅР°Р»РёС‚РёРєР°", "рџ§  Analytics",
+        "рџ›  РЈСЃС– С–РЅСЃС‚СЂСѓРјРµРЅС‚Рё", "рџ›  Р’СЃРµ РёРЅСЃС‚СЂСѓРјРµРЅС‚С‹", "рџ›  All tools",
+        "рџ’і РљСѓРїРёС‚Рё РґРѕСЃС‚СѓРї", "рџ’і РљСѓРїРёС‚СЊ РґРѕСЃС‚СѓРї", "рџ’і Buy access",
+        "рџЊђ РњРѕРІР°", "рџЊђ РЇР·С‹Рє", "рџЊђ Language",
+        "рџ”‘ Р’РІРµСЃС‚Рё РїСЂРѕРјРѕРєРѕРґ", "рџ”‘ Enter promo code",
     }
 
     if context.user_data.get("awaiting_ai_match_analysis") and text not in ai_menu_labels:
@@ -606,7 +605,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await handle_coach_message(update, context)
         return ConversationHandler.END
 
-    if text in ("📤 Надіслати результат", "📤 Отправить результат", "📤 Send result"):
+    if text in ("рџ“¤ РќР°РґС–СЃР»Р°С‚Рё СЂРµР·СѓР»СЊС‚Р°С‚", "рџ“¤ РћС‚РїСЂР°РІРёС‚СЊ СЂРµР·СѓР»СЊС‚Р°С‚", "рџ“¤ Send result"):
         if not user_has_access(user_id):
             await update.message.reply_text(get_text(lang, "activate_access_first"))
             return ConversationHandler.END
@@ -623,7 +622,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         )
 
-    elif text in ("📊 Моя статистика", "📊 My stats"):
+    elif text in ("рџ“Љ РњРѕСЏ СЃС‚Р°С‚РёСЃС‚РёРєР°", "рџ“Љ My stats"):
         if not user_has_access(user_id) and not _is_trial_user(user_id):
             await update.message.reply_text(get_text(lang, "no_active_access_start"))
             return ConversationHandler.END
@@ -635,7 +634,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=stats_periods_keyboard(is_vip, lang, prefix="stats")
         )
 
-    elif text in ("📈 Повна статистика", "📈 Полная статистика", "📈 Full stats"):
+    elif text in ("рџ“€ РџРѕРІРЅР° СЃС‚Р°С‚РёСЃС‚РёРєР°", "рџ“€ РџРѕР»РЅР°СЏ СЃС‚Р°С‚РёСЃС‚РёРєР°", "рџ“€ Full stats"):
         if not user_has_access(user_id) and not _is_trial_user(user_id):
             await update.message.reply_text(get_text(lang, "no_active_access_start"))
             return ConversationHandler.END
@@ -647,13 +646,13 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=stats_periods_keyboard(is_vip, lang, prefix="fullstats")
         )
 
-    elif text == "📊 Wrapped":
+    elif text == "рџ“Љ Wrapped":
         await send_weekly_wrap(update, context)
 
-    elif text in ("🧠 AI Тренер", "🧠 AI Coach", "🔒 AI Тренер VIP", "🔒 AI Coach VIP"):
+    elif text in ("рџ§  AI РўСЂРµРЅРµСЂ", "рџ§  AI Coach", "рџ”’ AI РўСЂРµРЅРµСЂ VIP", "рџ”’ AI Coach VIP"):
         await open_coach(update, context)
 
-    elif text in ("🧠 Аналітика", "🧠 Аналитика", "🧠 Analytics"):
+    elif text in ("рџ§  РђРЅР°Р»С–С‚РёРєР°", "рџ§  РђРЅР°Р»РёС‚РёРєР°", "рџ§  Analytics"):
         if not user_has_access(user_id) and not _is_trial_user(user_id):
             await update.message.reply_text(get_text(lang, "no_active_access_start"))
             return ConversationHandler.END
@@ -665,22 +664,22 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=stats_periods_keyboard(is_vip, lang, prefix="analytics")
         )
 
-    elif text in ("🛠 Усі інструменти", "🛠 Все инструменты", "🛠 All tools"):
+    elif text in ("рџ›  РЈСЃС– С–РЅСЃС‚СЂСѓРјРµРЅС‚Рё", "рџ›  Р’СЃРµ РёРЅСЃС‚СЂСѓРјРµРЅС‚С‹", "рџ›  All tools"):
         await open_tools_menu(update, context)
 
-    elif text in ("💳 Купити доступ", "💳 Купить доступ", "💳 Buy access"):
+    elif text in ("рџ’і РљСѓРїРёС‚Рё РґРѕСЃС‚СѓРї", "рџ’і РљСѓРїРёС‚СЊ РґРѕСЃС‚СѓРї", "рџ’і Buy access"):
         await update.message.reply_text(
             get_text(lang, "choose_access_option"),
             reply_markup=access_keyboard(lang)
         )
 
-    elif text in ("🌐 Мова", "🌐 Язык", "🌐 Language"):
+    elif text in ("рџЊђ РњРѕРІР°", "рџЊђ РЇР·С‹Рє", "рџЊђ Language"):
         await update.message.reply_text(
             get_text(lang, "choose_lang"),
             reply_markup=language_keyboard()
         )
 
-    elif text in ("🔑 Ввести промокод", "🔑 Enter promo code"):
+    elif text in ("рџ”‘ Р’РІРµСЃС‚Рё РїСЂРѕРјРѕРєРѕРґ", "рџ”‘ Enter promo code"):
         await update.message.reply_text(get_text(lang, "enter_promo_hint"))
         return WAITING_PROMO
 
@@ -689,7 +688,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     if not BOT_TOKEN:
-        raise RuntimeError("Не знайдено TELEGRAM_BOT_TOKEN у .env")
+        raise RuntimeError("РќРµ Р·РЅР°Р№РґРµРЅРѕ TELEGRAM_BOT_TOKEN Сѓ .env")
 
     init_db()
     init_bets_table()
@@ -772,7 +771,7 @@ def main():
     app.add_handler(
         MessageHandler(filters.PHOTO & filters.CaptionRegex(r"^/sendpost(?:@\w+)?(?:\s|$)"), admin_broadcast_photo_handler)
     )
-    app.add_handler(MessageHandler(filters.Regex(r"^(🔥 Streak|🔥 Серия)$"), show_streak))
+    app.add_handler(MessageHandler(filters.Regex(r"^(рџ”Ґ Streak|рџ”Ґ РЎРµСЂРёСЏ)$"), show_streak))
     app.add_handler(MessageHandler(filters.PHOTO, process_bet_photo))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, menu_handler))
 
@@ -782,3 +781,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+

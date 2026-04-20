@@ -194,6 +194,7 @@ def init_db():
     add_column_if_not_exists("users", "daily_usage_reset_at", "TEXT")
     add_column_if_not_exists("users", "lang", "TEXT DEFAULT 'ua'")
     add_column_if_not_exists("users", "trial_started_at", "TEXT")
+    add_column_if_not_exists("users", "trial_expires_at", "TEXT")
     add_column_if_not_exists("users", "trial_used_count", "INTEGER DEFAULT 0")
     add_column_if_not_exists("users", "trial_completed", "INTEGER DEFAULT 0")
     add_column_if_not_exists("users", "promo_offer_used", "INTEGER DEFAULT 0")
@@ -1123,12 +1124,17 @@ def count_user_photos_between(user_id: int, start_dt: datetime, end_dt: datetime
 def start_trial_mode(user_id: int):
     conn = get_conn()
     cur = conn.cursor()
+    trial_start = datetime.now().isoformat()
+    trial_expires = (datetime.now() + timedelta(days=7)).isoformat()
 
     cur.execute("""
         UPDATE users
-        SET trial_started_at = COALESCE(trial_started_at, ?)
+        SET trial_started_at = ?,
+            trial_expires_at = ?,
+            trial_used_count = 0,
+            trial_completed = 0
         WHERE user_id = ?
-    """, (datetime.now().isoformat(), user_id))
+    """, (trial_start, trial_expires, user_id))
 
     conn.commit()
     conn.close()
@@ -1139,10 +1145,28 @@ def is_trial_available(user_id: int) -> bool:
     if not user:
         return False
 
+    if not user.get("trial_started_at"):
+        return True
+
     if int(user.get("trial_completed") or 0) == 1:
         return False
 
-    return int(user.get("trial_used_count") or 0) < TRIAL_SCREEN_LIMIT
+    trial_expires_at = user.get("trial_expires_at")
+    if not trial_expires_at:
+        trial_started = user.get("trial_started_at")
+        if not trial_started:
+            return False
+        try:
+            expires = datetime.fromisoformat(trial_started) + timedelta(days=7)
+            return datetime.now() < expires
+        except Exception:
+            return False
+
+    try:
+        expires = datetime.fromisoformat(trial_expires_at)
+        return datetime.now() < expires
+    except Exception:
+        return False
 
 
 def get_trial_used_count(user_id: int) -> int:
@@ -1153,8 +1177,28 @@ def get_trial_used_count(user_id: int) -> int:
 
 
 def get_trial_remaining(user_id: int) -> int:
-    remaining = TRIAL_SCREEN_LIMIT - get_trial_used_count(user_id)
-    return remaining if remaining > 0 else 0
+    """Повертає кількість днів що залишились в trial (0 якщо закінчився)"""
+    user = get_user(user_id)
+    if not user:
+        return 0
+
+    trial_expires_at = user.get("trial_expires_at")
+    if not trial_expires_at:
+        trial_started = user.get("trial_started_at")
+        if not trial_started:
+            return 0
+        try:
+            expires = datetime.fromisoformat(trial_started) + timedelta(days=7)
+        except Exception:
+            return 0
+    else:
+        try:
+            expires = datetime.fromisoformat(trial_expires_at)
+        except Exception:
+            return 0
+
+    remaining = (expires - datetime.now()).days
+    return max(remaining, 0)
 
 
 def get_trial_start(user_id: int):

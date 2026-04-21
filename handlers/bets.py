@@ -117,14 +117,29 @@ def _daily_limit_reached_text(lang: str, plan: str, limit: int) -> str:
     return texts.get(lang, texts["en"]).get(plan, texts.get(lang, texts["en"])["basic"])
 
 
-def _trial_progress_text(lang: str, used_trial: int, remaining_trial: int) -> str:
+def _trial_progress_text(lang: str, used_today: int, remaining_today: int, days_left: int) -> str:
     lang = _normalize_lang(lang)
 
     if lang == "ua":
-        return f"✅ Скрін зараховано.\nЗалишилось днів пробного доступу: {remaining_trial}"
+        return (
+            f"✅ Скрін зараховано.\n"
+            f"Сьогодні використано: {used_today}/{TRIAL_SCREEN_LIMIT}\n"
+            f"Залишилось сьогодні: {remaining_today}\n"
+            f"Днів пробного доступу: {days_left}"
+        )
     if lang == "ru":
-        return f"✅ Скрин засчитан.\nОсталось дней пробного доступа: {remaining_trial}"
-    return f"✅ Screenshot saved.\nTrial days remaining: {remaining_trial}"
+        return (
+            f"✅ Скрин засчитан.\n"
+            f"Сегодня использовано: {used_today}/{TRIAL_SCREEN_LIMIT}\n"
+            f"Осталось сегодня: {remaining_today}\n"
+            f"Дней пробного доступа: {days_left}"
+        )
+    return (
+        f"Screenshot saved.\n"
+        f"Used today: {used_today}/{TRIAL_SCREEN_LIMIT}\n"
+        f"Remaining today: {remaining_today}\n"
+        f"Trial days left: {days_left}"
+    )
 
 
 def _trial_fail_text(lang: str, used_trial: int, remaining_trial: int) -> str:
@@ -146,33 +161,8 @@ def _trial_fail_text(lang: str, used_trial: int, remaining_trial: int) -> str:
     )
 
 
-def _trial_progress_text(lang: str, used_today: int, remaining_today: int, days_left: int) -> str:
-    lang = _normalize_lang(lang)
-
-    if lang == "ua":
-        return (
-            f"вњ… РЎРєСЂС–РЅ Р·Р°СЂР°С…РѕРІР°РЅРѕ.\n"
-            f"РЎСЊРѕРіРѕРґРЅС– РІРёРєРѕСЂРёСЃС‚Р°РЅРѕ: {used_today}/{TRIAL_SCREEN_LIMIT}\n"
-            f"Р—Р°Р»РёС€РёР»РѕСЃСЊ СЃСЊРѕРіРѕРґРЅС–: {remaining_today}\n"
-            f"Р”РЅС–РІ РїСЂРѕР±РЅРѕРіРѕ РґРѕСЃС‚СѓРїСѓ: {days_left}"
-        )
-    if lang == "ru":
-        return (
-            f"вњ… РЎРєСЂРёРЅ Р·Р°СЃС‡РёС‚Р°РЅ.\n"
-            f"РЎРµРіРѕРґРЅСЏ РёСЃРїРѕР»СЊР·РѕРІР°РЅРѕ: {used_today}/{TRIAL_SCREEN_LIMIT}\n"
-            f"РћСЃС‚Р°Р»РѕСЃСЊ СЃРµРіРѕРґРЅСЏ: {remaining_today}\n"
-            f"Р”РЅРµР№ РїСЂРѕР±РЅРѕРіРѕ РґРѕСЃС‚СѓРїР°: {days_left}"
-        )
-    return (
-        f"вњ… Screenshot saved.\n"
-        f"Used today: {used_today}/{TRIAL_SCREEN_LIMIT}\n"
-        f"Remaining today: {remaining_today}\n"
-        f"Trial days left: {days_left}"
-    )
-
-
 def _build_trial_pitch(lang: str, stats: dict, used_trial: int) -> str | None:
-    if used_trial < 2:
+    if used_trial < 3:
         return None
 
     lang = _normalize_lang(lang)
@@ -288,6 +278,53 @@ def _bet_saved_confirmation_text(lang: str, result: dict, remaining: int, daily_
         bet_type=_bet_type_label(lang, result.get("bet_type"), result.get("bet_market")),
         remaining=remaining,
         limit=daily_limit,
+    )
+
+def _trial_bet_result_text(lang: str, result: dict) -> str:
+    if result["bet_result"] == "pending":
+        if lang == "ua":
+            return (
+                f"🕒 Ставку збережено як нерозраховану\n\n"
+                f"📌 Тип ставки: {_bet_type_label(lang, result.get('bet_type'), result.get('bet_market'))}\n"
+                f"💰 Сума ставки: {result['stake_amount']}\n"
+                f"📊 Коефіцієнт: {result['odds']}"
+            )
+        if lang == "ru":
+            return (
+                f"🕒 Ставка сохранена как нерассчитанная\n\n"
+                f"📌 Тип ставки: {_bet_type_label(lang, result.get('bet_type'), result.get('bet_market'))}\n"
+                f"💰 Сумма ставки: {result['stake_amount']}\n"
+                f"📊 Коэффициент: {result['odds']}"
+            )
+        return (
+            f"🕒 Bet saved as unsettled\n\n"
+            f"📌 Bet type: {_bet_type_label(lang, result.get('bet_type'), result.get('bet_market'))}\n"
+            f"💰 Stake amount: {result['stake_amount']}\n"
+            f"📊 Odds: {result['odds']}"
+        )
+
+    if lang == "ua":
+        return (
+            f"✅ Ставку розпізнано і збережено\n\n"
+            f"🎯 Результат: {_result_label(lang, result['bet_result'])}\n"
+            f"📌 Тип ставки: {_bet_type_label(lang, result.get('bet_type'), result.get('bet_market'))}\n"
+            f"💰 Сума ставки: {result['stake_amount']}\n"
+            f"📊 Коефіцієнт: {result['odds']}"
+        )
+    if lang == "ru":
+        return (
+            f"✅ Ставка распознана и сохранена\n\n"
+            f"🎯 Результат: {_result_label(lang, result['bet_result'])}\n"
+            f"📌 Тип ставки: {_bet_type_label(lang, result.get('bet_type'), result.get('bet_market'))}\n"
+            f"💰 Сумма ставки: {result['stake_amount']}\n"
+            f"📊 Коэффициент: {result['odds']}"
+        )
+    return (
+        f"✅ Bet recognized and saved\n\n"
+        f"🎯 Result: {_result_label(lang, result['bet_result'])}\n"
+        f"📌 Bet type: {_bet_type_label(lang, result.get('bet_type'), result.get('bet_market'))}\n"
+        f"💰 Stake amount: {result['stake_amount']}\n"
+        f"📊 Odds: {result['odds']}"
     )
 
 
@@ -529,22 +566,27 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
-        used_trial = get_trial_used_count(user_id)
-        used_today = count_user_photos_today(user_id)
-        remaining_today = get_user_daily_limit(user_id) - used_today
-        days_left = get_trial_remaining(user_id)
+        total_used = get_trial_used_count(user_id)
 
-        await update.message.reply_text(
-            _trial_progress_text(lang, used_today, remaining_today, days_left)
-        )
+        await update.message.reply_text(_trial_bet_result_text(lang, result))
 
-        if used_trial >= 2:
+        if total_used >= 2:
+            used_today = count_user_photos_today(user_id)
+            remaining_today = get_user_daily_limit(user_id) - used_today
+            days_left = get_trial_remaining(user_id)
+
+            await update.message.reply_text(
+                _trial_progress_text(lang, used_today, remaining_today, days_left)
+            )
+
+        if total_used >= 3:
             trial_start = get_trial_start(user_id)
             start_dt = trial_start or datetime.now()
             end_dt = datetime.now()
-
-            stats = get_basic_stats_between(user_id, start_dt, end_dt, include_trial=True)
-            trial_pitch = _build_trial_pitch(lang, stats, used_trial)
+            stats = get_basic_stats_between(
+                user_id, start_dt, end_dt, include_trial=True
+            )
+            trial_pitch = _build_trial_pitch(lang, stats, total_used)
             if trial_pitch:
                 await update.message.reply_text(trial_pitch)
 
@@ -570,17 +612,27 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         remaining_trial = get_trial_remaining(user_id)
-        used_trial = get_trial_used_count(user_id)
+        total_used = get_trial_used_count(user_id)
 
-        await update.message.reply_text(_trial_fail_text(lang, used_trial, remaining_trial))
+        await update.message.reply_text(_trial_fail_text(lang, total_used, remaining_trial))
 
-        if used_trial >= 2:
+        if total_used >= 2:
+            used_today = count_user_photos_today(user_id)
+            remaining_today = get_user_daily_limit(user_id) - used_today
+            days_left = get_trial_remaining(user_id)
+
+            await update.message.reply_text(
+                _trial_progress_text(lang, used_today, remaining_today, days_left)
+            )
+
+        if total_used >= 3:
             trial_start = get_trial_start(user_id)
             start_dt = trial_start or datetime.now()
             end_dt = datetime.now()
-
-            stats = get_basic_stats_between(user_id, start_dt, end_dt, include_trial=True)
-            trial_pitch = _build_trial_pitch(lang, stats, used_trial)
+            stats = get_basic_stats_between(
+                user_id, start_dt, end_dt, include_trial=True
+            )
+            trial_pitch = _build_trial_pitch(lang, stats, total_used)
             if trial_pitch:
                 await update.message.reply_text(trial_pitch)
 

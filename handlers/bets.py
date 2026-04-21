@@ -146,6 +146,31 @@ def _trial_fail_text(lang: str, used_trial: int, remaining_trial: int) -> str:
     )
 
 
+def _trial_progress_text(lang: str, used_today: int, remaining_today: int, days_left: int) -> str:
+    lang = _normalize_lang(lang)
+
+    if lang == "ua":
+        return (
+            f"вњ… РЎРєСЂС–РЅ Р·Р°СЂР°С…РѕРІР°РЅРѕ.\n"
+            f"РЎСЊРѕРіРѕРґРЅС– РІРёРєРѕСЂРёСЃС‚Р°РЅРѕ: {used_today}/{TRIAL_SCREEN_LIMIT}\n"
+            f"Р—Р°Р»РёС€РёР»РѕСЃСЊ СЃСЊРѕРіРѕРґРЅС–: {remaining_today}\n"
+            f"Р”РЅС–РІ РїСЂРѕР±РЅРѕРіРѕ РґРѕСЃС‚СѓРїСѓ: {days_left}"
+        )
+    if lang == "ru":
+        return (
+            f"вњ… РЎРєСЂРёРЅ Р·Р°СЃС‡РёС‚Р°РЅ.\n"
+            f"РЎРµРіРѕРґРЅСЏ РёСЃРїРѕР»СЊР·РѕРІР°РЅРѕ: {used_today}/{TRIAL_SCREEN_LIMIT}\n"
+            f"РћСЃС‚Р°Р»РѕСЃСЊ СЃРµРіРѕРґРЅСЏ: {remaining_today}\n"
+            f"Р”РЅРµР№ РїСЂРѕР±РЅРѕРіРѕ РґРѕСЃС‚СѓРїР°: {days_left}"
+        )
+    return (
+        f"вњ… Screenshot saved.\n"
+        f"Used today: {used_today}/{TRIAL_SCREEN_LIMIT}\n"
+        f"Remaining today: {remaining_today}\n"
+        f"Trial days left: {days_left}"
+    )
+
+
 def _build_trial_pitch(lang: str, stats: dict, used_trial: int) -> str | None:
     if used_trial < 2:
         return None
@@ -435,15 +460,21 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(no_access_text, reply_markup=welcome_offer_keyboard(lang))
         return
 
-    if has_access:
+    if has_access or in_trial:
         daily_limit = get_user_daily_limit(user_id)
         used_today = count_user_photos_today(user_id)
 
         if used_today >= daily_limit:
-            await update.message.reply_text(
-                _daily_limit_reached_text(lang, plan, daily_limit),
-                reply_markup=access_keyboard(lang) if plan == "basic" else None
-            )
+            if in_trial:
+                await update.message.reply_text(
+                    _daily_limit_reached_text(lang, "trial", TRIAL_SCREEN_LIMIT),
+                    reply_markup=access_keyboard(lang)
+                )
+            else:
+                await update.message.reply_text(
+                    _daily_limit_reached_text(lang, plan, daily_limit),
+                    reply_markup=access_keyboard(lang) if plan == "basic" else None
+                )
             return
 
     photo = update.message.photo[-1]
@@ -451,7 +482,8 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if has_access:
         log_user_photo(user_id, file_id)
-    else:
+    elif in_trial:
+        log_user_photo(user_id, file_id)
         increment_trial_usage(user_id)
 
     await update.message.reply_text(get_text(lang, "bet_analysis_started"))
@@ -497,10 +529,14 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
-        remaining_trial = get_trial_remaining(user_id)
         used_trial = get_trial_used_count(user_id)
+        used_today = count_user_photos_today(user_id)
+        remaining_today = get_user_daily_limit(user_id) - used_today
+        days_left = get_trial_remaining(user_id)
 
-        await update.message.reply_text(_trial_progress_text(lang, used_trial, remaining_trial))
+        await update.message.reply_text(
+            _trial_progress_text(lang, used_today, remaining_today, days_left)
+        )
 
         if used_trial >= 2:
             trial_start = get_trial_start(user_id)

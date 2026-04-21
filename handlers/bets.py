@@ -202,6 +202,172 @@ def _build_trial_pitch(lang: str, stats: dict, used_trial: int) -> str | None:
     )
 
 
+def _trial_pitch_after_3(lang: str, stats: dict) -> str:
+    roi = stats.get("roi", 0)
+    winrate = stats.get("win_rate", 0)
+    profit = stats.get("net_profit", 0)
+
+    if lang == "ua":
+        trend = "в плюсі 📈" if profit > 0 else "в мінусі 📉"
+        return (
+            f"📊 Вже є перша картина\n\n"
+            f"ROI: {roi}% | Winrate: {winrate}%\n"
+            f"Результат: {trend}\n\n"
+            f"Але 3 ставки - це ще не дистанція.\n"
+            f"Реальна статистика формується від 20+ ставок.\n\n"
+            f"У тебе залишилось ще 2 скріни сьогодні.\n"
+            f"Використай їх - картина стане чіткішою 👇"
+        )
+    if lang == "ru":
+        trend = "в плюсе 📈" if profit > 0 else "в минусе 📉"
+        return (
+            f"📊 Уже есть первая картина\n\n"
+            f"ROI: {roi}% | Winrate: {winrate}%\n"
+            f"Результат: {trend}\n\n"
+            f"Но 3 ставки - это ещё не дистанция.\n"
+            f"Реальная статистика формируется от 20+ ставок.\n\n"
+            f"У тебя осталось ещё 2 скрина сегодня.\n"
+            f"Используй их - картина станет чётче 👇"
+        )
+    trend = "in profit 📈" if profit > 0 else "in loss 📉"
+    return (
+        f"📊 First picture is forming\n\n"
+        f"ROI: {roi}% | Winrate: {winrate}%\n"
+        f"Result: {trend}\n\n"
+        f"But 3 bets is not a real distance yet.\n"
+        f"Real stats form from 20+ bets.\n\n"
+        f"You have 2 screenshots left today.\n"
+        f"Use them - the picture will get clearer 👇"
+    )
+
+
+def _trial_pitch_after_5(lang: str, stats: dict, days_left: int) -> str:
+    roi = stats.get("roi", 0)
+    winrate = stats.get("win_rate", 0)
+    profit = stats.get("net_profit", 0)
+    _ = days_left
+
+    if lang == "ua":
+        if profit > 0:
+            return (
+                f"🔥 Денний ліміт вичерпано\n\n"
+                f"Твоя статистика сьогодні:\n"
+                f"💰 Прибуток: +{profit}\n"
+                f"📈 ROI: +{roi}%\n"
+                f"🎯 Winrate: {winrate}%\n\n"
+                f"Ти в плюсі - і це тільки початок.\n\n"
+                f"Проблема:\n"
+                f"Без системи цей плюс легко втратити.\n"
+                f"Більшість беттерів зливають прибуток\n"
+                f"через 2-3 тижні через відсутність контролю.\n\n"
+                f"Basic план вирішує це:\n"
+                f"15 скрінів на день\n"
+                f"Повна статистика і аналітика\n"
+                f"Контроль емоцій і тілту\n\n"
+                f"💡 $5 на місяць - менше ніж одна\n"
+                f"програшна ставка через емоції.\n\n"
+                f"👇 Зафіксуй результат - купи доступ"
+            )
+        return (
+            f"📊 Денний ліміт вичерпано\n\n"
+            f"Твоя статистика сьогодні:\n"
+            f"💰 Результат: {profit}\n"
+            f"📈 ROI: {roi}%\n"
+            f"🎯 Winrate: {winrate}%\n\n"
+            f"Поки в мінусі - але це нормально\n"
+            f"для початку без системи.\n\n"
+            f"Важливо знати:\n"
+            f"73% беттерів в мінусі саме через\n"
+            f"відсутність аналізу своїх ставок.\n\n"
+            f"Basic план показує де ти зливаєш:\n"
+            f"Які типи ставок збиткові\n"
+            f"Коли ставиш на емоціях\n"
+            f"Патерни програшів\n\n"
+            f"💡 Одна виправлена помилка окупить\n"
+            f"підписку за перший тиждень.\n\n"
+            f"👇 Почни виправляти зараз"
+        )
+
+    if lang == "ru":
+        if profit > 0:
+            return (
+                f"🔥 Дневной лимит исчерпан\n\n"
+                f"Твоя статистика сегодня:\n"
+                f"💰 Прибыль: +{profit}\n"
+                f"📈 ROI: +{roi}%\n"
+                f"🎯 Winrate: {winrate}%\n\n"
+                f"Ты в плюсе - и это только начало.\n\n"
+                f"Проблема:\n"
+                f"Без системы этот плюс легко потерять.\n"
+                f"Большинство беттеров сливают прибыль\n"
+                f"через 2-3 недели без контроля.\n\n"
+                f"Basic план решает это:\n"
+                f"15 скринов в день\n"
+                f"Полная статистика и аналитика\n"
+                f"Контроль эмоций и тилта\n\n"
+                f"💡 $5 в месяц - меньше чем одна\n"
+                f"проигрышная ставка на эмоциях.\n\n"
+                f"👇 Зафиксируй результат - купи доступ"
+            )
+        return (
+            f"📊 Дневной лимит исчерпан\n\n"
+            f"Твоя статистика сегодня:\n"
+            f"💰 Результат: {profit}\n"
+            f"📈 ROI: {roi}%\n"
+            f"🎯 Winrate: {winrate}%\n\n"
+            f"Пока в минусе - но это нормально\n"
+            f"для начала без системы.\n\n"
+            f"Важно знать:\n"
+            f"73% беттеров в минусе именно из-за\n"
+            f"отсутствия анализа своих ставок.\n\n"
+            f"Basic план показывает где ты сливаешь:\n"
+            f"Какие типы ставок убыточны\n"
+            f"Когда ставишь на эмоциях\n"
+            f"Паттерны проигрышей\n\n"
+            f"💡 Одна исправленная ошибка окупит\n"
+            f"подписку за первую неделю.\n\n"
+            f"👇 Начни исправлять сейчас"
+        )
+
+    if profit > 0:
+        return (
+            f"🔥 Daily limit reached\n\n"
+            f"Your stats today:\n"
+            f"💰 Profit: +{profit}\n"
+            f"📈 ROI: +{roi}%\n"
+            f"🎯 Winrate: {winrate}%\n\n"
+            f"You're in profit - and this is just the start.\n\n"
+            f"The problem:\n"
+            f"Without a system, this profit is easy to lose.\n"
+            f"Most bettors lose their gains within weeks.\n\n"
+            f"Basic plan fixes this:\n"
+            f"15 screenshots per day\n"
+            f"Full stats and analytics\n"
+            f"Emotion and tilt control\n\n"
+            f"💡 $5/month - less than one emotional loss.\n\n"
+            f"👇 Lock in your result - get access"
+        )
+    return (
+        f"📊 Daily limit reached\n\n"
+        f"Your stats today:\n"
+        f"💰 Result: {profit}\n"
+        f"📈 ROI: {roi}%\n"
+        f"🎯 Winrate: {winrate}%\n\n"
+        f"Currently at a loss - but that's normal\n"
+        f"without a system.\n\n"
+        f"Key insight:\n"
+        f"73% of bettors lose because they never\n"
+        f"analyze their own betting patterns.\n\n"
+        f"Basic plan shows where you're losing:\n"
+        f"Which bet types are draining you\n"
+        f"When you bet on emotions\n"
+        f"Your losing patterns\n\n"
+        f"💡 One fixed mistake pays for the\n"
+        f"subscription in the first week.\n\n"
+        f"👇 Start fixing it now"
+    )
+
+
 def _build_limit_pitch(lang: str, stats: dict) -> str:
     lang = _normalize_lang(lang)
     profit = float(stats.get("net_profit", 0) or 0)
@@ -579,16 +745,28 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 _trial_progress_text(lang, used_today, remaining_today, days_left)
             )
 
-        if total_used >= 3:
+        if total_used == 3:
             trial_start = get_trial_start(user_id)
             start_dt = trial_start or datetime.now()
             end_dt = datetime.now()
             stats = get_basic_stats_between(
                 user_id, start_dt, end_dt, include_trial=True
             )
-            trial_pitch = _build_trial_pitch(lang, stats, total_used)
-            if trial_pitch:
-                await update.message.reply_text(trial_pitch)
+            await update.message.reply_text(
+                _trial_pitch_after_3(lang, stats)
+            )
+        elif total_used >= 5:
+            trial_start = get_trial_start(user_id)
+            start_dt = trial_start or datetime.now()
+            end_dt = datetime.now()
+            stats = get_basic_stats_between(
+                user_id, start_dt, end_dt, include_trial=True
+            )
+            days_left = get_trial_remaining(user_id)
+            await update.message.reply_text(
+                _trial_pitch_after_5(lang, stats, days_left),
+                reply_markup=access_keyboard(lang)
+            )
 
     else:
         create_bet(
@@ -625,16 +803,28 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 _trial_progress_text(lang, used_today, remaining_today, days_left)
             )
 
-        if total_used >= 3:
+        if total_used == 3:
             trial_start = get_trial_start(user_id)
             start_dt = trial_start or datetime.now()
             end_dt = datetime.now()
             stats = get_basic_stats_between(
                 user_id, start_dt, end_dt, include_trial=True
             )
-            trial_pitch = _build_trial_pitch(lang, stats, total_used)
-            if trial_pitch:
-                await update.message.reply_text(trial_pitch)
+            await update.message.reply_text(
+                _trial_pitch_after_3(lang, stats)
+            )
+        elif total_used >= 5:
+            trial_start = get_trial_start(user_id)
+            start_dt = trial_start or datetime.now()
+            end_dt = datetime.now()
+            stats = get_basic_stats_between(
+                user_id, start_dt, end_dt, include_trial=True
+            )
+            days_left = get_trial_remaining(user_id)
+            await update.message.reply_text(
+                _trial_pitch_after_5(lang, stats, days_left),
+                reply_markup=access_keyboard(lang)
+            )
 
     if not has_access and get_trial_remaining(user_id) == 0:
         trial_start = get_trial_start(user_id)

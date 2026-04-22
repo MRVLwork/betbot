@@ -89,9 +89,9 @@ async def send_standard_start(update: Update, lang: str):
 
     if user_has_access(user.id):
         active_text = {
-            "ua": "вњ” Р”РѕСЃС‚СѓРї Р°РєС‚РёРІРЅРёР№.",
-            "ru": "вњ” Р”РѕСЃС‚СѓРї Р°РєС‚РёРІРµРЅ.",
-            "en": "вњ” Access is active.",
+            "ua": "✔ Доступ активний.",
+            "ru": "✔ Доступ активен.",
+            "en": "✔ Access is active.",
         }[lang]
 
         await update.message.reply_text(
@@ -120,9 +120,9 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     if user_has_access(tg_user.id):
         active_text = {
-            "ua": "вњ” Р”РѕСЃС‚СѓРї Р°РєС‚РёРІРЅРёР№.",
-            "ru": "вњ” Р”РѕСЃС‚СѓРї Р°РєС‚РёРІРµРЅ.",
-            "en": "вњ” Access is active.",
+            "ua": "✔ Доступ активний.",
+            "ru": "✔ Доступ активен.",
+            "en": "✔ Access is active.",
         }[lang]
 
         await query.message.reply_text(
@@ -137,19 +137,19 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
 
             trial_text = {
                 "ua": (
-                    "рџљЂ РџСЂРѕР±РЅРёР№ РґРѕСЃС‚СѓРї Р°РєС‚РёРІРѕРІР°РЅРѕ!\n\n"
-                    "РЈ С‚РµР±Рµ С” 7 РґРЅС–РІ С– 5 СЃРєСЂС–РЅС–РІ РЅР° РґРµРЅСЊ.\n"
-                    "РќР°РґС–С€Р»Рё РїРµСЂС€РёР№ СЃРєСЂС–РЅ СЃС‚Р°РІРєРё рџ‘‡"
+                    "🚀 Пробний доступ активовано!\n\n"
+                    "У тебе є 7 днів і 5 скрінів на день.\n"
+                    "Надішли перший скрін ставки 👇"
                 ),
                 "ru": (
-                    "рџљЂ РџСЂРѕР±РЅС‹Р№ РґРѕСЃС‚СѓРї Р°РєС‚РёРІРёСЂРѕРІР°РЅ!\n\n"
-                    "РЈ С‚РµР±СЏ РµСЃС‚СЊ 7 РґРЅРµР№ Рё 5 СЃРєСЂРёРЅРѕРІ РІ РґРµРЅСЊ.\n"
-                    "РћС‚РїСЂР°РІСЊ РїРµСЂРІС‹Р№ СЃРєСЂРёРЅ СЃС‚Р°РІРєРё рџ‘‡"
+                    "🚀 Пробный доступ активирован!\n\n"
+                    "У тебя есть 7 дней и 5 скринов в день.\n"
+                    "Отправь первый скрин ставки 👇"
                 ),
                 "en": (
-                    "рџљЂ Trial access activated!\n\n"
+                    "🚀 Trial access activated!\n\n"
                     "You have 7 days and 5 screenshots per day.\n"
-                    "Send your first bet screenshot рџ‘‡"
+                    "Send your first bet screenshot 👇"
                 ),
             }[lang]
 
@@ -161,9 +161,9 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
             remaining = get_trial_remaining(tg_user.id)
 
             limit_text = {
-                "ua": f"вќЊ РџСЂРѕР±РЅРёР№ РґРѕСЃС‚СѓРї РІР¶Рµ РІРёРєРѕСЂРёСЃС‚Р°РЅРѕ. Р—Р°Р»РёС€РёР»РѕСЃСЊ: {remaining}",
-                "ru": f"вќЊ РџСЂРѕР±РЅС‹Р№ РґРѕСЃС‚СѓРї СѓР¶Рµ РёСЃРїРѕР»СЊР·РѕРІР°РЅ. РћСЃС‚Р°Р»РѕСЃСЊ: {remaining}",
-                "en": f"вќЊ Trial access has already been used. Remaining: {remaining}",
+                "ua": f"❌ Пробний доступ вже використано. Залишилось: {remaining}",
+                "ru": f"❌ Пробный доступ уже использован. Осталось: {remaining}",
+                "en": f"❌ Trial access has already been used. Remaining: {remaining}",
             }[lang]
 
             await query.message.reply_text(limit_text)
@@ -171,28 +171,28 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
     elif query.data == "pay_now":
         buy_text = {
             "ua": (
-                "рџ’і РћР±РµСЂРё С‚Р°СЂРёС„:\n\n"
-                "рџ”№ Basic 1 РјС–СЃСЏС†СЊ  $5\n"
-                " 15 СЃРєСЂС–РЅС–РІ РЅР° РґРµРЅСЊ\n"
-                " РџРѕРІРЅР° СЃС‚Р°С‚РёСЃС‚РёРєР° С– Р°РЅР°Р»С–С‚РёРєР°\n\n"
-                " VIP 1 РјС–СЃСЏС†СЊ  $19.99\n"
-                " 30 СЃРєСЂС–РЅС–РІ РЅР° РґРµРЅСЊ\n"
-                " AI РўСЂРµРЅРµСЂ\n"
-                " Р’СЃС– С„СѓРЅРєС†С–С— Р±РµР· РѕР±РјРµР¶РµРЅСЊ"
+                "💳 Обери тариф:\n\n"
+                "🔹 Basic 1 місяць  $5\n"
+                " 15 скрінів на день\n"
+                " Повна статистика і аналітика\n\n"
+                " VIP 1 місяць  $19.99\n"
+                " 30 скрінів на день\n"
+                " AI Тренер\n"
+                " Всі функції без обмежень"
             ),
             "ru": (
-                "рџ’і Р’С‹Р±РµСЂРё С‚Р°СЂРёС„:\n\n"
-                "рџ”№ Basic 1 РјРµСЃСЏС†  $5\n"
-                " 15 СЃРєСЂРёРЅРѕРІ РІ РґРµРЅСЊ\n"
-                " РџРѕР»РЅР°СЏ СЃС‚Р°С‚РёСЃС‚РёРєР° Рё Р°РЅР°Р»РёС‚РёРєР°\n\n"
-                " VIP 1 РјРµСЃСЏС†  $19.99\n"
-                " 30 СЃРєСЂРёРЅРѕРІ РІ РґРµРЅСЊ\n"
-                " AI РўСЂРµРЅРµСЂ\n"
-                " Р’СЃРµ С„СѓРЅРєС†РёРё Р±РµР· РѕРіСЂР°РЅРёС‡РµРЅРёР№"
+                "💳 Выбери тариф:\n\n"
+                "🔹 Basic 1 месяц  $5\n"
+                " 15 скринов в день\n"
+                " Полная статистика и аналитика\n\n"
+                " VIP 1 месяц  $19.99\n"
+                " 30 скринов в день\n"
+                " AI Тренер\n"
+                " Все функции без ограничений"
             ),
             "en": (
-                "рџ’і Choose your plan:\n\n"
-                "рџ”№ Basic 1 month  $5\n"
+                "💳 Choose your plan:\n\n"
+                "🔹 Basic 1 month  $5\n"
                 " 15 screenshots per day\n"
                 " Full statistics and analytics\n\n"
                 " VIP 1 month  $19.99\n"
@@ -206,34 +206,3 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
             buy_text,
             reply_markup=access_keyboard(lang)
         )
-
-
-#def _welcome_text(lang: str, promo_available: bool) -> str:
-#    if lang == "ru":
-#       return (
-#            "РџСЂРёРІРµС‚ рџ‘‹\n\n"
-#           "Р­С‚Рѕ Bet Tracker Bot вЂ” РёРЅСЃС‚СЂСѓРјРµРЅС‚ РґР»СЏ Р°РЅР°Р»РёР·Р° С‚РІРѕРёС… СЃС‚Р°РІРѕРє рџ“Љ\n\n"
-#            "Р§С‚Рѕ С‚С‹ РїРѕР»СѓС‡РёС€СЊ:\n"
-#            "вЂў РЎС‚Р°С‚РёСЃС‚РёРєСѓ РїСЂРёР±С‹Р»Рё Рё СѓР±С‹С‚РєРѕРІ рџ’°\n"
-#           "вЂў ROI Рё РІРёРЅСЂРµР№С‚ рџ“€\n"
-#            "вЂў РЎСЂРµРґРЅРёР№ РєРѕСЌС„С„РёС†РёРµРЅС‚ рџЋЇ\n"
-#            "вЂў РђРЅР°Р»РёС‚РёРєСѓ РїРѕ СЃС‚Р°РІРєР°Рј\n\n"
-#            "рџ”Ґ РЈР¶Рµ 1200+ РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№\n"
-#            "рџ“Љ РЎСЂРµРґРЅРёР№ ROI: +11%\n\n"
-#            "РРЅСЃС‚СЂСѓРєС†РёСЏ @bets_academy_platform\n"
-#            "рџ‘‡ РџРѕРїСЂРѕР±СѓР№ СЃР°Рј"
-#        )
-#    else:
-#        return (
-#            "РџСЂРёРІС–С‚ рџ‘‹\n\n"
-#            "Р¦Рµ Bet Tracker Bot вЂ” С–РЅСЃС‚СЂСѓРјРµРЅС‚ РґР»СЏ Р°РЅР°Р»С–Р·Сѓ С‚РІРѕС—С… СЃС‚Р°РІРѕРє рџ“Љ\n\n"
-#            "Р©Рѕ С‚Рё РѕС‚СЂРёРјР°С”С€:\n"
-#            "вЂў РЎС‚Р°С‚РёСЃС‚РёРєСѓ РїСЂРёР±СѓС‚РєСѓ С‚Р° Р·Р±РёС‚РєС–РІ рџ’°\n"
-#            "вЂў ROI С– РІС–РЅСЂРµР№С‚ рџ“€\n"
-#            "вЂў РЎРµСЂРµРґРЅС–Р№ РєРѕРµС„С–С†С–С”РЅС‚ рџЋЇ\n"
-#            "вЂў РђРЅР°Р»С–С‚РёРєСѓ РїРѕ СЃС‚Р°РІРєР°С…\n\n"
-#            "рџ”Ґ Р’Р¶Рµ 1200+ РєРѕСЂРёСЃС‚СѓРІР°С‡С–РІ\n"
-#            "рџ“Љ РЎРµСЂРµРґРЅС–Р№ ROI: +11%\n\n"
-#            "Р†РЅСЃС‚СЂСѓРєС†С–СЏ @bets_academy_platform\n"
-#            "рџ‘‡ РЎРїСЂРѕР±СѓР№ СЃР°Рј"
-#        )

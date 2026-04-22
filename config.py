@@ -21,3 +21,7 @@ POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "").strip()
 # OpenAI
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
 OPENAI_MODEL_BASIC = os.getenv("OPENAI_MODEL_BASIC", "gpt-4.1-mini").strip()
+
+CRYPTOBOT_TOKEN = os.getenv("CRYPTOBOT_TOKEN", "").strip()
+CRYPTOBOT_API_URL = "https://pay.crypt.bot/api"
+WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "").strip()

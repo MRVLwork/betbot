@@ -4,3 +4,4 @@ psycopg2-binary
 python-dotenv
 Pillow
 APScheduler
+aiohttp>=3.9.0

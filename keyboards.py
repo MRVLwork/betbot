@@ -170,6 +170,49 @@ def usdt_plans_keyboard(lang: str, promo_available: bool = True):
     return InlineKeyboardMarkup(keyboard)
 
 
+def cryptobot_plans_keyboard(lang: str, promo_available: bool = True):
+    """Keyboard for CryptoBot auto-payment plans."""
+    if promo_available:
+        if lang == "ru":
+            keyboard = [
+                [InlineKeyboardButton("Basic 1 месяц - $5 USDT", callback_data="cb_pay_usdt_basic_month")],
+                [InlineKeyboardButton("🔥 VIP 1 месяц: $19.99 -> $14.99 USDT", callback_data="cb_pay_usdt_vip_month_promo")],
+                [InlineKeyboardButton("🧾 Ручная оплата", callback_data="buy_usdt_manual")],
+            ]
+        elif lang == "en":
+            keyboard = [
+                [InlineKeyboardButton("Basic 1 month - $5 USDT", callback_data="cb_pay_usdt_basic_month")],
+                [InlineKeyboardButton("🔥 VIP 1 month: $19.99 -> $14.99 USDT", callback_data="cb_pay_usdt_vip_month_promo")],
+                [InlineKeyboardButton("🧾 Manual payment", callback_data="buy_usdt_manual")],
+            ]
+        else:
+            keyboard = [
+                [InlineKeyboardButton("Basic 1 місяць - $5 USDT", callback_data="cb_pay_usdt_basic_month")],
+                [InlineKeyboardButton("🔥 VIP 1 місяць: $19.99 -> $14.99 USDT", callback_data="cb_pay_usdt_vip_month_promo")],
+                [InlineKeyboardButton("🧾 Ручна оплата", callback_data="buy_usdt_manual")],
+            ]
+    else:
+        if lang == "ru":
+            keyboard = [
+                [InlineKeyboardButton("Basic 1 месяц - $5 USDT", callback_data="cb_pay_usdt_basic_month")],
+                [InlineKeyboardButton("VIP 1 месяц - $19.99 USDT", callback_data="cb_pay_usdt_vip_month")],
+                [InlineKeyboardButton("🧾 Ручная оплата", callback_data="buy_usdt_manual")],
+            ]
+        elif lang == "en":
+            keyboard = [
+                [InlineKeyboardButton("Basic 1 month - $5 USDT", callback_data="cb_pay_usdt_basic_month")],
+                [InlineKeyboardButton("VIP 1 month - $19.99 USDT", callback_data="cb_pay_usdt_vip_month")],
+                [InlineKeyboardButton("🧾 Manual payment", callback_data="buy_usdt_manual")],
+            ]
+        else:
+            keyboard = [
+                [InlineKeyboardButton("Basic 1 місяць - $5 USDT", callback_data="cb_pay_usdt_basic_month")],
+                [InlineKeyboardButton("VIP 1 місяць - $19.99 USDT", callback_data="cb_pay_usdt_vip_month")],
+                [InlineKeyboardButton("🧾 Ручна оплата", callback_data="buy_usdt_manual")],
+            ]
+    return InlineKeyboardMarkup(keyboard)
+
+
 def tools_keyboard(lang: str):
     if lang == "ru":
         keyboard = [

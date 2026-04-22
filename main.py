@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
+import asyncio
 import sys
+import threading
 from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from aiohttp import web
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
@@ -48,7 +51,14 @@ from handlers.onboarding import (
     onboarding_sport,
 )
 from handlers.promo import access_buttons, promo_input, cancel_promo
-from handlers.payment import payment_buttons, handle_payment_screenshot, payment_sent, admin_payment_reply_handler
+from handlers.payment import (
+    admin_payment_reply_handler,
+    check_payment_status_handler,
+    cryptobot_payment_handler,
+    handle_payment_screenshot,
+    payment_buttons,
+    payment_sent,
+)
 from handlers.stars_payment import (
     open_stars_menu,
     precheckout_handler,
@@ -80,6 +90,7 @@ from handlers.discipline import show_streak
 from handlers.profile import profile_callback_handler, show_profile
 from handlers.tools import open_tools_menu, tools_callback_handler, handle_ai_analysis_input
 from handlers.weekly_wrap import send_weekly_wrap, send_weekly_wrap_broadcast
+from webhook_server import create_webhook_app, set_bot
 from states import (
     ONBOARDING_DEPOSIT,
     ONBOARDING_EXPERIENCE,
@@ -216,6 +227,34 @@ async def post_shutdown(application):
     scheduler = application.bot_data.get("scheduler")
     if scheduler:
         scheduler.shutdown(wait=False)
+
+
+async def run_webhook_server(bot):
+    """Start aiohttp webhook server for CryptoBot callbacks."""
+    set_bot(bot)
+    webhook_app = create_webhook_app()
+    runner = web.AppRunner(webhook_app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", 8080)
+    await site.start()
+    print("Webhook server started on port 8080")
+    return runner
+
+
+def _start_webhook_server_in_background(bot):
+    def _worker():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        runner = loop.run_until_complete(run_webhook_server(bot))
+        try:
+            loop.run_forever()
+        finally:
+            loop.run_until_complete(runner.cleanup())
+            loop.close()
+
+    thread = threading.Thread(target=_worker, daemon=True, name="cryptobot-webhook")
+    thread.start()
+    return thread
 
 
 def format_compare_block(current: dict, previous: dict, lang: str, current_label_key: str, previous_label_key: str) -> str:
@@ -716,7 +755,7 @@ def main():
     app.add_handler(promo_conv)
 
     payment_conv = ConversationHandler(
-        entry_points=[CallbackQueryHandler(payment_buttons, pattern="^(buy_usdt|usdt_.*|cancel_payment)$")],
+        entry_points=[CallbackQueryHandler(payment_buttons, pattern="^(buy_usdt|buy_usdt_manual|usdt_.*|cancel_payment)$")],
         states={WAITING_PAYMENT_SCREEN: [MessageHandler(filters.PHOTO, handle_payment_screenshot)]},
         fallbacks=[CallbackQueryHandler(payment_buttons, pattern="^cancel_payment$")],
         per_message=False,
@@ -725,6 +764,8 @@ def main():
 
     app.add_handler(CallbackQueryHandler(start_offer_buttons, pattern="^(try_trial|pay_now)$"))
     app.add_handler(CallbackQueryHandler(open_stars_menu, pattern="^(buy_stars|stars_.*)$"))
+    app.add_handler(CallbackQueryHandler(cryptobot_payment_handler, pattern="^cb_pay_"))
+    app.add_handler(CallbackQueryHandler(check_payment_status_handler, pattern="^check_payment_"))
     app.add_handler(PreCheckoutQueryHandler(precheckout_handler))
     app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_handler))
 
@@ -753,6 +794,7 @@ def main():
     app.add_handler(MessageHandler(filters.PHOTO, process_bet_photo))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, menu_handler))
 
+    _start_webhook_server_in_background(app.bot)
     print("Bot started...")
     app.run_polling()
 

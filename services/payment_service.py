@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from config import TRC20_WALLET
 
+
 USDT_PLANS = {
     "usdt_basic_month": {
         "plan_name_ua": "Basic 1 місяць",
@@ -25,6 +26,17 @@ USDT_PLANS = {
         "wallet_address": TRC20_WALLET,
     },
     "usdt_vip_month_full": {
+        "plan_name_ua": "VIP 1 місяць",
+        "plan_name_ru": "VIP 1 месяц",
+        "plan_name_en": "VIP 1 month",
+        "plan_type": "vip",
+        "duration_days": 30,
+        "amount_usd": 19.99,
+        "full_amount_usd": 19.99,
+        "is_promo": False,
+        "wallet_address": TRC20_WALLET,
+    },
+    "usdt_vip_month": {
         "plan_name_ua": "VIP 1 місяць",
         "plan_name_ru": "VIP 1 месяц",
         "plan_name_en": "VIP 1 month",

@@ -4,6 +4,7 @@ from telegram.ext import ContextTypes, ConversationHandler
 
 from config import ADMIN_ID
 from db import (
+    activate_user_access,
     create_payment,
     get_last_pending_payment,
     set_payment_screenshot,
@@ -15,9 +16,11 @@ from db import (
     has_used_promo_offer,
     mark_promo_offer_used,
     activate_vip_bet_day_access,
+    user_has_access,
 )
-from keyboards import usdt_plans_keyboard, payment_check_keyboard
-from services.payment_service import get_usdt_plan
+from keyboards import cryptobot_plans_keyboard, main_menu_keyboard, payment_check_keyboard, usdt_plans_keyboard
+from services.cryptobot_service import create_invoice, get_invoice_status
+from services.payment_service import USDT_PLANS, get_usdt_plan
 from states import WAITING_PAYMENT_SCREEN
 
 
@@ -193,6 +196,13 @@ async def payment_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if query.data == "buy_usdt":
         await query.message.reply_text(
             _usdt_menu_text(lang),
+            reply_markup=cryptobot_plans_keyboard(lang, promo_available=promo_available)
+        )
+        return ConversationHandler.END
+
+    if query.data == "buy_usdt_manual":
+        await query.message.reply_text(
+            _usdt_menu_text(lang),
             reply_markup=usdt_plans_keyboard(lang, promo_available=promo_available)
         )
         return ConversationHandler.END
@@ -351,3 +361,160 @@ async def admin_payment_reply_handler(update: Update, context: ContextTypes.DEFA
             await context.bot.send_message(chat_id=payment["user_id"], text=success_text)
         except Exception:
             pass
+
+
+async def cryptobot_payment_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Handle CryptoBot automatic payment plan selection.
+    Triggered by callback like cb_pay_usdt_basic_month.
+    """
+    query = update.callback_query
+    await query.answer()
+
+    user_id = update.effective_user.id
+    user = get_user(user_id) or {}
+    lang = _normalize_lang(user.get("lang") or "ua")
+
+    plan_key = query.data.replace("cb_pay_", "")
+    plan = USDT_PLANS.get(plan_key)
+    if not plan:
+        await query.message.reply_text("Помилка: план не знайдено")
+        return
+
+    plan_name = _plan_name(plan, lang)
+    amount = plan["amount_usd"]
+
+    loading_texts = {
+        "ua": "⏳ Створюю рахунок для оплати...",
+        "ru": "⏳ Создаю счёт для оплаты...",
+        "en": "⏳ Creating payment invoice...",
+    }
+    loading_msg = await query.message.reply_text(loading_texts.get(lang, loading_texts["en"]))
+
+    result = await create_invoice(
+        user_id=user_id,
+        plan_key=plan_key,
+        amount_usd=amount,
+        plan_name=plan_name,
+        lang=lang,
+    )
+
+    if not result["ok"]:
+        error_texts = {
+            "ua": "❌ Помилка створення рахунку. Спробуй ще раз або оплати вручну.",
+            "ru": "❌ Ошибка создания счёта. Попробуй ещё раз или оплати вручную.",
+            "en": "❌ Invoice creation error. Try again or use manual payment.",
+        }
+        await loading_msg.edit_text(error_texts.get(lang, error_texts["en"]))
+        return
+
+    pay_url = result["pay_url"]
+    invoice_id = result["invoice_id"]
+
+    invoice_texts = {
+        "ua": (
+            f"💸 Рахунок для оплати:\n\n"
+            f"План: {plan_name}\n"
+            f"Сума: ${amount} USDT\n\n"
+            f"Натисни кнопку нижче щоб оплатити через CryptoBot.\n"
+            f"Після оплати підписка активується автоматично.\n\n"
+            f"⏰ Рахунок дійсний 1 годину"
+        ),
+        "ru": (
+            f"💸 Счёт для оплаты:\n\n"
+            f"План: {plan_name}\n"
+            f"Сумма: ${amount} USDT\n\n"
+            f"Нажми кнопку ниже чтобы оплатить через CryptoBot.\n"
+            f"После оплаты подписка активируется автоматически.\n\n"
+            f"⏰ Счёт действителен 1 час"
+        ),
+        "en": (
+            f"💸 Payment invoice:\n\n"
+            f"Plan: {plan_name}\n"
+            f"Amount: ${amount} USDT\n\n"
+            f"Click the button below to pay via CryptoBot.\n"
+            f"Subscription activates automatically after payment.\n\n"
+            f"⏰ Invoice valid for 1 hour"
+        ),
+    }
+
+    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
+    pay_button_labels = {
+        "ua": f"💳 Оплатити ${amount} USDT",
+        "ru": f"💳 Оплатить ${amount} USDT",
+        "en": f"💳 Pay ${amount} USDT",
+    }
+    check_button_labels = {
+        "ua": "🔄 Перевірити оплату",
+        "ru": "🔄 Проверить оплату",
+        "en": "🔄 Check payment",
+    }
+
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton(pay_button_labels.get(lang, pay_button_labels["en"]), url=pay_url)],
+        [InlineKeyboardButton(check_button_labels.get(lang, check_button_labels["en"]), callback_data=f"check_payment_{invoice_id}")],
+    ])
+
+    await loading_msg.edit_text(
+        invoice_texts.get(lang, invoice_texts["en"]),
+        reply_markup=keyboard,
+    )
+
+
+async def check_payment_status_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Manually check CryptoBot payment status.
+    Used as a fallback if webhook did not fire.
+    """
+    query = update.callback_query
+    await query.answer()
+
+    user_id = update.effective_user.id
+    user = get_user(user_id) or {}
+    lang = _normalize_lang(user.get("lang") or "ua")
+
+    invoice_id = int(query.data.replace("check_payment_", ""))
+    status = await get_invoice_status(invoice_id)
+
+    if status.get("paid"):
+        if not user_has_access(user_id):
+            plan_key = status.get("plan_key")
+            plan = USDT_PLANS.get(plan_key or "")
+            if plan:
+                activate_user_access(
+                    user_id=user_id,
+                    days=plan["duration_days"],
+                    plan_type=plan["plan_type"],
+                    source="cryptobot_manual_check",
+                )
+                success_texts = {
+                    "ua": "✅ Оплата знайдена! Підписку активовано.",
+                    "ru": "✅ Оплата найдена! Подписка активирована.",
+                    "en": "✅ Payment found! Subscription activated.",
+                }
+                await query.message.reply_text(
+                    success_texts.get(lang, success_texts["en"]),
+                    reply_markup=main_menu_keyboard(lang, plan["plan_type"]),
+                )
+            else:
+                fallback_texts = {
+                    "ua": "✅ Оплата знайдена! Але план не вдалося визначити автоматично.",
+                    "ru": "✅ Оплата найдена! Но план не удалось определить автоматически.",
+                    "en": "✅ Payment found, but the plan could not be resolved automatically.",
+                }
+                await query.message.reply_text(fallback_texts.get(lang, fallback_texts["en"]))
+        else:
+            already_texts = {
+                "ua": "✅ Підписка вже активна!",
+                "ru": "✅ Подписка уже активна!",
+                "en": "✅ Subscription is already active!",
+            }
+            await query.message.reply_text(already_texts.get(lang, already_texts["en"]))
+    else:
+        pending_texts = {
+            "ua": "⏳ Оплата ще не надійшла. Перевір чи ти завершив оплату в CryptoBot.",
+            "ru": "⏳ Оплата ещё не поступила. Проверь, завершил ли ты оплату в CryptoBot.",
+            "en": "⏳ Payment not received yet. Check if you completed payment in CryptoBot.",
+        }
+        await query.message.reply_text(pending_texts.get(lang, pending_texts["en"]))

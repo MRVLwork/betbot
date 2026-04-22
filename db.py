@@ -7,6 +7,115 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 
 TRIAL_SCREEN_LIMIT = 5
+LEVEL_THRESHOLDS = (0, 500, 1500, 3000, 6000)
+
+XP_TABLE = {
+    "add_bet": 10,
+    "win_bet": 15,
+    "fill_emotion": 20,
+    "discipline_day": 30,
+    "streak_7": 100,
+    "streak_30": 500,
+}
+
+ALL_ACHIEVEMENTS = {
+    "first_bet": {
+        "name_ua": "Перший крок",
+        "name_ru": "Первый шаг",
+        "name_en": "First Step",
+        "emoji": "🎯",
+        "desc_ua": "Додав першу ставку",
+        "xp_reward": 50,
+    },
+    "bets_10": {
+        "name_ua": "Початківець",
+        "name_ru": "Начинающий",
+        "name_en": "Beginner",
+        "emoji": "📊",
+        "desc_ua": "10 ставок в системі",
+        "xp_reward": 100,
+    },
+    "bets_50": {
+        "name_ua": "Досвідчений",
+        "name_ru": "Опытный",
+        "name_en": "Experienced",
+        "emoji": "📈",
+        "desc_ua": "50 ставок в системі",
+        "xp_reward": 200,
+    },
+    "bets_100": {
+        "name_ua": "Ветеран",
+        "name_ru": "Ветеран",
+        "name_en": "Veteran",
+        "emoji": "🏆",
+        "desc_ua": "100 ставок в системі",
+        "xp_reward": 500,
+    },
+    "win_streak_5": {
+        "name_ua": "Снайпер",
+        "name_ru": "Снайпер",
+        "name_en": "Sniper",
+        "emoji": "🎯",
+        "desc_ua": "5 перемог підряд",
+        "xp_reward": 150,
+    },
+    "win_streak_10": {
+        "name_ua": "Машина",
+        "name_ru": "Машина",
+        "name_en": "Machine",
+        "emoji": "🤖",
+        "desc_ua": "10 перемог підряд",
+        "xp_reward": 300,
+    },
+    "discipline_7": {
+        "name_ua": "Залізна воля",
+        "name_ru": "Железная воля",
+        "name_en": "Iron Will",
+        "emoji": "💪",
+        "desc_ua": "7 днів без порушень",
+        "xp_reward": 200,
+    },
+    "discipline_30": {
+        "name_ua": "Залізна дисципліна",
+        "name_ru": "Железная дисциплина",
+        "name_en": "Iron Discipline",
+        "emoji": "🛡",
+        "desc_ua": "30 днів без порушень",
+        "xp_reward": 1000,
+    },
+    "roi_positive": {
+        "name_ua": "В плюсі",
+        "name_ru": "В плюсе",
+        "name_en": "In Profit",
+        "emoji": "💰",
+        "desc_ua": "ROI вийшов в плюс",
+        "xp_reward": 100,
+    },
+    "roi_10": {
+        "name_ua": "Інвестор",
+        "name_ru": "Инвестор",
+        "name_en": "Investor",
+        "emoji": "📈",
+        "desc_ua": "ROI +10% за місяць",
+        "xp_reward": 300,
+    },
+    "first_referral": {
+        "name_ua": "Амбасадор",
+        "name_ru": "Амбассадор",
+        "name_en": "Ambassador",
+        "emoji": "🤝",
+        "desc_ua": "Запросив першого друга",
+        "xp_reward": 150,
+    },
+    "referrals_5": {
+        "name_ua": "Інфлюенсер",
+        "name_ru": "Инфлюенсер",
+        "name_en": "Influencer",
+        "emoji": "🌟",
+        "desc_ua": "5 рефералів",
+        "xp_reward": 500,
+    },
+}
 
 
 class PostgresCursorWrapper:
@@ -188,6 +297,24 @@ def init_db():
         )
     """)
 
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS xp_levels (
+            user_id BIGINT PRIMARY KEY,
+            total_xp INTEGER DEFAULT 0,
+            current_level INTEGER DEFAULT 1,
+            updated_at TEXT
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS achievements (
+            user_id BIGINT NOT NULL,
+            achievement_id TEXT NOT NULL,
+            unlocked_at TEXT NOT NULL,
+            PRIMARY KEY (user_id, achievement_id)
+        )
+    """)
+
     conn.commit()
     conn.close()
 
@@ -345,6 +472,210 @@ def get_streak(user_id: int) -> dict:
         "current_streak": int(row.get("current_streak") or 0),
         "best_streak": int(row.get("best_streak") or 0),
     }
+
+
+def get_xp(user_id: int) -> dict:
+    """Return total XP and current level for the user."""
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT total_xp, current_level
+        FROM xp_levels
+        WHERE user_id = ?
+    """, (user_id,))
+    row = cur.fetchone()
+    conn.close()
+
+    if not row:
+        return {"total_xp": 0, "current_level": 1}
+
+    return {
+        "total_xp": int(row.get("total_xp") or 0),
+        "current_level": int(row.get("current_level") or 1),
+    }
+
+
+def _resolve_level(total_xp: int) -> int:
+    level = 1
+    for index, threshold in enumerate(LEVEL_THRESHOLDS):
+        if total_xp >= threshold:
+            level = index + 1
+    return level
+
+
+def add_xp(user_id: int, amount: int) -> dict:
+    """
+    Add XP to the user and update the level.
+    Returns total_xp, current_level, leveled_up, new_level.
+    """
+    conn = get_conn()
+    cur = conn.cursor()
+    now_iso = datetime.now().isoformat()
+
+    cur.execute("""
+        INSERT INTO xp_levels (user_id, total_xp, current_level, updated_at)
+        VALUES (?, ?, 1, ?)
+        ON CONFLICT (user_id) DO UPDATE SET
+            total_xp = xp_levels.total_xp + EXCLUDED.total_xp,
+            updated_at = EXCLUDED.updated_at
+    """, (user_id, amount, now_iso))
+
+    cur.execute("""
+        SELECT total_xp, current_level
+        FROM xp_levels
+        WHERE user_id = ?
+    """, (user_id,))
+    row = cur.fetchone() or {"total_xp": amount, "current_level": 1}
+
+    new_xp = int(row.get("total_xp") or 0)
+    old_level = int(row.get("current_level") or 1)
+    new_level = _resolve_level(new_xp)
+    leveled_up = new_level > old_level
+
+    cur.execute("""
+        UPDATE xp_levels
+        SET current_level = ?,
+            updated_at = ?
+        WHERE user_id = ?
+    """, (new_level, now_iso, user_id))
+
+    conn.commit()
+    conn.close()
+
+    return {
+        "total_xp": new_xp,
+        "current_level": new_level,
+        "leveled_up": leveled_up,
+        "new_level": new_level,
+    }
+
+
+def get_user_achievements(user_id: int) -> list[str]:
+    """Return unlocked achievement ids for the user."""
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT achievement_id
+        FROM achievements
+        WHERE user_id = ?
+        ORDER BY unlocked_at ASC
+    """, (user_id,))
+    rows = cur.fetchall()
+    conn.close()
+    return [row["achievement_id"] for row in rows]
+
+
+def unlock_achievement(user_id: int, achievement_id: str) -> bool:
+    """
+    Unlock an achievement if it is still locked.
+    Returns True only for a newly unlocked achievement.
+    """
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT 1
+        FROM achievements
+        WHERE user_id = ? AND achievement_id = ?
+    """, (user_id, achievement_id))
+    exists = cur.fetchone()
+    if exists:
+        conn.close()
+        return False
+
+    cur.execute("""
+        INSERT INTO achievements (user_id, achievement_id, unlocked_at)
+        VALUES (?, ?, ?)
+    """, (user_id, achievement_id, datetime.now().isoformat()))
+    conn.commit()
+    conn.close()
+    return True
+
+
+def get_user_rank_percentile(user_id: int) -> int:
+    """
+    Compare the user's 30-day ROI with other active users.
+    Returns the percentage of users with lower ROI.
+    """
+    from bets_db import get_full_stats_between
+
+    end_dt = datetime.now()
+    start_dt = end_dt - timedelta(days=30)
+
+    my_stats = get_full_stats_between(user_id, start_dt, end_dt)
+    my_roi = float(my_stats.get("roi", 0) or 0)
+
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT user_id
+        FROM users
+        WHERE is_active = 1 AND user_id != ?
+    """, (user_id,))
+    other_users = cur.fetchall()
+    conn.close()
+
+    if not other_users:
+        return 50
+
+    lower_count = 0
+    total_count = 0
+    for row in other_users:
+        try:
+            stats = get_full_stats_between(int(row["user_id"]), start_dt, end_dt)
+            if int(stats.get("total_bets") or 0) > 0:
+                total_count += 1
+                if float(stats.get("roi", 0) or 0) < my_roi:
+                    lower_count += 1
+        except Exception:
+            pass
+
+    if total_count == 0:
+        return 50
+    return round((lower_count / total_count) * 100)
+
+
+def check_and_unlock_achievements(user_id: int) -> list[str]:
+    """
+    Check achievement conditions and unlock any new achievements.
+    Returns a list of newly unlocked achievement ids.
+    """
+    from bets_db import get_full_stats_between
+
+    newly_unlocked: list[str] = []
+    already_unlocked = set(get_user_achievements(user_id))
+
+    end_dt = datetime.now()
+    start_dt = end_dt - timedelta(days=365)
+    stats = get_full_stats_between(user_id, start_dt, end_dt, include_trial=True)
+    streak_data = get_streak(user_id)
+
+    checks = [
+        ("first_bet", int(stats.get("total_bets") or 0) >= 1),
+        ("bets_10", int(stats.get("total_bets") or 0) >= 10),
+        ("bets_50", int(stats.get("total_bets") or 0) >= 50),
+        ("bets_100", int(stats.get("total_bets") or 0) >= 100),
+        ("win_streak_5", int(stats.get("best_win_streak") or 0) >= 5),
+        ("win_streak_10", int(stats.get("best_win_streak") or 0) >= 10),
+        ("roi_positive", float(stats.get("roi", 0) or 0) > 0 and int(stats.get("settled_bets") or 0) >= 10),
+        ("roi_10", float(stats.get("roi", 0) or 0) >= 10 and int(stats.get("settled_bets") or 0) >= 20),
+        ("discipline_7", int(streak_data.get("best_streak") or 0) >= 7),
+        ("discipline_30", int(streak_data.get("best_streak") or 0) >= 30),
+    ]
+
+    for achievement_id, condition in checks:
+        if achievement_id in already_unlocked or not condition:
+            continue
+
+        is_new = unlock_achievement(user_id, achievement_id)
+        if not is_new:
+            continue
+
+        xp_reward = int(ALL_ACHIEVEMENTS.get(achievement_id, {}).get("xp_reward") or 0)
+        if xp_reward > 0:
+            add_xp(user_id, xp_reward)
+        newly_unlocked.append(achievement_id)
+
+    return newly_unlocked
 
 
 def update_streak(user_id: int, discipline_ok: bool) -> int:
@@ -1307,6 +1638,8 @@ def get_trial_stats(trial_session_id: int) -> dict:
 def _delete_user_records(cur, user_id: int):
     cur.execute("DELETE FROM payments WHERE user_id = ?", (user_id,))
     cur.execute("DELETE FROM star_payments WHERE user_id = ?", (user_id,))
+    cur.execute("DELETE FROM achievements WHERE user_id = ?", (user_id,))
+    cur.execute("DELETE FROM xp_levels WHERE user_id = ?", (user_id,))
     cur.execute("DELETE FROM photo_logs WHERE user_id = ?", (user_id,))
     cur.execute("DELETE FROM bets WHERE user_id = ?", (user_id,))
     cur.execute("DELETE FROM discipline_streak WHERE user_id = ?", (user_id,))

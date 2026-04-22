@@ -7,6 +7,8 @@ from telegram.ext import ContextTypes
 from bets_db import create_bet, get_basic_stats_between, get_tilt_signal_context, update_bet_emotion
 from db import (
     TRIAL_SCREEN_LIMIT,
+    XP_TABLE,
+    add_xp,
     get_user,
     user_has_access,
     get_user_daily_limit,
@@ -23,6 +25,13 @@ from keyboards import access_keyboard, welcome_offer_keyboard
 from languages import get_text
 from services.ai_service import analyze_basic_bet_screenshot
 from handlers.tools import handle_ai_analysis_input
+
+
+LEVEL_NAMES = {
+    "ua": {1: "Новачок", 2: "Аналітик", 3: "Стратег", 4: "Профі", 5: "Шарп"},
+    "ru": {1: "Новичок", 2: "Аналитик", 3: "Стратег", 4: "Профи", 5: "Шарп"},
+    "en": {1: "Beginner", 2: "Analyst", 3: "Strategist", 4: "Pro", 5: "Sharp"},
+}
 
 
 def _normalize_lang(lang: str) -> str:
@@ -512,6 +521,7 @@ async def emotion_callback_handler(update: Update, context: ContextTypes.DEFAULT
 
     emotion = query.data.removeprefix("emotion_")
     update_bet_emotion(bet_id, emotion)
+    add_xp(user_id, XP_TABLE["fill_emotion"])
 
     context.user_data.pop("last_bet_id", None)
     context.user_data.pop("last_bet_result", None)
@@ -711,6 +721,29 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             bet_market=result.get("bet_market"),
             is_trial=not has_access,
         )
+
+        xp_result = add_xp(user_id, XP_TABLE["add_bet"])
+        level_up_result = xp_result
+        if result["bet_result"] == "win":
+            bonus_xp_result = add_xp(user_id, XP_TABLE["win_bet"])
+            if bonus_xp_result["leveled_up"]:
+                level_up_result = bonus_xp_result
+
+        if level_up_result["leveled_up"]:
+            level_name = LEVEL_NAMES.get(lang, LEVEL_NAMES["en"]).get(level_up_result["new_level"], "")
+            await update.message.reply_text(
+                f"🎉 Новий рівень!\n\n"
+                f"Ти досяг рівня {level_up_result['new_level']} - {level_name}\n\n"
+                f"Продовжуй - наступний рівень відкриє нові можливості!"
+                if lang == "ua" else
+                f"🎉 Новый уровень!\n\n"
+                f"Ты достиг уровня {level_up_result['new_level']} - {level_name}\n\n"
+                f"Продолжай - следующий уровень откроет новые возможности!"
+                if lang == "ru" else
+                f"🎉 New level!\n\n"
+                f"You reached level {level_up_result['new_level']} - {level_name}\n\n"
+                f"Keep going - the next level unlocks new possibilities!"
+            )
 
         if has_access:
             signal_context = get_tilt_signal_context(user_id)

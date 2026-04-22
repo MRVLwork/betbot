@@ -77,6 +77,7 @@ from handlers.admin import (
 from handlers.bets import process_bet_photo, emotion_callback_handler, tilt_warning_callback_handler
 from handlers.coach import coach_end_callback, handle_coach_message, open_coach
 from handlers.discipline import show_streak
+from handlers.profile import profile_callback_handler, show_profile
 from handlers.tools import open_tools_menu, tools_callback_handler, handle_ai_analysis_input
 from handlers.weekly_wrap import send_weekly_wrap, send_weekly_wrap_broadcast
 from states import (
@@ -588,7 +589,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
 
     ai_menu_labels = {
-        "\U0001F4E4 \u041d\u0430\u0434\u0456\u0441\u043b\u0430\u0442\u0438 \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442", "\U0001F4E4 \u041e\u0442\u043f\u0440\u0430\u0432\u0438\u0442\u044c \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442", "\U0001F4E4 Send result",
+        "\U0001F464 \u041f\u0440\u043e\u0444\u0456\u043b\u044c", "\U0001F464 \u041f\u0440\u043e\u0444\u0438\u043b\u044c", "\U0001F464 Profile",
         "\U0001F4CA \u041c\u043e\u044f \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430", "\U0001F4CA My stats",
         "\U0001F4C8 \u041f\u043e\u0432\u043d\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430", "\U0001F4C8 \u041f\u043e\u043b\u043d\u0430\u044f \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430", "\U0001F4C8 Full stats",
         "\U0001F4CA Wrapped",
@@ -609,22 +610,8 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await handle_coach_message(update, context)
         return ConversationHandler.END
 
-    if text in ("\U0001F4E4 \u041d\u0430\u0434\u0456\u0441\u043b\u0430\u0442\u0438 \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442", "\U0001F4E4 \u041e\u0442\u043f\u0440\u0430\u0432\u0438\u0442\u044c \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442", "\U0001F4E4 Send result"):
-        if not user_has_access(user_id):
-            await update.message.reply_text(get_text(lang, "activate_access_first"))
-            return ConversationHandler.END
-
-        daily_limit = get_user_daily_limit(user_id)
-        used_today = count_user_photos_today(user_id)
-        remaining = get_user_remaining_photos_today(user_id)
-
-        await update.message.reply_text(
-            get_text(lang, "send_screen_with_limit").format(
-                limit=daily_limit,
-                used=used_today,
-                remaining=remaining,
-            )
-        )
+    if text in ("\U0001F464 \u041f\u0440\u043e\u0444\u0456\u043b\u044c", "\U0001F464 \u041f\u0440\u043e\u0444\u0438\u043b\u044c", "\U0001F464 Profile"):
+        await show_profile(update, context)
     elif text in ("\U0001F4CA \u041c\u043e\u044f \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430", "\U0001F4CA My stats"):
         if not user_has_access(user_id) and not _is_trial_user(user_id):
             await update.message.reply_text(get_text(lang, "no_active_access_start"))
@@ -746,6 +733,7 @@ def main():
     app.add_handler(CallbackQueryHandler(full_stats_callback_handler, pattern="^fullstats_"))
     app.add_handler(CallbackQueryHandler(analytics_callback_handler, pattern="^analytics_"))
     app.add_handler(CallbackQueryHandler(language_handler, pattern="^lang_"))
+    app.add_handler(CallbackQueryHandler(profile_callback_handler, pattern="^profile_"))
     app.add_handler(CallbackQueryHandler(coach_end_callback, pattern="^coach_end$"))
     app.add_handler(CallbackQueryHandler(tilt_warning_callback_handler, pattern="^tilt_warning_"))
     app.add_handler(CallbackQueryHandler(emotion_callback_handler, pattern="^emotion_"))

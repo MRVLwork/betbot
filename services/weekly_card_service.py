@@ -169,3 +169,60 @@ def generate_weekly_card(user_id: int, stats: dict, username: str, rank_percenti
     image.save(buffer, format="PNG")
     buffer.seek(0)
     return buffer.getvalue()
+
+
+def generate_profile_card(
+    user_id: int,
+    stats: dict,
+    username: str,
+    rank_percentile: int,
+    xp_data: dict,
+) -> bytes:
+    """
+    Generate a 1080x1080 shareable profile card.
+    """
+    image = Image.new("RGB", (1080, 1080), "#0E1A2E")
+    draw = ImageDraw.Draw(image)
+
+    for y in range(0, 1080, 60):
+        draw.line((0, y, 1080, y), fill="#0F1E30", width=1)
+
+    title_font = _load_font(72, bold=True)
+    big_font = _load_font(120, bold=True)
+    medium_font = _load_font(52)
+    small_font = _load_font(40)
+
+    safe_username = username or f"user_{user_id}"
+    roi = round(float(stats.get("roi", 0) or 0), 2)
+    roi_str = f"+{roi}%" if roi > 0 else f"{roi}%"
+    roi_color = "#00E676" if roi > 0 else "#FF5252" if roi < 0 else "#FFFFFF"
+    winrate = round(float(stats.get("win_rate", 0) or 0), 2)
+    total_bets = int(stats.get("total_bets") or 0)
+    level = int(xp_data.get("current_level") or 1)
+    top_percent = max(1, 100 - int(rank_percentile or 0))
+
+    draw.text((80, 80), "BET TRACKER", font=title_font, fill="#00E676")
+    draw.text((80, 170), safe_username, font=medium_font, fill="#8899BB")
+
+    draw.text((80, 280), roi_str, font=big_font, fill=roi_color)
+    draw.text((80, 420), "ROI за 30 днів", font=small_font, fill="#8899BB")
+
+    grid_items = [
+        (f"{winrate}%", "Winrate"),
+        (str(total_bets), "Ставок"),
+        (f"Рівень {level}", "XP"),
+        (f"Топ {top_percent}%", "Рейтинг"),
+    ]
+    positions = [(80, 520), (560, 520), (80, 720), (560, 720)]
+
+    for (value, label), (x, y) in zip(grid_items, positions):
+        draw.rectangle((x, y, x + 440, y + 160), fill="#152540", outline="#1E3A5F", width=2)
+        draw.text((x + 20, y + 20), value, font=medium_font, fill="#FFFFFF")
+        draw.text((x + 20, y + 95), label, font=small_font, fill="#8899BB")
+
+    draw.text((80, 1000), "t.me/bet_tracker_stats_bot", font=small_font, fill="#2A4A6B")
+
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    buffer.seek(0)
+    return buffer.getvalue()

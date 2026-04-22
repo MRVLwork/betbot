@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from telegram import ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
 
 
 def welcome_offer_keyboard(lang: str):
@@ -30,7 +30,7 @@ def main_menu_keyboard(lang: str, plan: str = "basic"):
 
     if lang == "ru":
         keyboard = [
-            ["📤 Отправить результат"],
+            ["👤 Профиль"],
             ["📊 Моя статистика"],
             ["📈 Полная статистика"],
             ["📊 Wrapped"],
@@ -43,7 +43,7 @@ def main_menu_keyboard(lang: str, plan: str = "basic"):
         ]
     elif lang == "en":
         keyboard = [
-            ["📤 Send result"],
+            ["👤 Profile"],
             ["📊 My stats"],
             ["📈 Full stats"],
             ["📊 Wrapped"],
@@ -56,7 +56,7 @@ def main_menu_keyboard(lang: str, plan: str = "basic"):
         ]
     else:
         keyboard = [
-            ["📤 Надіслати результат"],
+            ["👤 Профіль"],
             ["📊 Моя статистика"],
             ["📈 Повна статистика"],
             ["📊 Wrapped"],

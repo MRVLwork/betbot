@@ -30,94 +30,34 @@ def _welcome_text(lang: str, promo_available: bool) -> str:
 
     if lang == "ua":
         return (
-            "🔥 Хочеш перестати зливати на ставках?\n\n"
-            "90% гравців:\n"
-            "❌ ставлять на емоціях\n"
-            "❌ відіграються\n"
-            "❌ зливають банк\n\n"
-            "👇 Проблема не в ставках,\n"
-            "а у відсутності системи\n\n"
-            "📊 Як виглядає результат при правильному підході:\n\n"
-            "+20-30% ROI за 7 днів\n"
-            "70-85% прохід ставок\n\n"
-            "⚡ Це не удача\n"
-            "це поєднання системи + правильно відібраних ставок\n\n"
-            "💡 Що ти отримуєш у боті:\n\n"
-            #"🎯 Ставки з високою ймовірністю (спеціалізований AI шукає ставки із value коефіцієнтом)\n"
-            "📊 Реальну статистику (ROI, winrate твоїх ставок і системи)\n"
-            "🧠 Розуміння, чому ставка має перевагу\n"
-            "📈 Контроль емоцій і ріст банку\n"
-            "📝 Навчання: патерни, аналіз, системи пошуку ставок із value кф., сигнали для входу в лайві...\n\n"
-            "❌ Це не “залізобетон”\n"
-            "❌ І не договірняки\n\n"
-            "✔ Це інструмент, який допомагає бути в плюсі на дистанції\n"
-            "✔ Платформа, з якою ти заробляєш, отримуєш досвід та навички\n\n"
-            "🎯 Ти не просто ставиш\n"
-            "ти починаєш контролювати результат\n\n"
-            "⚠️ Ти вже зробив перший крок\n"
-            "тепер головне — не повернутись до хаосу\n\n"
-            "👇 Спробуй і подивись результат:"
+            "😤 Зливаєш гроші на ставках?\n\n"
+            "Bet Tracker Bot аналізує твої ставки і показує:\n"
+            " Де ти зливаєш найбільше\n"
+            " Коли ставиш на емоціях\n"
+            " Твій реальний ROI і winrate\n\n"
+            "📊 1,847 беттерів вже контролюють свої ставки\n\n"
+            "🎁 Спробуй 7 днів безкоштовно 👇"
         )
 
     if lang == "ru":
         return (
-            "🔥 Хочешь перестать сливать на ставках?\n\n"
-            "90% игроков:\n"
-            "❌ ставят на эмоциях\n"
-            "❌ отыгрываются\n"
-            "❌ сливают банк\n\n"
-            "👇 Проблема не в ставках,\n"
-            "а в отсутствии системы\n\n"
-            "📊 Как выглядит результат при правильном подходе:\n\n"
-            "+20-30% ROI за 7 дней\n"
-            "70-85% проход ставок\n\n"
-            "⚡ Это не удача\n"
-            "это сочетание системы + правильно отобранных ставок\n\n"
-            "💡 Что ты получаешь в боте:\n\n"
-            #"🎯 Ставки с высокой вероятностью (специализированный AI ищет ставки с value коэффициентом)\n"
-            "📊 Реальную статистику (ROI, winrate твоих ставок и системы)\n"
-            "🧠 Понимание, почему ставка имеет преимущество\n"
-            "📈 Контроль эмоций и рост банка\n"
-            "📝 Обучение: паттерны, анализ, системы поиска ставок с value кф., сигналы для входа в лайве...\n\n"
-            "❌ Это не “железобетон”\n"
-            "❌ И не договорняки\n\n"
-            "✔ Это инструмент, который помогает быть в плюсе на дистанции\n"
-            "✔ Платформа, с которой ты зарабатываешь, получаешь опыт и навыки\n\n"
-            "🎯 Ты не просто ставишь\n"
-            "ты начинаешь контролировать результат\n\n"
-            "⚠️ Ты уже сделал первый шаг\n"
-            "теперь главное — не возвращаться к хаосу\n\n"
-            "👇 Попробуй и посмотри результат:"
+            "😤 Сливаешь деньги на ставках?\n\n"
+            "Bet Tracker Bot анализирует твои ставки и показывает:\n"
+            " Где ты теряешь больше всего\n"
+            " Когда ставишь на эмоциях\n"
+            " Твой реальный ROI и winrate\n\n"
+            "📊 1,847 беттеров уже контролируют свои ставки\n\n"
+            "🎁 Попробуй 7 дней бесплатно 👇"
         )
 
     return (
-        "🔥 Want to stop losing on bets?\n\n"
-        "90% of players:\n"
-        "❌ bet emotionally\n"
-        "❌ chase losses\n"
-        "❌ lose their bankroll\n\n"
-        "👇 The problem is not the bets,\n"
-        "but the lack of a system\n\n"
-        "📊 What the result looks like with the right approach:\n\n"
-        "+20-30% ROI in 7 days\n"
-        "85% bet hit rate\n\n"
-        "⚡ This is not luck\n"
-        "it is a combination of system + properly selected bets\n\n"
-        "💡 What you get inside the bot:\n\n"
-        "🎯 High-probability bets (a specialized AI searches for bets with value odds)\n"
-        "📊 Real statistics (ROI, win rate of your bets and the system)\n"
-        "🧠 Understanding why a bet has an edge\n"
-        "📈 Emotional control and bankroll growth\n"
-        "📝 Learning: patterns, analysis, value-bet search systems, live entry signals...\n\n"
-        "❌ This is not a “sure thing”\n"
-        "❌ And not fixed matches\n\n"
-        "✔ This is a tool that helps you stay profitable in the long run\n"
-        "✔ A platform where you earn, gain experience, and build skills\n\n"
-        "🎯 You do not just place bets\n"
-        "you start controlling the result\n\n"
-        "⚠️ You have already taken the first step\n"
-        "now the key is not to go back to chaos\n\n"
-        "👇 Try it and see the result:"
+        "😤 Losing money on bets?\n\n"
+        "Bet Tracker Bot analyzes your bets and shows:\n"
+        " Where you lose the most\n"
+        " When you bet on emotions\n"
+        " Your real ROI and winrate\n\n"
+        "📊 1,847 bettors already track their stats\n\n"
+        "🎁 Try free for 7 days 👇"
     )
 
 
@@ -140,9 +80,9 @@ async def send_standard_start(update: Update, lang: str):
 
     if user_has_access(user.id):
         active_text = {
-            "ua": "✔ Доступ активний.",
-            "ru": "✔ Доступ активен.",
-            "en": "✔ Access is active.",
+            "ua": "вњ” Р”РѕСЃС‚СѓРї Р°РєС‚РёРІРЅРёР№.",
+            "ru": "вњ” Р”РѕСЃС‚СѓРї Р°РєС‚РёРІРµРЅ.",
+            "en": "вњ” Access is active.",
         }[lang]
 
         await update.message.reply_text(
@@ -171,9 +111,9 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     if user_has_access(tg_user.id):
         active_text = {
-            "ua": "✔ Доступ активний.",
-            "ru": "✔ Доступ активен.",
-            "en": "✔ Access is active.",
+            "ua": "вњ” Р”РѕСЃС‚СѓРї Р°РєС‚РёРІРЅРёР№.",
+            "ru": "вњ” Р”РѕСЃС‚СѓРї Р°РєС‚РёРІРµРЅ.",
+            "en": "вњ” Access is active.",
         }[lang]
 
         await query.message.reply_text(
@@ -189,30 +129,18 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
             trial_text = {
                 "ua": (
                     "🚀 Пробний доступ активовано!\n\n"
-                    "⚠️ У тебе є можливість перевірити\n"
-                    "частину функціоналу, як бот вестиме\n"
-                    "твою статистику, надіславши 5 скрінів\n"
-                    "вже зіграних ставок \n"
-                    #"більше про платформу посиланням\n\n"
-                    "👇 Надішли перший скрін"# або @bet_tracker_info_ua"
+                    "У тебе є 7 днів і 5 скрінів на день.\n"
+                    "Надішли перший скрін ставки 👇"
                 ),
                 "ru": (
                     "🚀 Пробный доступ активирован!\n\n"
-                    "⚠️ У тебя есть возможность\n"
-                    "протестировать часть функционала\n"
-                    "и посмотреть, как бот ведёт твою \n"
-                    "статистику, отправив 5 скринов\n"
-                    "уже сыгранных ставок \n"
-                    #"узнать больше о платформе по info ссылке\n\n"
-                    "👇 Отправь первый скрин"# или @bet_tracker_info_r"
+                    "У тебя есть 7 дней и 5 скринов в день.\n"
+                    "Отправь первый скрин ставки 👇"
                 ),
                 "en": (
                     "🚀 Trial access activated!\n\n"
-                    "⚠️ You can test part of the functionality\n"
-                    "and see how the bot tracks your stats by sending 5 screenshots\n"
-                    "of your completed bets or\n"
-                    "learn more about the platform via the info link\n\n"
-                    "👇 Send your first screenshot or @bet_tracker_info"
+                    "You have 7 days and 5 screenshots per day.\n"
+                    "Send your first bet screenshot 👇"
                 ),
             }[lang]
 
@@ -224,9 +152,9 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
             remaining = get_trial_remaining(tg_user.id)
 
             limit_text = {
-                "ua": f"❌ Пробний доступ вже використано. Залишилось: {remaining}",
-                "ru": f"❌ Пробный доступ уже использован. Осталось: {remaining}",
-                "en": f"❌ Trial access has already been used. Remaining: {remaining}",
+                "ua": f"вќЊ РџСЂРѕР±РЅРёР№ РґРѕСЃС‚СѓРї РІР¶Рµ РІРёРєРѕСЂРёСЃС‚Р°РЅРѕ. Р—Р°Р»РёС€РёР»РѕСЃСЊ: {remaining}",
+                "ru": f"вќЊ РџСЂРѕР±РЅС‹Р№ РґРѕСЃС‚СѓРї СѓР¶Рµ РёСЃРїРѕР»СЊР·РѕРІР°РЅ. РћСЃС‚Р°Р»РѕСЃСЊ: {remaining}",
+                "en": f"вќЊ Trial access has already been used. Remaining: {remaining}",
             }[lang]
 
             await query.message.reply_text(limit_text)
@@ -234,28 +162,28 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
     elif query.data == "pay_now":
         buy_text = {
             "ua": (
-                "🚀 Повний доступ дає:\n\n"
-                "📊 Повну статистику\n"
-                "🧠 Аналітику\n"
-                "📈 Контроль ROI\n"
-                #"🎯 Ставки з високою ймовірністю\n\n"
-                "👇 Обери тариф"
+                "рџљЂ РџРѕРІРЅРёР№ РґРѕСЃС‚СѓРї РґР°С”:\n\n"
+                "рџ“Љ РџРѕРІРЅСѓ СЃС‚Р°С‚РёСЃС‚РёРєСѓ\n"
+                "рџ§  РђРЅР°Р»С–С‚РёРєСѓ\n"
+                "рџ“€ РљРѕРЅС‚СЂРѕР»СЊ ROI\n"
+                #"рџЋЇ РЎС‚Р°РІРєРё Р· РІРёСЃРѕРєРѕСЋ Р№РјРѕРІС–СЂРЅС–СЃС‚СЋ\n\n"
+                "рџ‘‡ РћР±РµСЂРё С‚Р°СЂРёС„"
             ),
             "ru": (
-                "🚀 Полный доступ даёт:\n\n"
-                "📊 Полную статистику\n"
-                "🧠 Аналитику\n"
-                "📈 Контроль ROI\n"
-                #"🎯 Ставки с высокой вероятностью\n\n"
-                "👇 Выбери тариф"
+                "рџљЂ РџРѕР»РЅС‹Р№ РґРѕСЃС‚СѓРї РґР°С‘С‚:\n\n"
+                "рџ“Љ РџРѕР»РЅСѓСЋ СЃС‚Р°С‚РёСЃС‚РёРєСѓ\n"
+                "рџ§  РђРЅР°Р»РёС‚РёРєСѓ\n"
+                "рџ“€ РљРѕРЅС‚СЂРѕР»СЊ ROI\n"
+                #"рџЋЇ РЎС‚Р°РІРєРё СЃ РІС‹СЃРѕРєРѕР№ РІРµСЂРѕСЏС‚РЅРѕСЃС‚СЊСЋ\n\n"
+                "рџ‘‡ Р’С‹Р±РµСЂРё С‚Р°СЂРёС„"
             ),
             "en": (
-                "🚀 Full access gives you:\n\n"
-                "📊 Full statistics\n"
-                "🧠 Analytics\n"
-                "📈 ROI control\n"
-                "🎯 High-probability bets\n\n"
-                "👇 Choose a plan"
+                "рџљЂ Full access gives you:\n\n"
+                "рџ“Љ Full statistics\n"
+                "рџ§  Analytics\n"
+                "рџ“€ ROI control\n"
+                "рџЋЇ High-probability bets\n\n"
+                "рџ‘‡ Choose a plan"
             ),
         }[lang]
 
@@ -267,29 +195,29 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
 #def _welcome_text(lang: str, promo_available: bool) -> str:
 #    if lang == "ru":
 #       return (
-#            "Привет 👋\n\n"
-#           "Это Bet Tracker Bot — инструмент для анализа твоих ставок 📊\n\n"
-#            "Что ты получишь:\n"
-#            "• Статистику прибыли и убытков 💰\n"
-#           "• ROI и винрейт 📈\n"
-#            "• Средний коэффициент 🎯\n"
-#            "• Аналитику по ставкам\n\n"
-#            "🔥 Уже 1200+ пользователей\n"
-#            "📊 Средний ROI: +11%\n\n"
-#            "Инструкция @bets_academy_platform\n"
-#            "👇 Попробуй сам"
+#            "РџСЂРёРІРµС‚ рџ‘‹\n\n"
+#           "Р­С‚Рѕ Bet Tracker Bot вЂ” РёРЅСЃС‚СЂСѓРјРµРЅС‚ РґР»СЏ Р°РЅР°Р»РёР·Р° С‚РІРѕРёС… СЃС‚Р°РІРѕРє рџ“Љ\n\n"
+#            "Р§С‚Рѕ С‚С‹ РїРѕР»СѓС‡РёС€СЊ:\n"
+#            "вЂў РЎС‚Р°С‚РёСЃС‚РёРєСѓ РїСЂРёР±С‹Р»Рё Рё СѓР±С‹С‚РєРѕРІ рџ’°\n"
+#           "вЂў ROI Рё РІРёРЅСЂРµР№С‚ рџ“€\n"
+#            "вЂў РЎСЂРµРґРЅРёР№ РєРѕСЌС„С„РёС†РёРµРЅС‚ рџЋЇ\n"
+#            "вЂў РђРЅР°Р»РёС‚РёРєСѓ РїРѕ СЃС‚Р°РІРєР°Рј\n\n"
+#            "рџ”Ґ РЈР¶Рµ 1200+ РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№\n"
+#            "рџ“Љ РЎСЂРµРґРЅРёР№ ROI: +11%\n\n"
+#            "РРЅСЃС‚СЂСѓРєС†РёСЏ @bets_academy_platform\n"
+#            "рџ‘‡ РџРѕРїСЂРѕР±СѓР№ СЃР°Рј"
 #        )
 #    else:
 #        return (
-#            "Привіт 👋\n\n"
-#            "Це Bet Tracker Bot — інструмент для аналізу твоїх ставок 📊\n\n"
-#            "Що ти отримаєш:\n"
-#            "• Статистику прибутку та збитків 💰\n"
-#            "• ROI і вінрейт 📈\n"
-#            "• Середній коефіцієнт 🎯\n"
-#            "• Аналітику по ставках\n\n"
-#            "🔥 Вже 1200+ користувачів\n"
-#            "📊 Середній ROI: +11%\n\n"
-#            "Інструкція @bets_academy_platform\n"
-#            "👇 Спробуй сам"
+#            "РџСЂРёРІС–С‚ рџ‘‹\n\n"
+#            "Р¦Рµ Bet Tracker Bot вЂ” С–РЅСЃС‚СЂСѓРјРµРЅС‚ РґР»СЏ Р°РЅР°Р»С–Р·Сѓ С‚РІРѕС—С… СЃС‚Р°РІРѕРє рџ“Љ\n\n"
+#            "Р©Рѕ С‚Рё РѕС‚СЂРёРјР°С”С€:\n"
+#            "вЂў РЎС‚Р°С‚РёСЃС‚РёРєСѓ РїСЂРёР±СѓС‚РєСѓ С‚Р° Р·Р±РёС‚РєС–РІ рџ’°\n"
+#            "вЂў ROI С– РІС–РЅСЂРµР№С‚ рџ“€\n"
+#            "вЂў РЎРµСЂРµРґРЅС–Р№ РєРѕРµС„С–С†С–С”РЅС‚ рџЋЇ\n"
+#            "вЂў РђРЅР°Р»С–С‚РёРєСѓ РїРѕ СЃС‚Р°РІРєР°С…\n\n"
+#            "рџ”Ґ Р’Р¶Рµ 1200+ РєРѕСЂРёСЃС‚СѓРІР°С‡С–РІ\n"
+#            "рџ“Љ РЎРµСЂРµРґРЅС–Р№ ROI: +11%\n\n"
+#            "Р†РЅСЃС‚СЂСѓРєС†С–СЏ @bets_academy_platform\n"
+#            "рџ‘‡ РЎРїСЂРѕР±СѓР№ СЃР°Рј"
 #        )

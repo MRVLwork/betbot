@@ -87,6 +87,7 @@ from handlers.admin import (
     senddaybet,
     sendposthelp,
     sendpost,
+    update_menu_all,
     admin_broadcast_photo_handler,
     admin_basic_bet_day_photo_handler,
     admin_vip_bet_day_photo_handler,
@@ -752,6 +753,7 @@ def main():
     app.add_handler(CommandHandler("senddaybet", senddaybet))
     app.add_handler(CommandHandler("sendposthelp", sendposthelp))
     app.add_handler(CommandHandler("sendpost", sendpost))
+    app.add_handler(CommandHandler("updatemenu", update_menu_all))
 
     promo_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(access_buttons, pattern="^(enter_promo|back_to_access)$")],

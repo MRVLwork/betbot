@@ -14,6 +14,7 @@ from db import (
     get_basic_bet_day_subscribers,
     get_vip_bet_day_subscribers,
 )
+from keyboards import main_menu_keyboard
 from services.promo_service import generate_promo_code
 
 from services.broadcast_service import (
@@ -26,6 +27,38 @@ from services.broadcast_service import (
 
 def is_admin(user_id: int) -> bool:
     return user_id == ADMIN_ID
+
+
+async def update_menu_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Надсилає оновлену клавіатуру всім активним юзерам.
+    Використовувати після деплою з новим меню.
+    """
+    if not is_admin(update.effective_user.id):
+        await update.message.reply_text("⛔ Немає доступу.")
+        return
+
+    users = get_all_users()
+    sent = 0
+    errors = 0
+
+    for user in users:
+        try:
+            lang = (user.get("lang") or "ua").lower()
+            plan = (user.get("plan") or "basic").lower()
+
+            await context.bot.send_message(
+                chat_id=user["user_id"],
+                text="🔄 Бот оновлено! Нові функції вже доступні.",
+                reply_markup=main_menu_keyboard(lang, plan),
+            )
+            sent += 1
+        except Exception:
+            errors += 1
+
+    await update.message.reply_text(
+        f"✅ Оновлено: {sent}\n❌ Помилок: {errors}"
+    )
 
 
 async def addpromo(update: Update, context: ContextTypes.DEFAULT_TYPE):

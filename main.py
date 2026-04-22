@@ -2,8 +2,15 @@
 from datetime import datetime, timedelta
 import asyncio
 import sys
+import io
 import threading
 from zoneinfo import ZoneInfo
+
+# Примусове UTF-8 для stdout
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8')
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiohttp import web

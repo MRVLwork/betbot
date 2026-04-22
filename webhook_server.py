@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from aiohttp import web
 import logging
 

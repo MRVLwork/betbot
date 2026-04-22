@@ -733,12 +733,13 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         total_used = get_trial_used_count(user_id)
+        used_today = count_user_photos_today(user_id)
+        daily_limit = get_user_daily_limit(user_id)
 
         await update.message.reply_text(_trial_bet_result_text(lang, result))
 
         if total_used >= 2:
-            used_today = count_user_photos_today(user_id)
-            remaining_today = get_user_daily_limit(user_id) - used_today
+            remaining_today = daily_limit - used_today
             days_left = get_trial_remaining(user_id)
 
             await update.message.reply_text(
@@ -748,19 +749,17 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if total_used == 3:
             trial_start = get_trial_start(user_id)
             start_dt = trial_start or datetime.now()
-            end_dt = datetime.now()
             stats = get_basic_stats_between(
-                user_id, start_dt, end_dt, include_trial=True
+                user_id, start_dt, datetime.now(), include_trial=True
             )
             await update.message.reply_text(
                 _trial_pitch_after_3(lang, stats)
             )
-        elif total_used >= 5:
+        elif used_today >= daily_limit:
             trial_start = get_trial_start(user_id)
             start_dt = trial_start or datetime.now()
-            end_dt = datetime.now()
             stats = get_basic_stats_between(
-                user_id, start_dt, end_dt, include_trial=True
+                user_id, start_dt, datetime.now(), include_trial=True
             )
             days_left = get_trial_remaining(user_id)
             await update.message.reply_text(
@@ -791,12 +790,13 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         remaining_trial = get_trial_remaining(user_id)
         total_used = get_trial_used_count(user_id)
+        used_today = count_user_photos_today(user_id)
+        daily_limit = get_user_daily_limit(user_id)
 
         await update.message.reply_text(_trial_fail_text(lang, total_used, remaining_trial))
 
         if total_used >= 2:
-            used_today = count_user_photos_today(user_id)
-            remaining_today = get_user_daily_limit(user_id) - used_today
+            remaining_today = daily_limit - used_today
             days_left = get_trial_remaining(user_id)
 
             await update.message.reply_text(
@@ -806,19 +806,17 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if total_used == 3:
             trial_start = get_trial_start(user_id)
             start_dt = trial_start or datetime.now()
-            end_dt = datetime.now()
             stats = get_basic_stats_between(
-                user_id, start_dt, end_dt, include_trial=True
+                user_id, start_dt, datetime.now(), include_trial=True
             )
             await update.message.reply_text(
                 _trial_pitch_after_3(lang, stats)
             )
-        elif total_used >= 5:
+        elif used_today >= daily_limit:
             trial_start = get_trial_start(user_id)
             start_dt = trial_start or datetime.now()
-            end_dt = datetime.now()
             stats = get_basic_stats_between(
-                user_id, start_dt, end_dt, include_trial=True
+                user_id, start_dt, datetime.now(), include_trial=True
             )
             days_left = get_trial_remaining(user_id)
             await update.message.reply_text(

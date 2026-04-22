@@ -80,9 +80,9 @@ async def send_standard_start(update: Update, lang: str):
 
     if user_has_access(user.id):
         active_text = {
-            "ua": "вњ” Р”РѕСЃС‚СѓРї Р°РєС‚РёРІРЅРёР№.",
-            "ru": "вњ” Р”РѕСЃС‚СѓРї Р°РєС‚РёРІРµРЅ.",
-            "en": "вњ” Access is active.",
+            "ua": "✔ Доступ активний.",
+            "ru": "✔ Доступ активен.",
+            "en": "✔ Access is active.",
         }[lang]
 
         await update.message.reply_text(
@@ -111,9 +111,9 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     if user_has_access(tg_user.id):
         active_text = {
-            "ua": "вњ” Р”РѕСЃС‚СѓРї Р°РєС‚РёРІРЅРёР№.",
-            "ru": "вњ” Р”РѕСЃС‚СѓРї Р°РєС‚РёРІРµРЅ.",
-            "en": "вњ” Access is active.",
+            "ua": "✔ Доступ активний.",
+            "ru": "✔ Доступ активен.",
+            "en": "✔ Access is active.",
         }[lang]
 
         await query.message.reply_text(
@@ -152,9 +152,9 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
             remaining = get_trial_remaining(tg_user.id)
 
             limit_text = {
-                "ua": f"вќЊ РџСЂРѕР±РЅРёР№ РґРѕСЃС‚СѓРї РІР¶Рµ РІРёРєРѕСЂРёСЃС‚Р°РЅРѕ. Р—Р°Р»РёС€РёР»РѕСЃСЊ: {remaining}",
-                "ru": f"вќЊ РџСЂРѕР±РЅС‹Р№ РґРѕСЃС‚СѓРї СѓР¶Рµ РёСЃРїРѕР»СЊР·РѕРІР°РЅ. РћСЃС‚Р°Р»РѕСЃСЊ: {remaining}",
-                "en": f"вќЊ Trial access has already been used. Remaining: {remaining}",
+                "ua": f"❌ Пробний доступ вже використано. Залишилось: {remaining}",
+                "ru": f"❌ Пробный доступ уже использован. Осталось: {remaining}",
+                "en": f"❌ Trial access has already been used. Remaining: {remaining}",
             }[lang]
 
             await query.message.reply_text(limit_text)
@@ -162,28 +162,37 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
     elif query.data == "pay_now":
         buy_text = {
             "ua": (
-                "рџљЂ РџРѕРІРЅРёР№ РґРѕСЃС‚СѓРї РґР°С”:\n\n"
-                "рџ“Љ РџРѕРІРЅСѓ СЃС‚Р°С‚РёСЃС‚РёРєСѓ\n"
-                "рџ§  РђРЅР°Р»С–С‚РёРєСѓ\n"
-                "рџ“€ РљРѕРЅС‚СЂРѕР»СЊ ROI\n"
-                #"рџЋЇ РЎС‚Р°РІРєРё Р· РІРёСЃРѕРєРѕСЋ Р№РјРѕРІС–СЂРЅС–СЃС‚СЋ\n\n"
-                "рџ‘‡ РћР±РµСЂРё С‚Р°СЂРёС„"
+                "💳 Обери тариф:\n\n"
+                "🔹 Basic 1 місяць  $5\n"
+                " 15 скрінів на день\n"
+                " Повна статистика\n"
+                " Аналітика\n\n"
+                " VIP 1 місяць  $19.99\n"
+                " 30 скрінів на день\n"
+                " AI Тренер\n"
+                " Всі функції без обмежень"
             ),
             "ru": (
-                "рџљЂ РџРѕР»РЅС‹Р№ РґРѕСЃС‚СѓРї РґР°С‘С‚:\n\n"
-                "рџ“Љ РџРѕР»РЅСѓСЋ СЃС‚Р°С‚РёСЃС‚РёРєСѓ\n"
-                "рџ§  РђРЅР°Р»РёС‚РёРєСѓ\n"
-                "рџ“€ РљРѕРЅС‚СЂРѕР»СЊ ROI\n"
-                #"рџЋЇ РЎС‚Р°РІРєРё СЃ РІС‹СЃРѕРєРѕР№ РІРµСЂРѕСЏС‚РЅРѕСЃС‚СЊСЋ\n\n"
-                "рџ‘‡ Р’С‹Р±РµСЂРё С‚Р°СЂРёС„"
+                "💳 Выбери тариф:\n\n"
+                "🔹 Basic 1 месяц  $5\n"
+                " 15 скринов в день\n"
+                " Полная статистика\n"
+                " Аналитика\n\n"
+                " VIP 1 месяц  $19.99\n"
+                " 30 скринов в день\n"
+                " AI Тренер\n"
+                " Все функции без ограничений"
             ),
             "en": (
-                "рџљЂ Full access gives you:\n\n"
-                "рџ“Љ Full statistics\n"
-                "рџ§  Analytics\n"
-                "рџ“€ ROI control\n"
-                "рџЋЇ High-probability bets\n\n"
-                "рџ‘‡ Choose a plan"
+                "💳 Choose your plan:\n\n"
+                "🔹 Basic 1 month  $5\n"
+                " 15 screenshots per day\n"
+                " Full statistics\n"
+                " Analytics\n\n"
+                " VIP 1 month  $19.99\n"
+                " 30 screenshots per day\n"
+                " AI Coach\n"
+                " All features unlimited"
             ),
         }[lang]
 
@@ -192,32 +201,33 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
             reply_markup=access_keyboard(lang)
         )
 
+
 #def _welcome_text(lang: str, promo_available: bool) -> str:
 #    if lang == "ru":
 #       return (
-#            "РџСЂРёРІРµС‚ рџ‘‹\n\n"
-#           "Р­С‚Рѕ Bet Tracker Bot вЂ” РёРЅСЃС‚СЂСѓРјРµРЅС‚ РґР»СЏ Р°РЅР°Р»РёР·Р° С‚РІРѕРёС… СЃС‚Р°РІРѕРє рџ“Љ\n\n"
-#            "Р§С‚Рѕ С‚С‹ РїРѕР»СѓС‡РёС€СЊ:\n"
-#            "вЂў РЎС‚Р°С‚РёСЃС‚РёРєСѓ РїСЂРёР±С‹Р»Рё Рё СѓР±С‹С‚РєРѕРІ рџ’°\n"
-#           "вЂў ROI Рё РІРёРЅСЂРµР№С‚ рџ“€\n"
-#            "вЂў РЎСЂРµРґРЅРёР№ РєРѕСЌС„С„РёС†РёРµРЅС‚ рџЋЇ\n"
-#            "вЂў РђРЅР°Р»РёС‚РёРєСѓ РїРѕ СЃС‚Р°РІРєР°Рј\n\n"
-#            "рџ”Ґ РЈР¶Рµ 1200+ РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№\n"
-#            "рџ“Љ РЎСЂРµРґРЅРёР№ ROI: +11%\n\n"
-#            "РРЅСЃС‚СЂСѓРєС†РёСЏ @bets_academy_platform\n"
-#            "рџ‘‡ РџРѕРїСЂРѕР±СѓР№ СЃР°Рј"
+#            "Привет 👋\n\n"
+#           "Это Bet Tracker Bot — инструмент для анализа твоих ставок 📊\n\n"
+#            "Что ты получишь:\n"
+#            "• Статистику прибыли и убытков 💰\n"
+#           "• ROI и винрейт 📈\n"
+#            "• Средний коэффициент 🎯\n"
+#            "• Аналитику по ставкам\n\n"
+#            "🔥 Уже 1200+ пользователей\n"
+#            "📊 Средний ROI: +11%\n\n"
+#            "Инструкция @bets_academy_platform\n"
+#            "👇 Попробуй сам"
 #        )
 #    else:
 #        return (
-#            "РџСЂРёРІС–С‚ рџ‘‹\n\n"
-#            "Р¦Рµ Bet Tracker Bot вЂ” С–РЅСЃС‚СЂСѓРјРµРЅС‚ РґР»СЏ Р°РЅР°Р»С–Р·Сѓ С‚РІРѕС—С… СЃС‚Р°РІРѕРє рџ“Љ\n\n"
-#            "Р©Рѕ С‚Рё РѕС‚СЂРёРјР°С”С€:\n"
-#            "вЂў РЎС‚Р°С‚РёСЃС‚РёРєСѓ РїСЂРёР±СѓС‚РєСѓ С‚Р° Р·Р±РёС‚РєС–РІ рџ’°\n"
-#            "вЂў ROI С– РІС–РЅСЂРµР№С‚ рџ“€\n"
-#            "вЂў РЎРµСЂРµРґРЅС–Р№ РєРѕРµС„С–С†С–С”РЅС‚ рџЋЇ\n"
-#            "вЂў РђРЅР°Р»С–С‚РёРєСѓ РїРѕ СЃС‚Р°РІРєР°С…\n\n"
-#            "рџ”Ґ Р’Р¶Рµ 1200+ РєРѕСЂРёСЃС‚СѓРІР°С‡С–РІ\n"
-#            "рџ“Љ РЎРµСЂРµРґРЅС–Р№ ROI: +11%\n\n"
-#            "Р†РЅСЃС‚СЂСѓРєС†С–СЏ @bets_academy_platform\n"
-#            "рџ‘‡ РЎРїСЂРѕР±СѓР№ СЃР°Рј"
+#            "Привіт 👋\n\n"
+#            "Це Bet Tracker Bot — інструмент для аналізу твоїх ставок 📊\n\n"
+#            "Що ти отримаєш:\n"
+#            "• Статистику прибутку та збитків 💰\n"
+#            "• ROI і вінрейт 📈\n"
+#            "• Середній коефіцієнт 🎯\n"
+#            "• Аналітику по ставках\n\n"
+#            "🔥 Вже 1200+ користувачів\n"
+#            "📊 Середній ROI: +11%\n\n"
+#            "Інструкція @bets_academy_platform\n"
+#            "👇 Спробуй сам"
 #        )

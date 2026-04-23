@@ -94,43 +94,162 @@ def _invalid_choice_text(lang: str) -> str:
     return "Обері варіант з кнопок."
 
 
-def _personalized_text(lang: str, experience: str, goal: str) -> str:
-    experience_value = experience.lower()
-    goal_value = goal.lower()
+def _clean_option_label(value: str) -> str:
+    parts = (value or "").split(" ", 1)
+    if len(parts) == 2 and any(ord(char) > 127 for char in parts[0]):
+        return parts[1].strip()
+    return (value or "").strip()
 
-    is_beginner = "новач" in experience_value or "beginner" in experience_value or "нович" in experience_value
-    is_advanced_earn = (
-        ("3+" in experience_value)
-        and ("зароб" in goal_value or "earn" in goal_value or "зарабат" in goal_value)
-    )
-    is_stop_losing = "не злив" in goal_value or "stop losing" in goal_value or "не сливать" in goal_value
 
-    if is_advanced_earn:
+def _experience_phrase(lang: str, experience: str) -> str:
+    experience_value = (experience or "").lower()
+
+    if "3+" in experience_value:
         if lang == "ru":
-            return "🔥 Отлично! Опытные беттеры с системным подходом показывают ROI +8-15%.\nТы на правильном пути."
+            return "У тебя уже есть опыт, значит сильные и слабые паттерны будут видны быстрее."
         if lang == "en":
-            return "🔥 Excellent! Experienced bettors with a systematic approach often show ROI of +8-15%.\nYou are on the right track."
-        return "🔥 Відмінно! Досвідчені беттери з системним підходом показують ROI +8-15%.\nТи на правильному шляху."
+            return "You already have experience, so strong and weak patterns will show up faster."
+        return "У тебе вже є досвід, тож сильні й слабкі патерни буде видно швидше."
+
+    if "1-2" in experience_value:
+        if lang == "ru":
+            return "Опыт уже есть, теперь важно убрать хаос и опереться на цифры."
+        if lang == "en":
+            return "You already have some experience; now the key is replacing chaos with numbers."
+        return "Досвід уже є, тепер головне прибрати хаос і спертися на цифри."
+
+    if lang == "ru":
+        return "Даже если опыта мало, бот быстро покажет, что реально работает."
+    if lang == "en":
+        return "Even with limited experience, the bot will quickly show what actually works."
+    return "Навіть якщо досвіду мало, бот швидко покаже, що реально працює."
+
+
+def _personalized_text(lang: str, sport: str, experience: str, goal: str) -> str:
+    sport_value = _clean_option_label(sport)
+    goal_value = goal.lower()
+    experience_line = _experience_phrase(lang, experience)
+
+    is_earn = "зароб" in goal_value or "earn" in goal_value or "зарабат" in goal_value
+    is_stop_losing = "не злив" in goal_value or "stop losing" in goal_value or "не слив" in goal_value or "не сливать" in goal_value
+    is_analyze = "аналіз" in goal_value or "analyz" in goal_value or "анализ" in goal_value
+
+    if is_earn:
+        if lang == "ru":
+            return (
+                f"🔥 Профиль настроен!\n\n"
+                f"Ты ставишь на {sport_value} с целью зарабатывать.\n\n"
+                f"{experience_line}\n\n"
+                f"Бот покажет, где твое реальное преимущество\n"
+                f"и когда ты ставишь хуже, чем думаешь.\n\n"
+                f"Пришли первый скрин ставки\n"
+                f"увидишь реальную картину за 30 секунд 👇"
+            )
+        if lang == "en":
+            return (
+                f"🔥 Profile is set!\n\n"
+                f"You bet on {sport_value} with the goal of earning.\n\n"
+                f"{experience_line}\n\n"
+                f"The bot will show where your real edge is\n"
+                f"and when you're betting worse than you think.\n\n"
+                f"Send your first bet screenshot\n"
+                f"and see the real picture in 30 seconds 👇"
+            )
+        return (
+            f"🔥 Профіль налаштовано!\n\n"
+            f"Ти ставиш на {sport_value} з ціллю заробляти.\n\n"
+            f"{experience_line}\n\n"
+            f"Бот покаже де твоя реальна перевага\n"
+            f"і коли ти ставиш гірше ніж думаєш.\n\n"
+            f"Надішли перший скрін ставки\n"
+            f"побачиш реальну картину за 30 секунд 👇"
+        )
 
     if is_stop_losing:
         if lang == "ru":
-            return "🛡 Правильный приоритет! 73% убытков беттеров  это эмоциональные решения.\nЭтот бот покажет, где ты теряешь."
+            return (
+                f"🛡 Профиль настроен!\n\n"
+                f"Ты ставишь на {sport_value} и хочешь не сливать.\n\n"
+                f"{experience_line}\n\n"
+                f"Правильная цель  не сливать.\n"
+                f"73% убытков беттеров  это эмоциональные решения.\n\n"
+                f"Бот покажет точно когда и сколько ты\n"
+                f"теряешь из-за эмоций.\n\n"
+                f"Пришли первый скрин ставки 👇"
+            )
         if lang == "en":
-            return "🛡 The right priority! 73% of bettor losses come from emotional decisions.\nThis bot will show where you are losing."
-        return "🛡 Правильний пріоритет! 73% збитків беттерів  емоційні рішення.\nЦей бот покаже де ти втрачаєш."
+            return (
+                f"🛡 Profile is set!\n\n"
+                f"You bet on {sport_value} and want to stop losing.\n\n"
+                f"{experience_line}\n\n"
+                f"The right goal is to stop losing.\n"
+                f"73% of bettor losses come from emotional decisions.\n\n"
+                f"The bot will show exactly when and how much\n"
+                f"you lose because of emotions.\n\n"
+                f"Send your first bet screenshot 👇"
+            )
+        return (
+            f"🛡 Профіль налаштовано!\n\n"
+            f"Ти ставиш на {sport_value} і хочеш не зливати.\n\n"
+            f"{experience_line}\n\n"
+            f"Правильна ціль  не зливати.\n"
+            f"73% збитків беттерів  це емоційні рішення.\n\n"
+            f"Бот покаже точно коли і скільки ти\n"
+            f"втрачаєш через емоції.\n\n"
+            f"Надішли перший скрін ставки 👇"
+        )
 
-    if is_beginner:
+    if is_analyze:
         if lang == "ru":
-            return "👋 Добро пожаловать! Начнем с основ  просто присылай скрины своих ставок."
+            return (
+                f"📊 Профиль настроен!\n\n"
+                f"Ты ставишь на {sport_value} и хочешь анализировать системно.\n\n"
+                f"{experience_line}\n\n"
+                f"Системный подход  это правильно.\n"
+                f"Бот даст полную аналитику твоих ставок.\n\n"
+                f"Пришли первый скрин ставки 👇"
+            )
         if lang == "en":
-            return "👋 Welcome! Let's start with the basics  just send screenshots of your bets."
-        return "👋 Добро пожаловать! Почнемо з основ  просто надсилай скріни своїх ставок."
+            return (
+                f"📊 Profile is set!\n\n"
+                f"You bet on {sport_value} and want a more analytical approach.\n\n"
+                f"{experience_line}\n\n"
+                f"A systematic approach is the right move.\n"
+                f"The bot will give you full analytics for your bets.\n\n"
+                f"Send your first bet screenshot 👇"
+            )
+        return (
+            f"📊 Профіль налаштовано!\n\n"
+            f"Ти ставиш на {sport_value} і хочеш аналізувати системно.\n\n"
+            f"{experience_line}\n\n"
+            f"Системний підхід  це правильно.\n"
+            f"Бот дасть повну аналітику твоїх ставок.\n\n"
+            f"Надішли перший скрін ставки 👇"
+        )
 
     if lang == "ru":
-        return "🎯 Отлично, профиль настроен. Теперь бот будет полезнее именно под твой стиль."
+        return (
+            f"📊 Профиль настроен!\n\n"
+            f"Ты ставишь на {sport_value}.\n\n"
+            f"{experience_line}\n\n"
+            f"Бот даст полную картину по твоим ставкам.\n\n"
+            f"Пришли первый скрин ставки 👇"
+        )
     if lang == "en":
-        return "🎯 Great, your profile is set. The bot will now fit your style better."
-    return "🎯 Чудово, профіль налаштовано. Тепер бот буде кориснішим саме під твій стиль."
+        return (
+            f"📊 Profile is set!\n\n"
+            f"You bet on {sport_value}.\n\n"
+            f"{experience_line}\n\n"
+            f"The bot will give you the full picture of your bets.\n\n"
+            f"Send your first bet screenshot 👇"
+        )
+    return (
+        f"📊 Профіль налаштовано!\n\n"
+        f"Ти ставиш на {sport_value}.\n\n"
+        f"{experience_line}\n\n"
+        f"Бот дасть повну картину по твоїх ставках.\n\n"
+        f"Надішли перший скрін ставки 👇"
+    )
 
 
 async def _send_standard_welcome(update: Update, lang: str):
@@ -231,8 +350,7 @@ async def onboarding_goal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     complete_onboarding(user_id)
 
     await update.message.reply_text(
-        _personalized_text(lang, experience, main_goal),
-        reply_markup=ReplyKeyboardRemove(),
+        _personalized_text(lang, sport, experience, main_goal),
+        reply_markup=welcome_offer_keyboard(lang),
     )
-    await _send_standard_welcome(update, lang)
     return ConversationHandler.END

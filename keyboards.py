@@ -23,51 +23,141 @@ def welcome_offer_keyboard(lang: str):
 
 def main_menu_keyboard(lang: str, plan: str = "basic"):
     is_vip = (plan or "basic").lower() == "vip"
-    if is_vip:
-        coach_label = "🧠 AI Тренер" if lang in ("ua", "ru") else "🧠 AI Coach"
-    else:
-        coach_label = "🔒 AI Тренер VIP" if lang in ("ua", "ru") else "🔒 AI Coach VIP"
 
     if lang == "ru":
         keyboard = [
             ["👤 Профиль"],
-            ["📊 Моя статистика"],
-            ["📈 Полная статистика"],
-            ["📊 Wrapped"],
-            [coach_label],
-            ["🧠 Аналитика"],
-            ["🔥 Streak"],
-            ["🛠 Все инструменты"],
+            ["📊 Статистика", "🧠 Аналитика"],
+            ["📊 Wrapped", "🔥 Streak"],
             ["💳 Купить доступ"],
-            ["🌐 Язык"],
+            ["🌐 Язык", "🛠 Все инструменты"],
         ]
+        if is_vip:
+            keyboard.insert(3, ["🧠 AI Тренер"])
+        else:
+            keyboard.insert(3, ["🔒 AI Тренер VIP"])
     elif lang == "en":
         keyboard = [
             ["👤 Profile"],
-            ["📊 My stats"],
-            ["📈 Full stats"],
-            ["📊 Wrapped"],
-            [coach_label],
-            ["🧠 Analytics"],
-            ["🔥 Streak"],
-            ["🛠 All tools"],
+            ["📊 Statistics", "🧠 Analytics"],
+            ["📊 Wrapped", "🔥 Streak"],
             ["💳 Buy access"],
-            ["🌐 Language"],
+            ["🌐 Language", "🛠 All tools"],
         ]
+        if is_vip:
+            keyboard.insert(3, ["🧠 AI Coach"])
+        else:
+            keyboard.insert(3, ["🔒 AI Coach VIP"])
     else:
         keyboard = [
             ["👤 Профіль"],
-            ["📊 Моя статистика"],
-            ["📈 Повна статистика"],
-            ["📊 Wrapped"],
-            [coach_label],
-            ["🧠 Аналітика"],
-            ["🔥 Streak"],
-            ["🛠 Усі інструменти"],
+            ["📊 Статистика", "🧠 Аналітика"],
+            ["📊 Wrapped", "🔥 Streak"],
             ["💳 Купити доступ"],
-            ["🌐 Мова"],
+            ["🌐 Мова", "🛠 Усі інструменти"],
         ]
+        if is_vip:
+            keyboard.insert(3, ["🧠 AI Тренер"])
+        else:
+            keyboard.insert(3, ["🔒 AI Тренер VIP"])
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
+
+def stats_submenu_keyboard(lang: str, is_trial: bool = False):
+    """
+    Підменю після натискання "Статистика".
+    Для trial  повна статистика із замочком.
+    """
+    if lang == "ru":
+        if is_trial:
+            keyboard = [
+                ["📊 Моя статистика"],
+                ["🔒 Полная статистика  только Basic/VIP"],
+                [" Назад"],
+            ]
+        else:
+            keyboard = [
+                ["📊 Моя статистика"],
+                ["📈 Повна статистика"],
+                [" Назад"],
+            ]
+    elif lang == "en":
+        if is_trial:
+            keyboard = [
+                ["📊 My stats"],
+                ["🔒 Full stats  Basic/VIP only"],
+                [" Back"],
+            ]
+        else:
+            keyboard = [
+                ["📊 My stats"],
+                ["📈 Full stats"],
+                [" Back"],
+            ]
+    else:
+        if is_trial:
+            keyboard = [
+                ["📊 Моя статистика"],
+                ["🔒 Повна статистика  тільки Basic/VIP"],
+                [" Назад"],
+            ]
+        else:
+            keyboard = [
+                ["📊 Моя статистика"],
+                ["📈 Повна статистика"],
+                [" Назад"],
+            ]
+
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
+
+def _stats_trial_upsell_text(lang: str) -> str:
+    """Текст який спонукає trial юзера купити підписку"""
+    if lang == "ru":
+        return (
+            "🔒 Полная статистика доступна в Basic и VIP\n\n"
+            "Что ты увидишь в полной статистике:\n"
+            "📊 Разбивка по типам ставок\n"
+            "📊 Статистика по коэффициентам\n"
+            "📊 Твои слабые места\n"
+            "📊 Сравнение периодов\n"
+            "📈 Профиль беттера\n\n"
+            "💡 Именно здесь большинство беттеров\n"
+            "понимают где они теряют деньги.\n\n"
+            "🔹 Basic  $5/мес\n"
+            " VIP  $19.99/мес\n\n"
+            "👇 Открой полную картину"
+        )
+    elif lang == "en":
+        return (
+            "🔒 Full stats available in Basic and VIP\n\n"
+            "What you'll see in full stats:\n"
+            "📊 Breakdown by bet type\n"
+            "📊 Stats by odds range\n"
+            "📊 Your weak spots\n"
+            "📊 Period comparison\n"
+            "📈 Bettor profile\n\n"
+            "💡 This is where most bettors discover\n"
+            "exactly where they're losing money.\n\n"
+            "🔹 Basic  $5/mo\n"
+            " VIP  $19.99/mo\n\n"
+            "👇 See the full picture"
+        )
+    else:
+        return (
+            "🔒 Повна статистика доступна в Basic і VIP\n\n"
+            "Що ти побачиш у повній статистиці:\n"
+            "📊 Розбивка по типах ставок\n"
+            "📊 Статистика по коефіцієнтах\n"
+            "📊 Твої слабкі місця\n"
+            "📊 Порівняння періодів\n"
+            "📈 Профіль беттера\n\n"
+            "💡 Саме тут більшість беттерів розуміють\n"
+            "де вони втрачають гроші.\n\n"
+            "🔹 Basic  $5/міс\n"
+            " VIP  $19.99/міс\n\n"
+            "👇 Відкрий повну картину"
+        )
 
 
 def access_keyboard(lang: str):

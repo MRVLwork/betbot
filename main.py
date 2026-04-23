@@ -45,6 +45,7 @@ from bets_db import (
 )
 from keyboards import (
     stats_periods_keyboard,
+    stats_submenu_keyboard,
     language_keyboard,
     main_menu_keyboard,
     access_keyboard,
@@ -637,8 +638,12 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     ai_menu_labels = {
         "\U0001F464 \u041f\u0440\u043e\u0444\u0456\u043b\u044c", "\U0001F464 \u041f\u0440\u043e\u0444\u0438\u043b\u044c", "\U0001F464 Profile",
+        "\U0001F4CA \u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430", "\U0001F4CA Statistics",
         "\U0001F4CA \u041c\u043e\u044f \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430", "\U0001F4CA My stats",
         "\U0001F4C8 \u041f\u043e\u0432\u043d\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430", "\U0001F4C8 \u041f\u043e\u043b\u043d\u0430\u044f \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430", "\U0001F4C8 Full stats",
+        "\U0001F512 \u041f\u043e\u0432\u043d\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430  \u0442\u0456\u043b\u044c\u043a\u0438 Basic/VIP",
+        "\U0001F512 \u041f\u043e\u043b\u043d\u0430\u044f \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430  \u0442\u043e\u043b\u044c\u043a\u043e Basic/VIP",
+        "\U0001F512 Full stats  Basic/VIP only",
         "\U0001F4CA Wrapped",
         "\U0001F9E0 AI \u0422\u0440\u0435\u043d\u0435\u0440", "\U0001F9E0 AI Coach", "\U0001F512 AI \u0422\u0440\u0435\u043d\u0435\u0440 VIP", "\U0001F512 AI Coach VIP",
         "\U0001F9E0 \u0410\u043d\u0430\u043b\u0456\u0442\u0438\u043a\u0430", "\U0001F9E0 \u0410\u043d\u0430\u043b\u0438\u0442\u0438\u043a\u0430", "\U0001F9E0 Analytics",
@@ -647,6 +652,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "\U0001F310 \u041c\u043e\u0432\u0430", "\U0001F310 \u042f\u0437\u044b\u043a", "\U0001F310 Language",
         "\U0001F511 \u0412\u0432\u0435\u0441\u0442\u0438 \u043f\u0440\u043e\u043c\u043e\u043a\u043e\u0434", "\U0001F511 Enter promo code",
         "\U0001F525 Streak",
+        " \u041d\u0430\u0437\u0430\u0434", " Back",
     }
 
     if context.user_data.get("awaiting_ai_match_analysis") and text not in ai_menu_labels:
@@ -659,6 +665,29 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if text in ("\U0001F464 \u041f\u0440\u043e\u0444\u0456\u043b\u044c", "\U0001F464 \u041f\u0440\u043e\u0444\u0438\u043b\u044c", "\U0001F464 Profile"):
         await show_profile(update, context)
+    elif text in ("\U0001F4CA \u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430", "\U0001F4CA Statistics"):
+        is_trial_user = _is_trial_user(user_id)
+        has_access = user_has_access(user_id)
+        show_lock = is_trial_user and not has_access
+
+        await update.message.reply_text(
+            get_text(lang, "choose_stats_type")
+            if not show_lock
+            else (
+                "\U0001F4CA \u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430  \u043e\u0431\u0435\u0440\u0456\u0442\u044c \u0440\u043e\u0437\u0434\u0456\u043b:"
+                if lang == "ua"
+                else "\U0001F4CA \u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430  \u0432\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0440\u0430\u0437\u0434\u0435\u043b:"
+                if lang == "ru"
+                else "\U0001F4CA Statistics  choose section:"
+            ),
+            reply_markup=stats_submenu_keyboard(lang, is_trial=show_lock)
+        )
+    elif text in (" \u041d\u0430\u0437\u0430\u0434", " Back"):
+        plan = get_user_plan(user_id)
+        await update.message.reply_text(
+            "\U0001F447",
+            reply_markup=main_menu_keyboard(lang, plan)
+        )
     elif text in ("\U0001F4CA \u041c\u043e\u044f \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430", "\U0001F4CA My stats"):
         if not user_has_access(user_id) and not _is_trial_user(user_id):
             await update.message.reply_text(get_text(lang, "no_active_access_start"))
@@ -669,8 +698,25 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             get_text(lang, "choose_period"),
             reply_markup=stats_periods_keyboard(is_vip, lang, prefix="stats"),
         )
-    elif text in ("\U0001F4C8 \u041f\u043e\u0432\u043d\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430", "\U0001F4C8 \u041f\u043e\u043b\u043d\u0430\u044f \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430", "\U0001F4C8 Full stats"):
-        if not user_has_access(user_id) and not _is_trial_user(user_id):
+    elif text in (
+        "\U0001F4C8 \u041f\u043e\u0432\u043d\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430",
+        "\U0001F4C8 Full stats",
+        "\U0001F512 \u041f\u043e\u0432\u043d\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430  \u0442\u0456\u043b\u044c\u043a\u0438 Basic/VIP",
+        "\U0001F512 \u041f\u043e\u043b\u043d\u0430\u044f \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430  \u0442\u043e\u043b\u044c\u043a\u043e Basic/VIP",
+        "\U0001F512 Full stats  Basic/VIP only",
+    ):
+        has_access = user_has_access(user_id)
+        is_trial = _is_trial_user(user_id)
+
+        if is_trial and not has_access:
+            from keyboards import _stats_trial_upsell_text
+            await update.message.reply_text(
+                _stats_trial_upsell_text(lang),
+                reply_markup=access_keyboard(lang)
+            )
+            return ConversationHandler.END
+
+        if not has_access:
             await update.message.reply_text(get_text(lang, "no_active_access_start"))
             return ConversationHandler.END
 

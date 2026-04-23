@@ -638,8 +638,13 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if text in ("Назад", " Назад", " Back", "Back"):
         plan = get_user_plan(user_id)
+        menu_text = (
+            "Головне меню:" if lang == "ua"
+            else "Главное меню:" if lang == "ru"
+            else "Main menu:"
+        )
         await update.message.reply_text(
-            "👇",
+            menu_text,
             reply_markup=main_menu_keyboard(lang, plan)
         )
         return ConversationHandler.END

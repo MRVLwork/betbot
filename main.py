@@ -636,6 +636,14 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(user_id)
     text = update.message.text
 
+    if text in (" Назад", " Back"):
+        plan = get_user_plan(user_id)
+        await update.message.reply_text(
+            "👇",
+            reply_markup=main_menu_keyboard(lang, plan)
+        )
+        return ConversationHandler.END
+
     ai_menu_labels = {
         "\U0001F464 \u041f\u0440\u043e\u0444\u0456\u043b\u044c", "\U0001F464 \u041f\u0440\u043e\u0444\u0438\u043b\u044c", "\U0001F464 Profile",
         "\U0001F4CA \u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430", "\U0001F4CA Statistics",
@@ -681,12 +689,6 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 else "\U0001F4CA Statistics  choose section:"
             ),
             reply_markup=stats_submenu_keyboard(lang, is_trial=show_lock)
-        )
-    elif text in (" \u041d\u0430\u0437\u0430\u0434", " Back"):
-        plan = get_user_plan(user_id)
-        await update.message.reply_text(
-            "\U0001F447",
-            reply_markup=main_menu_keyboard(lang, plan)
         )
     elif text in ("\U0001F4CA \u041c\u043e\u044f \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430", "\U0001F4CA My stats"):
         if not user_has_access(user_id) and not _is_trial_user(user_id):

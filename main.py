@@ -636,7 +636,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(user_id)
     text = update.message.text
 
-    if text in (" Назад", " Back"):
+    if text in ("Назад", " Назад", " Back", "Back"):
         plan = get_user_plan(user_id)
         await update.message.reply_text(
             "👇",

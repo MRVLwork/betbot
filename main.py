@@ -794,6 +794,7 @@ async def full_stats_callback_handler(update: Update, context: ContextTypes.DEFA
         return
 
     stats = get_full_stats_between(user_id, start_dt, end_dt)
+    is_vip = (plan == "vip")
     template_key = "full_stats_result_vip" if plan == "vip" else "full_stats_result_basic"
 
     await query.message.reply_text(
@@ -832,6 +833,110 @@ async def full_stats_callback_handler(update: Update, context: ContextTypes.DEFA
             last_results=stats["last_results"],
         )
     )
+
+    from bets_db import (
+        _calc_emotion_loss,
+        _format_emotion_stats_vip,
+        _get_action_items,
+        _get_main_insight,
+    )
+
+    insight = _get_main_insight(stats, lang)
+    if insight:
+        await query.message.reply_text(insight)
+
+    emotions = stats.get("emotions", {})
+    emotion_title = {
+        "ua": "😤 Статистика по емоціях:",
+        "ru": "😤 Статистика по эмоциям:",
+        "en": "😤 Emotion stats:",
+    }
+    emotion_title_text = emotion_title.get(lang, emotion_title["ua"])
+
+    if is_vip:
+        emotion_block = _format_emotion_stats_vip(emotions, lang)
+        emotion_loss = _calc_emotion_loss(emotions, lang)
+        await query.message.reply_text(
+            f"{emotion_title_text}\n\n{emotion_block}{emotion_loss}"
+        )
+    else:
+        tilt_count = int(emotions.get("tilt", {}).get("count") or 0)
+        anxiety_count = int(emotions.get("anxiety", {}).get("count") or 0)
+        negative_count = tilt_count + anxiety_count
+        if negative_count >= 2:
+            teaser = {
+                "ua": (
+                    f"{emotion_title_text}\n\n"
+                    f"У тебе є {negative_count} ставок на тілті/тривозі.\n\n"
+                    f"🔒 Точна сума втрат через емоції\n"
+                    f"🔒 Порівняння впевнених vs емоційних\n"
+                    f"🔒 Скільки заробив би без тілту\n\n"
+                    f"🔒 Доступно в VIP - 19.99/міс"
+                ),
+                "ru": (
+                    f"{emotion_title_text}\n\n"
+                    f"У тебя {negative_count} ставок на тилте/тревоге.\n\n"
+                    f"🔒 Точная сумма потерь из-за эмоций\n"
+                    f"🔒 Сравнение уверенных vs эмоциональных\n"
+                    f"🔒 Сколько заработал бы без тилта\n\n"
+                    f"🔒 Доступно в VIP - 19.99/мес"
+                ),
+                "en": (
+                    f"{emotion_title_text}\n\n"
+                    f"You have {negative_count} bets on tilt/anxiety.\n\n"
+                    f"🔒 Exact loss amount from emotions\n"
+                    f"🔒 Confident vs emotional comparison\n"
+                    f"🔒 How much you'd earn without tilt\n\n"
+                    f"🔒 Available in VIP - 19.99/mo"
+                ),
+            }
+            await query.message.reply_text(teaser.get(lang, teaser["ua"]))
+
+    actions = _get_action_items(stats, emotions, lang, is_vip)
+    if actions:
+        await query.message.reply_text(actions)
+
+    if is_vip:
+        from services.weekly_card_service import get_user_rank_percentile
+
+        rank = get_user_rank_percentile(user_id)
+        top_percent = max(1, 100 - rank)
+        if stats.get("settled_bets", 0) >= 5:
+            if top_percent <= 10:
+                emoji = "🏆"
+                comments = {
+                    "ua": "Відмінний результат!",
+                    "ru": "Отличный результат!",
+                    "en": "Excellent result!",
+                }
+            elif top_percent <= 25:
+                emoji = "🥇"
+                comments = {
+                    "ua": "Вище середнього!",
+                    "ru": "Выше среднего!",
+                    "en": "Above average!",
+                }
+            elif top_percent <= 50:
+                emoji = "🥈"
+                comments = {
+                    "ua": "Є куди рости.",
+                    "ru": "Есть куда расти.",
+                    "en": "Room to improve.",
+                }
+            else:
+                emoji = "🥉"
+                comments = {
+                    "ua": "Аналітика допоможе.",
+                    "ru": "Аналитика поможет.",
+                    "en": "Analytics will help.",
+                }
+
+            rank_text = {
+                "ua": f"{emoji} Топ {top_percent}% беттерів - {comments['ua']}",
+                "ru": f"{emoji} Топ {top_percent}% беттеров - {comments['ru']}",
+                "en": f"{emoji} Top {top_percent}% bettors - {comments['en']}",
+            }
+            await query.message.reply_text(rank_text.get(lang, rank_text["ua"]))
 
 
 async def analytics_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):

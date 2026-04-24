@@ -641,6 +641,13 @@ def _calc_stats(rows):
         "odds_lt2": _empty_bucket(),
         "odds_mid": _empty_bucket(),
         "odds_high": _empty_bucket(),
+        "emotions": {
+            "tilt": {"count": 0, "profit": 0.0, "stake": 0.0, "wins": 0, "losses": 0},
+            "anxiety": {"count": 0, "profit": 0.0, "stake": 0.0, "wins": 0, "losses": 0},
+            "confident": {"count": 0, "profit": 0.0, "stake": 0.0, "wins": 0, "losses": 0},
+            "neutral": {"count": 0, "profit": 0.0, "stake": 0.0, "wins": 0, "losses": 0},
+            "none": {"count": 0, "profit": 0.0, "stake": 0.0, "wins": 0, "losses": 0},
+        },
     }
 
     odds_sum = 0.0
@@ -705,6 +712,17 @@ def _calc_stats(rows):
         elif odds_bucket == "high":
             _update_bucket(stats["odds_high"], item)
 
+        emotion_raw = (row.get("emotion") or "none").strip().lower()
+        emotion_key = emotion_raw if emotion_raw in stats["emotions"] else "none"
+        emotion_bucket = stats["emotions"][emotion_key]
+        emotion_bucket["count"] += 1
+        emotion_bucket["profit"] += item["profit"]
+        emotion_bucket["stake"] += item["stake"]
+        if result == "win":
+            emotion_bucket["wins"] += 1
+        elif result == "lose":
+            emotion_bucket["losses"] += 1
+
     settled_for_wr = stats["wins"] + stats["losses"]
     stats["win_rate"] = round((stats["wins"] / settled_for_wr) * 100, 2) if settled_for_wr > 0 else 0.0
     stats["avg_odds"] = round(odds_sum / odds_count, 2) if odds_count > 0 else 0.0
@@ -726,6 +744,13 @@ def _calc_stats(rows):
     stats["odds_lt2"] = _finalize_bucket(stats["odds_lt2"])
     stats["odds_mid"] = _finalize_bucket(stats["odds_mid"])
     stats["odds_high"] = _finalize_bucket(stats["odds_high"])
+    for emotion_bucket in stats["emotions"].values():
+        emotion_bucket["profit"] = round(emotion_bucket["profit"], 2)
+        emotion_bucket["stake"] = round(emotion_bucket["stake"], 2)
+        if emotion_bucket["stake"] > 0:
+            emotion_bucket["roi"] = round((emotion_bucket["profit"] / emotion_bucket["stake"]) * 100, 1)
+        else:
+            emotion_bucket["roi"] = 0.0
 
     stats["total_type_count"] = stats["types"]["total"]["count"]
     stats["result_type_count"] = stats["types"]["result"]["count"]
@@ -737,6 +762,232 @@ def _calc_stats(rows):
     stats["over_2_profit"] = round(stats["odds_mid"]["profit"] + stats["odds_high"]["profit"], 2)
 
     return stats
+
+
+def _format_emotion_stats_vip(emotions: dict, lang: str) -> str:
+    """Format the full emotion statistics block for VIP users."""
+    labels = {
+        "ua": {
+            "tilt": "😤 Тільт",
+            "anxiety": "😰 Тривога",
+            "confident": "😎 Впевнений",
+            "neutral": "🤔 Нейтрально",
+        },
+        "ru": {
+            "tilt": "😤 Тилт",
+            "anxiety": "😰 Тревога",
+            "confident": "😎 Уверен",
+            "neutral": "🤔 Нейтрально",
+        },
+        "en": {
+            "tilt": "😤 Tilt",
+            "anxiety": "😰 Anxious",
+            "confident": "😎 Confident",
+            "neutral": "🤔 Neutral",
+        },
+    }
+    current_labels = labels.get(lang, labels["ua"])
+    lines = []
+
+    for key in ("confident", "neutral", "anxiety", "tilt"):
+        bucket = emotions.get(key, {})
+        count = int(bucket.get("count") or 0)
+        if count < 2:
+            continue
+        roi = float(bucket.get("roi") or 0)
+        profit = float(bucket.get("profit") or 0)
+        roi_s = f"+{roi}%" if roi >= 0 else f"{roi}%"
+        profit_s = f"+{round(profit, 1)}" if profit >= 0 else str(round(profit, 1))
+        lines.append(f"{current_labels[key]}: {count} | ROI {roi_s} | {profit_s}")
+
+    if not lines:
+        no_data = {
+            "ua": "Потрібно 2+ ставки з емоцією",
+            "ru": "Нужно 2+ ставки с эмоцией",
+            "en": "Need 2+ bets with emotion",
+        }
+        return no_data.get(lang, no_data["ua"])
+    return "\n".join(lines)
+
+
+def _calc_emotion_loss(emotions: dict, lang: str) -> str:
+    """Return the VIP-only emotional betting loss summary."""
+    tilt_profit = float(emotions.get("tilt", {}).get("profit") or 0)
+    anxiety_profit = float(emotions.get("anxiety", {}).get("profit") or 0)
+    total_negative_profit = tilt_profit + anxiety_profit
+    if total_negative_profit >= 0:
+        return ""
+
+    loss = abs(round(total_negative_profit, 1))
+    texts = {
+        "ua": (
+            f"\n💸 Ціна емоційних ставок:\n"
+            f"Втрати від тілту і тривоги: -{loss}\n"
+            f"Без них результат був би кращим на {loss}"
+        ),
+        "ru": (
+            f"\n💸 Цена эмоциональных ставок:\n"
+            f"Потери от тилта и тревоги: -{loss}\n"
+            f"Без них результат был бы лучше на {loss}"
+        ),
+        "en": (
+            f"\n💸 Cost of emotional betting:\n"
+            f"Loss from tilt and anxiety: -{loss}\n"
+            f"Without them result would be better by {loss}"
+        ),
+    }
+    return texts.get(lang, texts["ua"])
+
+
+def _get_main_insight(stats: dict, lang: str) -> str:
+    """Return the main performance insight based on type and odds buckets."""
+    best_roi, worst_roi = -999.0, 999.0
+    best_label, worst_label = "", ""
+
+    bucket_labels = {
+        "ua": {
+            "total": "тоталах",
+            "result": "результаті",
+            "lt2": "коеф. до 2.0",
+            "mid": "коеф. 2.0-2.5",
+            "high": "коеф. 2.5+",
+        },
+        "ru": {
+            "total": "тоталах",
+            "result": "результате",
+            "lt2": "коэф. до 2.0",
+            "mid": "коэф. 2.0-2.5",
+            "high": "коэф. 2.5+",
+        },
+        "en": {
+            "total": "totals",
+            "result": "result bets",
+            "lt2": "odds below 2.0",
+            "mid": "odds 2.0-2.5",
+            "high": "odds 2.5+",
+        },
+    }
+    current_labels = bucket_labels.get(lang, bucket_labels["ua"])
+    all_buckets = {
+        "total": stats["types"].get("total", {}),
+        "result": stats["types"].get("result", {}),
+        "lt2": stats.get("odds_lt2", {}),
+        "mid": stats.get("odds_mid", {}),
+        "high": stats.get("odds_high", {}),
+    }
+
+    for key, bucket in all_buckets.items():
+        if int(bucket.get("count") or 0) < 3:
+            continue
+        roi = float(bucket.get("roi") or 0)
+        if roi > best_roi:
+            best_roi = roi
+            best_label = current_labels.get(key, key)
+        if roi < worst_roi:
+            worst_roi = roi
+            worst_label = current_labels.get(key, key)
+
+    if not best_label or not worst_label or best_label == worst_label:
+        return ""
+    if round(best_roi - worst_roi, 1) < 10:
+        return ""
+
+    best_roi_s = f"+{round(best_roi, 1)}%" if best_roi >= 0 else f"{round(best_roi, 1)}%"
+    worst_roi_s = f"+{round(worst_roi, 1)}%" if worst_roi >= 0 else f"{round(worst_roi, 1)}%"
+    texts = {
+        "ua": (
+            f"💡 Головний інсайт:\n"
+            f"Заробляєш на {best_label} (ROI {best_roi_s})\n"
+            f"Зливаєш на {worst_label} (ROI {worst_roi_s})"
+        ),
+        "ru": (
+            f"💡 Главный инсайт:\n"
+            f"Зарабатываешь на {best_label} (ROI {best_roi_s})\n"
+            f"Сливаешь на {worst_label} (ROI {worst_roi_s})"
+        ),
+        "en": (
+            f"💡 Main insight:\n"
+            f"Profit on {best_label} (ROI {best_roi_s})\n"
+            f"Losing on {worst_label} (ROI {worst_roi_s})"
+        ),
+    }
+    return texts.get(lang, texts["ua"])
+
+
+def _get_action_items(stats: dict, emotions: dict, lang: str, is_vip: bool) -> str:
+    """Return Basic/VIP action items for the week."""
+    actions = []
+
+    worst_type = None
+    worst_type_roi = 0.0
+    for key in ("total", "result"):
+        bucket = stats["types"].get(key, {})
+        if int(bucket.get("count") or 0) >= 3:
+            roi = float(bucket.get("roi") or 0)
+            if roi < worst_type_roi:
+                worst_type_roi = roi
+                worst_type = key
+
+    type_names = {
+        "ua": {"total": "тоталів", "result": "ставок на результат"},
+        "ru": {"total": "тоталов", "result": "ставок на результат"},
+        "en": {"total": "totals", "result": "result bets"},
+    }
+    if worst_type and worst_type_roi <= -5:
+        loss = abs(round(float(stats["types"][worst_type].get("profit") or 0)))
+        type_label = type_names.get(lang, type_names["ua"]).get(worst_type, worst_type)
+        messages = {
+            "ua": f"• Зменши {type_label} (зливають {loss})",
+            "ru": f"• Уменьши {type_label} (сливают {loss})",
+            "en": f"• Reduce {type_label} (losing {loss})",
+        }
+        actions.append(messages.get(lang, messages["ua"]))
+
+    if is_vip:
+        tilt_bucket = emotions.get("tilt", {})
+        if int(tilt_bucket.get("count") or 0) >= 2 and float(tilt_bucket.get("profit") or 0) < 0:
+            loss = abs(round(float(tilt_bucket.get("profit") or 0)))
+            messages = {
+                "ua": f"• 🛑 Не ставкуй на тілті, вже втратив {loss}",
+                "ru": f"• 🛑 Не ставь на тилте, уже потерял {loss}",
+                "en": f"• 🛑 Do not bet on tilt, already lost {loss}",
+            }
+            actions.append(messages.get(lang, messages["ua"]))
+
+        best_odds = None
+        best_odds_roi = 0.0
+        for key in ("lt2", "mid", "high"):
+            bucket = stats.get(f"odds_{key}", {})
+            if int(bucket.get("count") or 0) >= 3:
+                roi = float(bucket.get("roi") or 0)
+                if roi > best_odds_roi:
+                    best_odds_roi = roi
+                    best_odds = key
+
+        odds_labels = {
+            "ua": {"lt2": "к. до 2.0", "mid": "к. 2.0-2.5", "high": "к. 2.5+"},
+            "ru": {"lt2": "к. до 2.0", "mid": "к. 2.0-2.5", "high": "к. 2.5+"},
+            "en": {"lt2": "odds below 2.0", "mid": "odds 2.0-2.5", "high": "odds 2.5+"},
+        }
+        if best_odds and best_odds_roi >= 5:
+            odds_label = odds_labels.get(lang, odds_labels["ua"]).get(best_odds, best_odds)
+            roi_s = f"+{round(best_odds_roi, 1)}%"
+            messages = {
+                "ua": f"• Фокусуйся на {odds_label}, твій ROI {roi_s}",
+                "ru": f"• Фокусируйся на {odds_label}, твой ROI {roi_s}",
+                "en": f"• Focus on {odds_label}, your ROI is {roi_s}",
+            }
+            actions.append(messages.get(lang, messages["ua"]))
+
+    if not actions:
+        return ""
+
+    title = {
+        "ua": "📋 Що зробити цього тижня:",
+        "ru": "📋 Что сделать на этой неделе:",
+        "en": "📋 Actions for this week:",
+    }
+    return title.get(lang, title["ua"]) + "\n" + "\n".join(actions)
 
 
 def _get_rows_between(user_id: int, start_dt, end_dt, include_trial: bool = False):

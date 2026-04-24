@@ -745,7 +745,7 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"Keep going - the next level unlocks new possibilities!"
             )
 
-        if has_access:
+        if has_access or in_trial:
             signal_context = get_tilt_signal_context(user_id)
             signals = signal_context["signals"]
 

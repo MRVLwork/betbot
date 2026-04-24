@@ -203,12 +203,244 @@ def _trial_stats_upsell_text(lang: str) -> str:
     }
     return texts.get(lang, texts["en"])
 
+
+def _trial_day3_text(lang: str, stats: dict) -> str:
+    roi = round(float(stats.get("roi", 0) or 0), 1)
+    winrate = round(float(stats.get("win_rate", 0) or 0), 1)
+    total = int(stats.get("total_bets") or 0)
+
+    roi_str = f"+{roi}%" if roi > 0 else f"{roi}%"
+    trend = "🔥" if roi > 0 else "📉"
+
+    if lang == "ru":
+        stats_line = (
+            f"ROI: {roi_str} {trend} | Winrate: {winrate}%"
+            if total > 0
+            else "Ставок пока нет  отправь первый скрин!"
+        )
+        return (
+            f"📊 3 дня прошло. Вот твоя картина:\n\n"
+            f"{stats_line}\n"
+            f"Ставок: {total}\n\n"
+            f"Но есть то, что ты ещё не видишь:\n"
+            f"🔒 Какие ставки сливают твой банкролл\n"
+            f"🔒 Когда ты ставишь хуже чем думаешь\n"
+            f"🔒 Твои реальные паттерны проигрышей\n\n"
+            f"Осталось 4 дня trial.\n\n"
+            f"🔹 Basic $5  меньше одной проигрышной ставки\n"
+            f"👇 Открой полную картину"
+        )
+    if lang == "en":
+        stats_line = (
+            f"ROI: {roi_str} {trend} | Winrate: {winrate}%"
+            if total > 0
+            else "No bets yet  send your first screenshot!"
+        )
+        return (
+            f"📊 3 days in. Here's your picture:\n\n"
+            f"{stats_line}\n"
+            f"Bets: {total}\n\n"
+            f"But there's what you're not seeing yet:\n"
+            f"🔒 Which bets drain your bankroll\n"
+            f"🔒 When you bet worse than you think\n"
+            f"🔒 Your real losing patterns\n\n"
+            f"4 days of trial left.\n\n"
+            f"🔹 Basic $5  less than one losing bet\n"
+            f"👇 See the full picture"
+        )
+    stats_line = (
+        f"ROI: {roi_str} {trend} | Winrate: {winrate}%"
+        if total > 0
+        else "Ставок поки немає  надішли перший скрін!"
+    )
+    return (
+        f"📊 3 дні минуло. Ось твоя картина:\n\n"
+        f"{stats_line}\n"
+        f"Ставок: {total}\n\n"
+        f"Але є те що ти ще не бачиш:\n"
+        f"🔒 Які ставки зливають твій банкрол\n"
+        f"🔒 Коли ти ставиш гірше ніж думаєш\n"
+        f"🔒 Твої реальні патерни програшів\n\n"
+        f"Залишилось 4 дні trial.\n\n"
+        f"🔹 Basic $5  менше однієї програшної ставки\n"
+        f"👇 Відкрий повну картину"
+    )
+
+
+def _trial_day6_text(lang: str, stats: dict) -> str:
+    total = int(stats.get("total_bets") or 0)
+    roi = round(float(stats.get("roi", 0) or 0), 1)
+    roi_str = f"+{roi}%" if roi > 0 else f"{roi}%"
+
+    if lang == "ru":
+        return (
+            f" Завтра твой trial заканчивается.\n\n"
+            f"За 6 дней: {total} ставок | ROI: {roi_str}\n\n"
+            f"Твоя статистика будет заблокирована.\n"
+            f"Паттерны  потеряны.\n"
+            f"Прогресс  обнулится.\n\n"
+            f"Но главное  ты так и не увидишь\n"
+            f"где именно теряешь деньги.\n\n"
+            f"🔹 Basic $5/мес  сохрани всё\n"
+            f" VIP $19.99/мес  плюс AI Тренер\n\n"
+            f"👇 Не теряй прогресс"
+        )
+    if lang == "en":
+        return (
+            f" Your trial ends tomorrow.\n\n"
+            f"6 days in: {total} bets | ROI: {roi_str}\n\n"
+            f"Your stats will be locked.\n"
+            f"Patterns  lost.\n"
+            f"Progress  gone.\n\n"
+            f"And you still won't know\n"
+            f"exactly where you're losing money.\n\n"
+            f"🔹 Basic $5/mo  keep everything\n"
+            f" VIP $19.99/mo  plus AI Coach\n\n"
+            f"👇 Don't lose your progress"
+        )
+    return (
+        f" Завтра твій trial закінчується.\n\n"
+        f"За 6 днів: {total} ставок | ROI: {roi_str}\n\n"
+        f"Твоя статистика буде заблокована.\n"
+        f"Патерни  втрачені.\n"
+        f"Прогрес  обнулиться.\n\n"
+        f"Але головне  ти так і не побачиш\n"
+        f"де саме втрачаєш гроші.\n\n"
+        f"🔹 Basic $5/міс  збережи все\n"
+        f" VIP $19.99/міс  плюс AI Тренер\n\n"
+        f"👇 Не втрать прогрес"
+    )
+
+
+def _trial_expired_text(lang: str, stats: dict) -> str:
+    total = int(stats.get("total_bets") or 0)
+
+    if lang == "ru":
+        return (
+            f" Твой пробный доступ завершён.\n\n"
+            f"За 7 дней ты добавил {total} ставок.\n"
+            f"Вся статистика сохранена и ждёт тебя.\n\n"
+            f"Одно из двух:\n"
+            f" Купи Basic $5  и увидишь полную картину\n"
+            f" Продолжай ставить вслепую\n\n"
+            f"👇 Открой доступ"
+        )
+    if lang == "en":
+        return (
+            f" Your trial has ended.\n\n"
+            f"You tracked {total} bets over 7 days.\n"
+            f"All your stats are saved and waiting.\n\n"
+            f"Two options:\n"
+            f" Get Basic $5  see the full picture\n"
+            f" Keep betting blind\n\n"
+            f"👇 Get access"
+        )
+    return (
+        f" Твій пробний доступ завершено.\n\n"
+        f"За 7 днів ти додав {total} ставок.\n"
+        f"Вся статистика збережена і чекає тебе.\n\n"
+        f"Два варіанти:\n"
+        f" Купи Basic $5  побач повну картину\n"
+        f" Продовжуй ставити наосліп\n\n"
+        f"👇 Відкрий доступ"
+    )
+
 def is_user_vip(user_id: int) -> bool:
     return get_user_plan(user_id) == "vip" and user_has_access(user_id)
 
 
 async def run_weekly_wrap_broadcast(application):
     await send_weekly_wrap_broadcast(application.bot)
+
+
+async def send_trial_day3_notifications(application):
+    """Send notifications to users on trial day 3."""
+    from db import get_trial_users_for_notification
+    from bets_db import get_basic_stats_between
+
+    users = get_trial_users_for_notification(day=3)
+
+    for user_data in users:
+        user_id = user_data["user_id"]
+        lang = (user_data.get("lang") or "ua").lower()
+        if lang.startswith("uk"):
+            lang = "ua"
+
+        try:
+            end_dt = datetime.now()
+            start_dt = end_dt - timedelta(days=7)
+            stats = get_basic_stats_between(
+                user_id, start_dt, end_dt,
+                include_trial=True
+            )
+            text = _trial_day3_text(lang, stats)
+            await application.bot.send_message(
+                chat_id=user_id,
+                text=text,
+                reply_markup=access_keyboard(lang),
+            )
+        except Exception as e:
+            print(f"trial_day3 error for {user_id}: {e}")
+
+
+async def send_trial_day6_notifications(application):
+    """Send notifications 24 hours before trial end."""
+    from db import get_trial_users_for_notification
+    from bets_db import get_basic_stats_between
+
+    users = get_trial_users_for_notification(day=6)
+
+    for user_data in users:
+        user_id = user_data["user_id"]
+        lang = (user_data.get("lang") or "ua").lower()
+        if lang.startswith("uk"):
+            lang = "ua"
+
+        try:
+            end_dt = datetime.now()
+            start_dt = end_dt - timedelta(days=7)
+            stats = get_basic_stats_between(
+                user_id, start_dt, end_dt,
+                include_trial=True
+            )
+            text = _trial_day6_text(lang, stats)
+            await application.bot.send_message(
+                chat_id=user_id,
+                text=text,
+                reply_markup=access_keyboard(lang),
+            )
+        except Exception as e:
+            print(f"trial_day6 error for {user_id}: {e}")
+
+
+async def send_trial_expired_notifications(application):
+    """Send notifications when a trial has expired."""
+    from db import get_expired_trial_users
+    from bets_db import get_basic_stats_between
+
+    users = get_expired_trial_users()
+
+    for user_data in users:
+        user_id = user_data["user_id"]
+        lang = (user_data.get("lang") or "ua").lower()
+        if lang.startswith("uk"):
+            lang = "ua"
+
+        try:
+            end_dt = datetime.now()
+            start_dt = end_dt - timedelta(days=10)
+            stats = get_basic_stats_between(
+                user_id, start_dt, end_dt,
+                include_trial=True
+            )
+            text = _trial_expired_text(lang, stats)
+            await application.bot.send_message(
+                chat_id=user_id,
+                text=text,
+                reply_markup=access_keyboard(lang),
+            )
+        except Exception as e:
+            print(f"trial_expired error for {user_id}: {e}")
 
 
 async def post_init(application):
@@ -221,6 +453,36 @@ async def post_init(application):
         minute=0,
         kwargs={"application": application},
         id="weekly_wrap_broadcast",
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        send_trial_day3_notifications,
+        trigger="cron",
+        hour=10,
+        minute=0,
+        timezone="Europe/Kiev",
+        id="trial_day3",
+        args=[application],
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        send_trial_day6_notifications,
+        trigger="cron",
+        hour=10,
+        minute=30,
+        timezone="Europe/Kiev",
+        id="trial_day6",
+        args=[application],
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        send_trial_expired_notifications,
+        trigger="cron",
+        hour=11,
+        minute=0,
+        timezone="Europe/Kiev",
+        id="trial_expired",
+        args=[application],
         replace_existing=True,
     )
     scheduler.start()

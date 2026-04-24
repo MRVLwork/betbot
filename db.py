@@ -1609,6 +1609,104 @@ def get_trial_start(user_id: int):
         return None
 
 
+def get_trial_day(user_id: int) -> int:
+    """
+    Returns the current trial day (1-7).
+    Day 1 is the first day after activation.
+    Returns 0 when trial is not activated.
+    """
+    user = get_user(user_id)
+    if not user:
+        return 0
+    trial_started = user.get("trial_started_at")
+    if not trial_started:
+        return 0
+    try:
+        start = datetime.fromisoformat(trial_started)
+        delta = (datetime.now() - start).days + 1
+        return min(delta, 7)
+    except Exception:
+        return 0
+
+
+def get_trial_users_for_notification(day: int) -> list[dict]:
+    """
+    Returns active trial users for a specific trial day.
+    day=3 users on day 3
+    day=6 users 24h before trial end
+    day=7 users on the last trial day
+    """
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT user_id, lang, trial_started_at
+        FROM users
+        WHERE trial_started_at IS NOT NULL
+        AND (is_active IS NULL OR is_active = 0)
+        AND (trial_completed IS NULL OR trial_completed = 0)
+    """)
+    rows = cur.fetchall()
+    conn.close()
+
+    result = []
+    for row in rows:
+        try:
+            started = datetime.fromisoformat(
+                row["trial_started_at"]
+            )
+            current_day = (datetime.now() - started).days + 1
+
+            if current_day == day:
+                if is_trial_available(row["user_id"]):
+                    result.append({
+                        "user_id": row["user_id"],
+                        "lang": row.get("lang") or "ua",
+                    })
+        except Exception:
+            pass
+
+    return result
+
+
+def get_expired_trial_users() -> list[dict]:
+    """
+    Returns users whose trial has just expired
+    within the last 24 hours.
+    """
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT user_id, lang, trial_expires_at
+        FROM users
+        WHERE trial_started_at IS NOT NULL
+        AND trial_expires_at IS NOT NULL
+        AND (is_active IS NULL OR is_active = 0)
+        AND (trial_completed IS NULL OR trial_completed = 0)
+    """)
+    rows = cur.fetchall()
+    conn.close()
+
+    result = []
+    now = datetime.now()
+    for row in rows:
+        try:
+            expires = datetime.fromisoformat(
+                row["trial_expires_at"]
+            )
+            diff = (now - expires).total_seconds()
+            if 0 <= diff <= 86400:
+                result.append({
+                    "user_id": row["user_id"],
+                    "lang": row.get("lang") or "ua",
+                })
+        except Exception:
+            pass
+
+    return result
+
+
 def increment_trial_usage(user_id: int):
     conn = get_conn()
     cur = conn.cursor()

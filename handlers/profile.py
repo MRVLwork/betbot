@@ -27,6 +27,33 @@ LEVEL_NAMES = {
 
 LEVEL_XP = (0, 500, 1500, 3000, 6000, 999999)
 
+ACHIEVEMENT_HINTS = {
+    "ua": [
+        "🔒 Де ти зливаєш",
+        "🔒 Твої слабкі місця",
+        "🔒 Патерни програшів",
+        "🔒 Аналіз по коеф.",
+        "🔒 Тижневий звіт",
+        "🔒 Порівняння місяців",
+    ],
+    "ru": [
+        "🔒 Где ты сливаешь",
+        "🔒 Твои слабые места",
+        "🔒 Паттерны проигрышей",
+        "🔒 Анализ по коэф.",
+        "🔒 Недельный отчёт",
+        "🔒 Сравнение месяцев",
+    ],
+    "en": [
+        "🔒 Where you lose",
+        "🔒 Your weak spots",
+        "🔒 Losing patterns",
+        "🔒 Odds analysis",
+        "🔒 Weekly report",
+        "🔒 Month comparison",
+    ],
+}
+
 
 def _normalize_lang(lang: str) -> str:
     lang = (lang or "ua").lower()
@@ -56,15 +83,22 @@ def _achievements_block(unlocked: list[str], lang: str) -> str:
     all_ids = list(ALL_ACHIEVEMENTS.keys())[:6]
     lines: list[str] = []
     name_key = f"name_{lang}" if lang in ("ua", "ru", "en") else "name_ua"
+    hint_list = ACHIEVEMENT_HINTS.get(lang, ACHIEVEMENT_HINTS["ua"])
 
-    for achievement_id in all_ids:
+    for index, achievement_id in enumerate(all_ids):
         achievement = ALL_ACHIEVEMENTS[achievement_id]
         if achievement_id in unlocked:
-            lines.append(f"{achievement['emoji']} {achievement.get(name_key, achievement['name_ua'])}")
+            lines.append(
+                f"{achievement['emoji']} "
+                f"{achievement.get(name_key, achievement['name_ua'])}"
+            )
         else:
-            lines.append("🔒 ???")
+            lines.append(hint_list[index])
 
-    unlocked_count = sum(1 for achievement_id in ALL_ACHIEVEMENTS if achievement_id in unlocked)
+    unlocked_count = sum(
+        1 for achievement_id in ALL_ACHIEVEMENTS
+        if achievement_id in unlocked
+    )
     total_count = len(ALL_ACHIEVEMENTS)
 
     result = " | ".join(lines[:3]) + "\n" + " | ".join(lines[3:6]) + "\n"

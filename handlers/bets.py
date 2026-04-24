@@ -438,6 +438,41 @@ def _emotion_keyboard() -> InlineKeyboardMarkup:
     ])
 
 
+def _emotion_keyboard(lang: str = "ua") -> InlineKeyboardMarkup:
+    if lang == "ru":
+        buttons = [
+            "😤 Тилт",
+            "😰 Тревога",
+            "😎 Уверен",
+            "🤔 Нейтрально",
+        ]
+    elif lang == "en":
+        buttons = [
+            "😤 Tilt",
+            "😰 Anxious",
+            "😎 Confident",
+            "🤔 Neutral",
+        ]
+    else:
+        buttons = [
+            "😤 Тільт",
+            "😰 Тривога",
+            "😎 Впевнений",
+            "🤔 Нейтрально",
+        ]
+
+    callback_codes = [
+        "emotion_tilt",
+        "emotion_anxiety",
+        "emotion_confident",
+        "emotion_neutral",
+    ]
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(label, callback_data=code)]
+        for label, code in zip(buttons, callback_codes)
+    ])
+
+
 def _bet_saved_confirmation_text(lang: str, result: dict, remaining: int, daily_limit: int) -> str:
     if result["bet_result"] == "pending":
         return get_text(lang, "bet_pending_saved").format(
@@ -512,6 +547,7 @@ async def emotion_callback_handler(update: Update, context: ContextTypes.DEFAULT
     user_id = update.effective_user.id
     user = get_user(user_id)
     lang = _normalize_lang(user["lang"] if user and user.get("lang") else "en")
+    lang = context.user_data.get("bet_lang", lang)
     sub_type = get_subscription_type(user_id)
     has_access = sub_type in ("basic", "vip")
     in_trial = sub_type == "trial"
@@ -533,6 +569,7 @@ async def emotion_callback_handler(update: Update, context: ContextTypes.DEFAULT
     context.user_data.pop("last_bet_result", None)
     context.user_data.pop("last_bet_daily_limit", None)
     context.user_data.pop("last_bet_just_reached_limit", None)
+    context.user_data.pop("bet_lang", None)
 
     remaining = get_user_remaining_photos_today(user_id)
 
@@ -700,6 +737,7 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user = get_user(user_id)
     lang = _normalize_lang(user["lang"] if user and user.get("lang") else "en")
+    context.user_data["bet_lang"] = lang
     plan = ((user.get("plan") if user else None) or "basic").lower()
 
     sub_type = get_subscription_type(user_id)
@@ -822,7 +860,7 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             await update.message.reply_text(
                 _emotion_prompt_text(lang),
-                reply_markup=_emotion_keyboard(),
+                reply_markup=_emotion_keyboard(lang),
             )
             return
 

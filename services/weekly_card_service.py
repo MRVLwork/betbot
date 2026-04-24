@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta
 from io import BytesIO
 import os
-import subprocess
+import urllib.request
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -17,77 +17,74 @@ TEXT_COLOR = "#FFFFFF"
 SUBTEXT_COLOR = "#8899BB"
 CARD_COLOR = "#152540"
 
+FONTS_DIR = os.path.join(os.path.dirname(__file__), "..", "fonts")
+FONT_REGULAR = os.path.join(FONTS_DIR, "DejaVuSans.ttf")
+FONT_BOLD = os.path.join(FONTS_DIR, "DejaVuSans-Bold.ttf")
 
-def _ensure_fonts():
-    """
-    Install fonts if they are missing on the server.
-    Best-effort only.
-    """
-    test_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-    if os.path.exists(test_path):
-        return
+FONT_URLS = {
+    "DejaVuSans.ttf": (
+        "https://github.com/dejavu-fonts/dejavu-fonts/"
+        "raw/master/ttf/DejaVuSans.ttf"
+    ),
+    "DejaVuSans-Bold.ttf": (
+        "https://github.com/dejavu-fonts/dejavu-fonts/"
+        "raw/master/ttf/DejaVuSans-Bold.ttf"
+    ),
+}
 
-    try:
-        subprocess.run(
-            ["apt-get", "install", "-y", "fonts-dejavu-core"],
-            capture_output=True,
-            timeout=30,
-            check=False,
-        )
-    except Exception:
-        pass
+
+def _ensure_fonts_downloaded():
+    """
+    Завантажує шрифти якщо їх немає локально.
+    Викликається один раз при імпорті модуля.
+    """
+    os.makedirs(FONTS_DIR, exist_ok=True)
+
+    for font_name, url in FONT_URLS.items():
+        font_path = os.path.join(FONTS_DIR, font_name)
+        if not os.path.exists(font_path):
+            try:
+                print(f"Downloading font {font_name}...")
+                urllib.request.urlretrieve(url, font_path)
+                print(f"Font {font_name} downloaded OK")
+            except Exception as e:
+                print(f"Failed to download {font_name}: {e}")
 
 
 try:
-    _ensure_fonts()
-except Exception:
-    pass
-
-
-def _font_candidates(bold: bool = False) -> list[str]:
-    if bold:
-        return [
-            "DejaVuSans-Bold.ttf",
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-            "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",
-            "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-            "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
-            "/usr/share/fonts/truetype/ubuntu/Ubuntu-B.ttf",
-            "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
-        ]
-    return [
-        "DejaVuSans.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-        "/usr/share/fonts/dejavu/DejaVuSans.ttf",
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-        "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
-        "/usr/share/fonts/truetype/ubuntu/Ubuntu-R.ttf",
-        "/usr/share/fonts/TTF/DejaVuSans.ttf",
-    ]
-
-
-def _has_cyrillic_font() -> bool:
-    for font_path in _font_candidates(False) + _font_candidates(True):
-        try:
-            ImageFont.truetype(font_path, size=16)
-            return True
-        except (IOError, OSError):
-            continue
-    return False
-
-
-_CYRILLIC_FONT_AVAILABLE = _has_cyrillic_font()
+    _ensure_fonts_downloaded()
+except Exception as e:
+    print(f"Font setup error: {e}")
 
 
 def _load_font(size: int, bold: bool = False):
     """
-    Load a font with Cyrillic support from several common server paths.
+    Завантажує шрифт з підтримкою кирилиці.
     """
-    candidates = _font_candidates(bold)
+    font_name = "DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf"
 
-    for font_path in candidates:
+    search_paths = [
+        os.path.join(FONTS_DIR, font_name),
+        os.path.join(os.path.dirname(__file__), "..", font_name),
+        f"/usr/share/fonts/truetype/dejavu/{font_name}",
+        f"/usr/share/fonts/dejavu/{font_name}",
+        f"/run/current-system/sw/share/fonts/truetype/{font_name}",
+    ]
+
+    try:
+        import glob
+
+        nix_fonts = glob.glob(
+            f"/nix/store/*/share/fonts/truetype/{font_name}"
+        )
+        search_paths.extend(nix_fonts)
+    except Exception:
+        pass
+
+    for path in search_paths:
         try:
-            return ImageFont.truetype(font_path, size=size)
+            if os.path.exists(path):
+                return ImageFont.truetype(path, size=size)
         except (IOError, OSError):
             continue
 
@@ -95,32 +92,6 @@ def _load_font(size: int, bold: bool = False):
         return ImageFont.load_default(size=size)
     except TypeError:
         return ImageFont.load_default()
-
-
-def _safe_text(text: str, font) -> str:
-    """
-    Replace Cyrillic UI copy with English if no Cyrillic-capable font exists.
-    """
-    if _CYRILLIC_FONT_AVAILABLE:
-        return text
-
-    replacements = {
-        "ТВІЙ ТИЖДЕНЬ": "YOUR WEEK",
-        "ROI за тиждень": "ROI this week",
-        "ROI за 30 днів": "ROI in 30 days",
-        "Ти в топ": "Top",
-        "беттерів": "bettors",
-        "Прибуток": "Profit",
-        "Ставок": "Bets",
-        "Рівень": "Level",
-        "Рейтинг": "Rating",
-        "Сер. коеф": "Avg odds",
-        "Топ": "Top",
-    }
-
-    for src, dst in replacements.items():
-        text = text.replace(src, dst)
-    return text
 
 
 def _format_roi(roi: float) -> str:
@@ -193,6 +164,7 @@ def generate_weekly_card(
     stats: dict,
     username: str,
     rank_percentile: int,
+    lang: str = "ua",
 ) -> bytes:
     image = Image.new("RGB", (1080, 1080), BG_COLOR)
     draw = ImageDraw.Draw(image)
@@ -209,33 +181,29 @@ def generate_weekly_card(
     end_dt = stats.get("end_dt") or _week_range()[1]
     date_range_text = f"{start_dt.strftime('%d.%m')} - {end_dt.strftime('%d.%m')}"
     safe_username = username or f"user_{user_id}"
+    lang = (lang or "ua").lower()
+
+    labels = (
+        ["Winrate", "Прибуток", "Ставок", "Сер. коеф"]
+        if lang == "ua"
+        else ["Winrate", "Profit", "Bets", "Avg odds"]
+    )
 
     draw.rounded_rectangle((60, 60, 1020, 260), radius=34, fill=CARD_COLOR)
-    draw.text(
-        (100, 96),
-        _safe_text("ТВІЙ ТИЖДЕНЬ", title_font),
-        font=title_font,
-        fill=TEXT_COLOR,
-    )
+    draw.text((100, 96), "ТВІЙ ТИЖДЕНЬ", font=title_font, fill=TEXT_COLOR)
     draw.text((100, 158), date_range_text, font=subtitle_font, fill=SUBTEXT_COLOR)
     draw.text((100, 200), f"@{safe_username}", font=subtitle_font, fill=SUBTEXT_COLOR)
 
     roi = round(float(stats.get("roi", 0) or 0), 2)
     roi_color = GREEN_COLOR if roi > 0 else RED_COLOR if roi < 0 else TEXT_COLOR
     draw.text((540, 330), _format_roi(roi), font=hero_font, fill=roi_color, anchor="ma")
-    draw.text(
-        (540, 470),
-        _safe_text("ROI за тиждень", subtitle_font),
-        font=subtitle_font,
-        fill=SUBTEXT_COLOR,
-        anchor="ma",
-    )
+    draw.text((540, 470), "ROI за тиждень", font=subtitle_font, fill=SUBTEXT_COLOR, anchor="ma")
 
     cards = [
-        ("Winrate", f"{round(float(stats.get('win_rate', 0) or 0), 2)}%"),
-        (_safe_text("Прибуток", metric_title_font), _format_profit(round(float(stats.get("net_profit", 0) or 0), 2))),
-        (_safe_text("Ставок", metric_title_font), str(int(stats.get("total_bets", 0) or 0))),
-        (_safe_text("Сер. коеф", metric_title_font), str(round(float(stats.get("avg_odds", 0) or 0), 2))),
+        (labels[0], f"{round(float(stats.get('win_rate', 0) or 0), 2)}%"),
+        (labels[1], _format_profit(round(float(stats.get("net_profit", 0) or 0), 2))),
+        (labels[2], str(int(stats.get("total_bets", 0) or 0))),
+        (labels[3], str(round(float(stats.get("avg_odds", 0) or 0), 2))),
     ]
 
     positions = [
@@ -247,13 +215,16 @@ def generate_weekly_card(
 
     for (label, value), (x1, y1, x2, y2) in zip(cards, positions):
         draw.rounded_rectangle((x1, y1, x2, y2), radius=28, fill=CARD_COLOR)
-        draw.text((x1 + 32, y1 + 28), _safe_text(label, metric_title_font), font=metric_title_font, fill=SUBTEXT_COLOR)
+        draw.text((x1 + 32, y1 + 28), label, font=metric_title_font, fill=SUBTEXT_COLOR)
         draw.text((x1 + 32, y1 + 82), value, font=metric_value_font, fill=TEXT_COLOR)
 
-    footer_text = f"Ти в топ {rank_percentile}% беттерів"
-    if not _CYRILLIC_FONT_AVAILABLE:
-        footer_text = f"Top {rank_percentile}% bettors"
-    draw.text((540, 975), _safe_text(footer_text, footer_font), font=footer_font, fill=TEXT_COLOR, anchor="ma")
+    draw.text(
+        (540, 975),
+        f"Ти в топ {rank_percentile}% беттерів",
+        font=footer_font,
+        fill=TEXT_COLOR,
+        anchor="ma",
+    )
     draw.text((540, 1025), "Bet Tracker Bot", font=watermark_font, fill=SUBTEXT_COLOR, anchor="ma")
 
     buffer = BytesIO()
@@ -293,25 +264,20 @@ def generate_profile_card(
     draw.text((80, 170), safe_username, font=medium_font, fill=SUBTEXT_COLOR)
 
     draw.text((80, 280), roi_str, font=big_font, fill=roi_color)
-    draw.text(
-        (80, 420),
-        _safe_text("ROI за 30 днів", small_font),
-        font=small_font,
-        fill=SUBTEXT_COLOR,
-    )
+    draw.text((80, 420), "ROI за 30 днів", font=small_font, fill=SUBTEXT_COLOR)
 
     grid_items = [
         (f"{winrate}%", "Winrate"),
-        (str(total_bets), _safe_text("Ставок", small_font)),
-        (_safe_text(f"Рівень {level}", medium_font), "XP"),
-        (_safe_text(f"Топ {top_percent}%", medium_font), _safe_text("Рейтинг", small_font)),
+        (str(total_bets), "Ставок"),
+        (f"Рівень {level}", "XP"),
+        (f"Топ {top_percent}%", "Рейтинг"),
     ]
     positions = [(80, 520), (560, 520), (80, 720), (560, 720)]
 
     for (value, label), (x, y) in zip(grid_items, positions):
         draw.rectangle((x, y, x + 440, y + 160), fill=CARD_COLOR, outline="#1E3A5F", width=2)
         draw.text((x + 20, y + 20), value, font=medium_font, fill=TEXT_COLOR)
-        draw.text((x + 20, y + 95), _safe_text(label, small_font), font=small_font, fill=SUBTEXT_COLOR)
+        draw.text((x + 20, y + 95), label, font=small_font, fill=SUBTEXT_COLOR)
 
     draw.text((80, 1000), "t.me/bet_tracker_stats_bot", font=small_font, fill="#2A4A6B")
 

@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
-from io import BytesIO
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, InputFile, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
 from bets_db import get_full_stats_between
@@ -37,7 +36,6 @@ def _normalize_lang(lang: str) -> str:
 
 
 def _xp_progress_bar(current_xp: int, level: int) -> str:
-    """Generate a simple XP progress bar."""
     if level >= 5:
         return "██████████ MAX"
 
@@ -53,7 +51,6 @@ def _xp_progress_bar(current_xp: int, level: int) -> str:
 
 
 def _achievements_block(unlocked: list[str], lang: str) -> str:
-    """Build the first 6 achievements block, locked ones as 🔒."""
     all_ids = list(ALL_ACHIEVEMENTS.keys())[:6]
     lines: list[str] = []
     name_key = f"name_{lang}" if lang in ("ua", "ru", "en") else "name_ua"
@@ -134,7 +131,7 @@ async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"📝 Ставок: {total_bets}\n\n"
             f"🔥 Streak дисципліни: {current_streak} днів\n"
             f"🌍 Рейтинг: топ {top_percent}% беттерів\n\n"
-            f"🏅 Досягнення:\n"
+            f"🏆 Досягнення:\n"
             f"{_achievements_block(unlocked, lang)}"
         )
     elif lang == "ru":
@@ -149,7 +146,7 @@ async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"📝 Ставок: {total_bets}\n\n"
             f"🔥 Streak дисциплины: {current_streak} дней\n"
             f"🌍 Рейтинг: топ {top_percent}% беттеров\n\n"
-            f"🏅 Достижения:\n"
+            f"🏆 Достижения:\n"
             f"{_achievements_block(unlocked, lang)}"
         )
     else:
@@ -164,7 +161,7 @@ async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"📝 Bets: {total_bets}\n\n"
             f"🔥 Discipline streak: {current_streak} days\n"
             f"🌍 Rank: top {top_percent}% bettors\n\n"
-            f"🏅 Achievements:\n"
+            f"🏆 Achievements:\n"
             f"{_achievements_block(unlocked, lang)}"
         )
 
@@ -183,7 +180,7 @@ async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if newly_unlocked:
         for achievement_id in newly_unlocked:
             achievement = ALL_ACHIEVEMENTS.get(achievement_id, {})
-            emoji = achievement.get("emoji", "🏅")
+            emoji = achievement.get("emoji", "🏆")
             name_key = f"name_{lang}"
             name = achievement.get(name_key, achievement.get("name_ua", achievement_id))
             xp_reward = int(achievement.get("xp_reward") or 0)
@@ -196,7 +193,6 @@ async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def profile_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle profile inline buttons."""
     query = update.callback_query
     await query.answer()
 
@@ -205,36 +201,14 @@ async def profile_callback_handler(update: Update, context: ContextTypes.DEFAULT
     lang = _normalize_lang(user.get("lang") or "ua")
 
     if query.data == "profile_share_card":
-        from services.weekly_card_service import generate_profile_card
-
-        try:
-            end_dt = datetime.now()
-            start_dt = end_dt - timedelta(days=30)
-            stats = get_full_stats_between(user_id, start_dt, end_dt, include_trial=True)
-            xp_data = get_xp(user_id)
-            rank = get_user_rank_percentile(user_id)
-            username = update.effective_user.username or update.effective_user.first_name or "bettor"
-            card_bytes = generate_profile_card(
-                user_id=user_id,
-                stats=stats,
-                username=username,
-                rank_percentile=rank,
-                xp_data=xp_data,
-            )
-            captions = {
-                "ua": "📊 Моя статистика в Bet Tracker Bot\nt.me/bet_tracker_stats_bot",
-                "ru": "📊 Моя статистика в Bet Tracker Bot\nt.me/bet_tracker_stats_bot",
-                "en": "📊 My stats in Bet Tracker Bot\nt.me/bet_tracker_stats_bot",
-            }
-            photo = InputFile(BytesIO(card_bytes), filename="profile_card.png")
-            await query.message.reply_photo(photo=photo, caption=captions.get(lang, captions["en"]))
-        except Exception:
-            error_texts = {
-                "ua": "Помилка генерації картки. Спробуй пізніше.",
-                "ru": "Ошибка генерации карточки. Попробуй позже.",
-                "en": "Card generation error. Try again later.",
-            }
-            await query.message.reply_text(error_texts.get(lang, error_texts["en"]))
+        texts = {
+            "ua": "🛠 Картка профілю в розробці. Скоро буде доступна!",
+            "ru": "🛠 Карточка профиля в разработке. Скоро будет доступна!",
+            "en": "🛠 Profile card coming soon!",
+        }
+        await query.message.reply_text(
+            texts.get(lang, texts["ua"])
+        )
 
     elif query.data == "profile_upgrade":
         from keyboards import access_keyboard

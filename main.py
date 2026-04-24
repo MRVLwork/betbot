@@ -375,7 +375,11 @@ async def stats_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
     if not start_dt:
         return
 
-    stats = get_basic_stats_between(user_id, start_dt, end_dt)
+    is_trial = _is_trial_user(user_id)
+    stats = get_basic_stats_between(
+        user_id, start_dt, end_dt,
+        include_trial=is_trial
+    )
 
     await query.message.reply_text(
         get_text(lang, "stats_result").format(

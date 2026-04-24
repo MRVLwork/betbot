@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta
 from io import BytesIO
 import os
-import urllib.request
+import subprocess
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -17,69 +17,50 @@ TEXT_COLOR = "#FFFFFF"
 SUBTEXT_COLOR = "#8899BB"
 CARD_COLOR = "#152540"
 
-FONTS_DIR = os.path.join(os.path.dirname(__file__), "..", "fonts")
-FONT_REGULAR = os.path.join(FONTS_DIR, "DejaVuSans.ttf")
-FONT_BOLD = os.path.join(FONTS_DIR, "DejaVuSans-Bold.ttf")
+def _ensure_fonts():
+    font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+    if os.path.exists(font_path):
+        return True
 
-FONT_URLS = {
-    "DejaVuSans.ttf": (
-        "https://github.com/dejavu-fonts/dejavu-fonts/"
-        "raw/master/ttf/DejaVuSans.ttf"
-    ),
-    "DejaVuSans-Bold.ttf": (
-        "https://github.com/dejavu-fonts/dejavu-fonts/"
-        "raw/master/ttf/DejaVuSans-Bold.ttf"
-    ),
-}
+    try:
+        result = subprocess.run(
+            ["apt-get", "install", "-y",
+             "--no-install-recommends",
+             "fonts-dejavu-core"],
+            capture_output=True,
+            timeout=60,
+            text=True
+        )
+        if result.returncode == 0:
+            print("fonts-dejavu-core installed OK")
+            return True
+    except Exception as e:
+        print(f"apt install failed: {e}")
 
-
-def _ensure_fonts_downloaded():
-    """
-    Завантажує шрифти якщо їх немає локально.
-    Викликається один раз при імпорті модуля.
-    """
-    os.makedirs(FONTS_DIR, exist_ok=True)
-
-    for font_name, url in FONT_URLS.items():
-        font_path = os.path.join(FONTS_DIR, font_name)
-        if not os.path.exists(font_path):
-            try:
-                print(f"Downloading font {font_name}...")
-                urllib.request.urlretrieve(url, font_path)
-                print(f"Font {font_name} downloaded OK")
-            except Exception as e:
-                print(f"Failed to download {font_name}: {e}")
+    return False
 
 
-try:
-    _ensure_fonts_downloaded()
-except Exception as e:
-    print(f"Font setup error: {e}")
+_fonts_ready = _ensure_fonts()
 
 
 def _load_font(size: int, bold: bool = False):
-    """
-    Завантажує шрифт з підтримкою кирилиці.
-    """
-    font_name = "DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf"
+    font_name = (
+        "DejaVuSans-Bold.ttf" if bold
+        else "DejaVuSans.ttf"
+    )
 
     search_paths = [
-        os.path.join(FONTS_DIR, font_name),
-        os.path.join(os.path.dirname(__file__), "..", font_name),
         f"/usr/share/fonts/truetype/dejavu/{font_name}",
         f"/usr/share/fonts/dejavu/{font_name}",
-        f"/run/current-system/sw/share/fonts/truetype/{font_name}",
+        f"/usr/share/fonts/{font_name}",
+        os.path.join(
+            os.path.dirname(__file__), "..", "fonts", font_name
+        ),
+        os.path.join(
+            os.path.dirname(__file__), "..", font_name
+        ),
+        font_name,
     ]
-
-    try:
-        import glob
-
-        nix_fonts = glob.glob(
-            f"/nix/store/*/share/fonts/truetype/{font_name}"
-        )
-        search_paths.extend(nix_fonts)
-    except Exception:
-        pass
 
     for path in search_paths:
         try:

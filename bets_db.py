@@ -66,6 +66,9 @@ def init_bets_table():
     add_column_if_not_exists("bets", "bet_market", "TEXT")
     add_column_if_not_exists("bets", "is_trial", "INTEGER DEFAULT 0")
     add_column_if_not_exists("bets", "emotion", "TEXT")
+    add_column_if_not_exists("bets", "profit", "DOUBLE PRECISION DEFAULT 0")
+    add_column_if_not_exists("bets", "first_reminder_sent_at", "TEXT")
+    add_column_if_not_exists("bets", "final_reminder_sent_at", "TEXT")
 
 
 def create_bet(
@@ -149,6 +152,207 @@ def update_bet_emotion(bet_id: int, emotion: str):
 
     conn.commit()
     conn.close()
+
+
+def get_pending_bets(user_id: int) -> list[dict]:
+    """
+    Return pending bets for a user that are older than 30 minutes.
+    """
+    conn = get_conn()
+    cur = conn.cursor()
+    threshold = (datetime.now() - timedelta(minutes=30)).isoformat()
+
+    cur.execute(
+        """
+        SELECT id, stake_amount, odds, created_at, bet_type, bet_market
+        FROM bets
+        WHERE user_id = ?
+          AND bet_result = 'pending'
+          AND parse_status = 'parsed'
+          AND created_at <= ?
+        ORDER BY created_at DESC
+        LIMIT 10
+    """,
+        (user_id, threshold),
+    )
+    rows = cur.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def get_all_pending_bets_for_reminder() -> list[dict]:
+    """
+    Return parsed pending bets due for a reminder.
+    First reminder: once after 4 hours.
+    Final reminder: once after 48 hours.
+    """
+    conn = get_conn()
+    cur = conn.cursor()
+
+    four_hours_ago = (datetime.now() - timedelta(hours=4)).isoformat()
+    two_days_ago = (datetime.now() - timedelta(hours=48)).isoformat()
+
+    cur.execute(
+        """
+        SELECT b.id, b.user_id, b.stake_amount, b.odds, b.bet_type,
+               b.bet_market, b.created_at, u.lang
+        FROM bets b
+        JOIN users u ON u.user_id = b.user_id
+        WHERE b.bet_result = 'pending'
+          AND b.parse_status = 'parsed'
+          AND (
+                (b.created_at <= ? AND COALESCE(b.final_reminder_sent_at, '') = '')
+             OR (b.created_at <= ? AND b.created_at > ? AND COALESCE(b.first_reminder_sent_at, '') = '')
+          )
+        ORDER BY b.created_at ASC
+    """,
+        (two_days_ago, four_hours_ago, two_days_ago),
+    )
+    rows = cur.fetchall()
+    conn.close()
+
+    result = []
+    for row in rows:
+        item = dict(row)
+        item["is_final"] = bool((item.get("created_at") or "") <= two_days_ago)
+        result.append(item)
+    return result
+
+
+def mark_pending_bet_reminder_sent(bet_id: int, is_final: bool = False):
+    """Mark a pending bet reminder as sent."""
+    conn = get_conn()
+    cur = conn.cursor()
+    field_name = "final_reminder_sent_at" if is_final else "first_reminder_sent_at"
+    cur.execute(
+        f"""
+        UPDATE bets
+        SET {field_name} = ?
+        WHERE id = ?
+    """,
+        (datetime.now().isoformat(), bet_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_pending_bets_for_auto_expire(grace_hours: int = 24) -> list[dict]:
+    """
+    Return pending bets that should be excluded from stats after
+    the final reminder grace period has passed.
+    """
+    conn = get_conn()
+    cur = conn.cursor()
+    cutoff = (datetime.now() - timedelta(hours=grace_hours)).isoformat()
+    cur.execute(
+        """
+        SELECT b.id, b.user_id, u.lang
+        FROM bets b
+        JOIN users u ON u.user_id = b.user_id
+        WHERE b.bet_result = 'pending'
+          AND b.parse_status = 'parsed'
+          AND COALESCE(b.final_reminder_sent_at, '') != ''
+          AND b.final_reminder_sent_at <= ?
+    """,
+        (cutoff,),
+    )
+    rows = cur.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def expire_pending_bet(bet_id: int) -> bool:
+    """
+    Exclude an unresolved pending bet from stats.
+    """
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        UPDATE bets
+        SET parse_status = 'expired'
+        WHERE id = ?
+          AND bet_result = 'pending'
+          AND parse_status = 'parsed'
+    """,
+        (bet_id,),
+    )
+    conn.commit()
+    updated = cur.rowcount > 0
+    conn.close()
+    return updated
+
+
+def close_pending_bet(bet_id: int, user_id: int, result: str) -> bool:
+    """
+    Close a pending bet with a settled result.
+    Allowed results: win, lose, refund/return.
+    """
+    normalized_result = "refund" if result == "return" else result
+    if normalized_result not in {"win", "lose", "refund"}:
+        return False
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT stake_amount, odds
+        FROM bets
+        WHERE id = ? AND user_id = ?
+          AND bet_result = 'pending'
+    """,
+        (bet_id, user_id),
+    )
+    row = cur.fetchone()
+
+    if not row:
+        conn.close()
+        return False
+
+    stake = float(row.get("stake_amount") or 0)
+    odds = float(row.get("odds") or 1)
+
+    if normalized_result == "win":
+        profit = round(stake * (odds - 1), 2)
+    elif normalized_result == "lose":
+        profit = round(-stake, 2)
+    else:
+        profit = 0.0
+
+    cur.execute(
+        """
+        UPDATE bets
+        SET bet_result = ?,
+            profit = ?
+        WHERE id = ? AND user_id = ?
+    """,
+        (normalized_result, profit, bet_id, user_id),
+    )
+
+    conn.commit()
+    updated = cur.rowcount > 0
+    conn.close()
+    return updated
+
+
+def get_pending_count(user_id: int) -> int:
+    """Return the number of parsed pending bets for a user."""
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT COUNT(*) AS cnt
+        FROM bets
+        WHERE user_id = ?
+          AND bet_result = 'pending'
+          AND parse_status = 'parsed'
+    """,
+        (user_id,),
+    )
+    row = cur.fetchone()
+    conn.close()
+    return int((row or {}).get("cnt") or 0)
 
 
 def _safe_float(value) -> float:

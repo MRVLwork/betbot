@@ -14,7 +14,7 @@ if hasattr(sys.stderr, 'reconfigure'):
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiohttp import web
-from telegram import Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -96,7 +96,12 @@ from handlers.admin import (
     admin_basic_bet_day_photo_handler,
     admin_vip_bet_day_photo_handler,
 )
-from handlers.bets import process_bet_photo, emotion_callback_handler, tilt_warning_callback_handler
+from handlers.bets import (
+    close_bet_callback,
+    process_bet_photo,
+    emotion_callback_handler,
+    tilt_warning_callback_handler,
+)
 from handlers.coach import coach_end_callback, handle_coach_message, open_coach
 from handlers.discipline import show_streak
 from handlers.profile import profile_callback_handler, show_profile
@@ -443,6 +448,102 @@ async def send_trial_expired_notifications(application):
             print(f"trial_expired error for {user_id}: {e}")
 
 
+async def send_pending_bet_reminders(application):
+    """Send reminders about unsettled pending bets."""
+    from bets_db import get_all_pending_bets_for_reminder, mark_pending_bet_reminder_sent
+
+    labels = {
+        "ua": {"win": "✅ Виграв", "lose": "❌ Програв", "refund": "↩️ Повернення"},
+        "ru": {"win": "✅ Выиграл", "lose": "❌ Проиграл", "refund": "↩️ Возврат"},
+        "en": {"win": "✅ Won", "lose": "❌ Lost", "refund": "↩️ Return"},
+    }
+
+    pending_bets = get_all_pending_bets_for_reminder()
+    for bet in pending_bets:
+        user_id = bet["user_id"]
+        bet_id = bet["id"]
+        lang = (bet.get("lang") or "ua").lower()
+        if lang.startswith("uk"):
+            lang = "ua"
+
+        stake = bet.get("stake_amount") or 0
+        odds = bet.get("odds") or 0
+        bet_type = bet.get("bet_type") or bet.get("bet_market") or "bet"
+        is_final = bool(bet.get("is_final"))
+
+        texts = {
+            "ua": (
+                f"⏳ Ставка {bet_type} | коеф. {odds} | сума {stake} UAH\n\n"
+                + (
+                    "48 годин без результату.\nВкажи підсумок, щоб вона лишилась у статистиці:"
+                    if is_final
+                    else "Матч уже міг завершитися.\nВкажи результат:"
+                )
+            ),
+            "ru": (
+                f"⏳ Ставка {bet_type} | коэф. {odds} | сумма {stake} UAH\n\n"
+                + (
+                    "48 часов без результата.\nУкажи итог, чтобы она осталась в статистике:"
+                    if is_final
+                    else "Матч уже мог завершиться.\nУкажи результат:"
+                )
+            ),
+            "en": (
+                f"⏳ Bet {bet_type} | odds {odds} | stake {stake} UAH\n\n"
+                + (
+                    "48 hours without a result.\nSet the outcome so it stays in your stats:"
+                    if is_final
+                    else "Match may already be over.\nSet the result:"
+                )
+            ),
+        }
+        current = labels.get(lang, labels["en"])
+        keyboard = InlineKeyboardMarkup([[
+            InlineKeyboardButton(current["win"], callback_data=f"close_bet_{bet_id}_win"),
+            InlineKeyboardButton(current["lose"], callback_data=f"close_bet_{bet_id}_lose"),
+            InlineKeyboardButton(current["refund"], callback_data=f"close_bet_{bet_id}_refund"),
+        ]])
+
+        try:
+            await application.bot.send_message(
+                chat_id=user_id,
+                text=texts.get(lang, texts["en"]),
+                reply_markup=keyboard,
+            )
+            mark_pending_bet_reminder_sent(bet_id, is_final=is_final)
+        except Exception as e:
+            print(f"pending reminder error for {user_id}: {e}")
+
+
+async def expire_unresolved_pending_bets(application):
+    """Exclude old unresolved pending bets from stats after the final reminder grace period."""
+    from bets_db import expire_pending_bet, get_pending_bets_for_auto_expire
+
+    texts = {
+        "ua": "🗂 Нерозраховану ставку прибрано зі статистики, бо результат так і не був вказаний після фінального нагадування.",
+        "ru": "🗂 Нерассчитанная ставка исключена из статистики, потому что результат так и не был указан после финального напоминания.",
+        "en": "🗂 An unsettled bet was excluded from stats because no result was provided after the final reminder.",
+    }
+
+    expired_bets = get_pending_bets_for_auto_expire()
+    for bet in expired_bets:
+        bet_id = bet["id"]
+        user_id = bet["user_id"]
+        lang = (bet.get("lang") or "ua").lower()
+        if lang.startswith("uk"):
+            lang = "ua"
+
+        try:
+            if not expire_pending_bet(bet_id):
+                continue
+            await application.bot.send_message(
+                chat_id=user_id,
+                text=texts.get(lang, texts["en"]),
+            )
+        except Exception as e:
+            print(f"pending expire error for {user_id}: {e}")
+
+
 async def post_init(application):
     scheduler = AsyncIOScheduler(timezone=ZoneInfo("Europe/Kiev"))
     scheduler.add_job(
@@ -482,6 +583,26 @@ async def post_init(application):
         minute=0,
         timezone="Europe/Kiev",
         id="trial_expired",
+        args=[application],
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        send_pending_bet_reminders,
+        trigger="cron",
+        hour="*/2",
+        minute=0,
+        timezone="Europe/Kiev",
+        id="pending_reminders",
+        args=[application],
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        expire_unresolved_pending_bets,
+        trigger="cron",
+        hour="*/2",
+        minute=20,
+        timezone="Europe/Kiev",
+        id="pending_expire",
         args=[application],
         replace_existing=True,
     )
@@ -1176,6 +1297,10 @@ def main():
     app.add_handler(PreCheckoutQueryHandler(precheckout_handler))
     app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_handler))
 
+    app.add_handler(CallbackQueryHandler(
+        close_bet_callback,
+        pattern=r"^close_bet_\d+_(win|lose|refund|return|later)$",
+    ))
     app.add_handler(CallbackQueryHandler(payment_sent, pattern="^payment_sent$"))
     app.add_handler(CallbackQueryHandler(stats_callback_handler, pattern="^stats_"))
     app.add_handler(CallbackQueryHandler(full_stats_callback_handler, pattern="^fullstats_"))

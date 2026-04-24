@@ -4,7 +4,13 @@ from datetime import datetime
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
-from bets_db import create_bet, get_basic_stats_between, get_tilt_signal_context, update_bet_emotion
+from bets_db import (
+    close_pending_bet,
+    create_bet,
+    get_basic_stats_between,
+    get_tilt_signal_context,
+    update_bet_emotion,
+)
 from db import (
     TRIAL_SCREEN_LIMIT,
     XP_TABLE,
@@ -473,6 +479,65 @@ def _emotion_keyboard(lang: str = "ua") -> InlineKeyboardMarkup:
     ])
 
 
+def _pending_result_keyboard(lang: str, bet_id: int, include_later: bool = True) -> InlineKeyboardMarkup:
+    labels = {
+        "ua": {
+            "win": "✅ Виграв",
+            "lose": "❌ Програв",
+            "refund": "↩️ Повернення",
+            "later": "🕒 Пізніше",
+        },
+        "ru": {
+            "win": "✅ Выиграл",
+            "lose": "❌ Проиграл",
+            "refund": "↩️ Возврат",
+            "later": "🕒 Позже",
+        },
+        "en": {
+            "win": "✅ Won",
+            "lose": "❌ Lost",
+            "refund": "↩️ Return",
+            "later": "🕒 Later",
+        },
+    }
+    current = labels.get(_normalize_lang(lang), labels["en"])
+    rows = [[
+        InlineKeyboardButton(current["win"], callback_data=f"close_bet_{bet_id}_win"),
+        InlineKeyboardButton(current["lose"], callback_data=f"close_bet_{bet_id}_lose"),
+    ], [
+        InlineKeyboardButton(current["refund"], callback_data=f"close_bet_{bet_id}_refund"),
+    ]]
+    if include_later:
+        rows[1].append(
+            InlineKeyboardButton(current["later"], callback_data=f"close_bet_{bet_id}_later")
+        )
+    return InlineKeyboardMarkup(rows)
+
+
+def _pending_result_prompt(lang: str, is_reminder: bool = False, is_final: bool = False) -> str:
+    lang = _normalize_lang(lang)
+    if is_final:
+        texts = {
+            "ua": "⌛ Результат ставки досі не вказаний.\n\nОнови результат зараз, щоб вона враховувалась у статистиці:",
+            "ru": "⌛ Результат ставки всё ещё не указан.\n\nОбнови результат сейчас, чтобы она учитывалась в статистике:",
+            "en": "⌛ This bet still has no result.\n\nSet the outcome now so it stays in your stats:",
+        }
+        return texts.get(lang, texts["en"])
+    if is_reminder:
+        texts = {
+            "ua": "⏰ Матч уже міг завершитися.\n\nВкажи результат ставки:",
+            "ru": "⏰ Матч уже мог завершиться.\n\nУкажи результат ставки:",
+            "en": "⏰ Match may already be over.\n\nSet the bet result:",
+        }
+        return texts.get(lang, texts["en"])
+    texts = {
+        "ua": "⏳ Ставку збережено як нерозраховану.\n\nМатч уже завершився? Вкажи результат:",
+        "ru": "⏳ Ставка сохранена как нерассчитанная.\n\nМатч уже завершился? Укажи результат:",
+        "en": "⏳ Bet saved as pending.\n\nMatch finished? Select the result:",
+    }
+    return texts.get(lang, texts["en"])
+
+
 def _bet_saved_confirmation_text(lang: str, result: dict, remaining: int, daily_limit: int) -> str:
     if result["bet_result"] == "pending":
         return get_text(lang, "bet_pending_saved").format(
@@ -578,6 +643,11 @@ async def emotion_callback_handler(update: Update, context: ContextTypes.DEFAULT
         await query.message.reply_text(
             _bet_saved_confirmation_text(lang, result, remaining, daily_limit)
         )
+        if result.get("bet_result") == "pending":
+            await query.message.reply_text(
+                _pending_result_prompt(lang),
+                reply_markup=_pending_result_keyboard(lang, bet_id),
+            )
         return
 
     total_used = get_trial_used_count(user_id)
@@ -587,6 +657,12 @@ async def emotion_callback_handler(update: Update, context: ContextTypes.DEFAULT
     await query.message.reply_text(
         _trial_bet_result_text(lang, result)
     )
+
+    if result.get("bet_result") == "pending":
+        await query.message.reply_text(
+            _pending_result_prompt(lang),
+            reply_markup=_pending_result_keyboard(lang, bet_id),
+        )
 
     if just_reached_limit or used_today >= daily_limit:
         trial_start = get_trial_start(user_id)
@@ -622,6 +698,74 @@ async def emotion_callback_handler(update: Update, context: ContextTypes.DEFAULT
         await query.message.reply_text(
             _trial_pitch_after_3(lang, stats)
         )
+
+
+async def close_bet_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Handle pending bet settlement callbacks.
+    callback_data format: close_bet_<bet_id>_<result>
+    """
+    query = update.callback_query
+    await query.answer()
+
+    user_id = update.effective_user.id
+    user = get_user(user_id)
+    lang = _normalize_lang(user["lang"] if user and user.get("lang") else "en")
+
+    try:
+        payload = query.data.removeprefix("close_bet_")
+        bet_id_str, result = payload.rsplit("_", 1)
+        bet_id = int(bet_id_str)
+    except (AttributeError, ValueError):
+        return
+
+    if result == "later":
+        later_texts = {
+            "ua": "🕒 Добре, нагадаємо пізніше.",
+            "ru": "🕒 Хорошо, напомним позже.",
+            "en": "🕒 Got it, we will remind you later.",
+        }
+        await query.message.edit_reply_markup(None)
+        await query.message.reply_text(
+            later_texts.get(lang, later_texts["en"])
+        )
+        return
+
+    success = close_pending_bet(bet_id, user_id, result)
+    if not success:
+        error_texts = {
+            "ua": "⚠️ Ставку не знайдено або її вже закрито.",
+            "ru": "⚠️ Ставка не найдена или уже закрыта.",
+            "en": "⚠️ Bet not found or already closed.",
+        }
+        await query.message.reply_text(
+            error_texts.get(lang, error_texts["en"])
+        )
+        return
+
+    result_key = "refund" if result == "return" else result
+    result_emojis = {"win": "✅", "lose": "❌", "refund": "↩️"}
+    result_names = {
+        "ua": {"win": "Виграш", "lose": "Програш", "refund": "Повернення"},
+        "ru": {"win": "Выигрыш", "lose": "Проигрыш", "refund": "Возврат"},
+        "en": {"win": "Win", "lose": "Loss", "refund": "Return"},
+    }
+    success_texts = {
+        "ua": "{emoji} Результат збережено: {name}\nСтатистику оновлено.",
+        "ru": "{emoji} Результат сохранён: {name}\nСтатистика обновлена.",
+        "en": "{emoji} Result saved: {name}\nStats updated.",
+    }
+
+    await query.message.edit_reply_markup(None)
+    await query.message.reply_text(
+        success_texts.get(lang, success_texts["en"]).format(
+            emoji=result_emojis.get(result_key, "✅"),
+            name=result_names.get(lang, result_names["en"]).get(result_key, result_key),
+        )
+    )
+
+    if result_key == "win":
+        add_xp(user_id, XP_TABLE.get("win_bet", 15))
 
 
 def _tilt_warning_keyboard(lang: str) -> InlineKeyboardMarkup:
@@ -971,6 +1115,4 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             _build_limit_pitch(lang, stats),
             reply_markup=access_keyboard(lang)
         )
-
-
 

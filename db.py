@@ -1502,6 +1502,27 @@ def is_trial_available(user_id: int) -> bool:
         return False
 
 
+def can_view_basic_stats(user_id: int) -> bool:
+    """
+    Returns True when the user can view basic statistics.
+    Allowed: paid users + trial users, even if trial has not been started yet.
+    """
+    if user_has_access(user_id):
+        return True
+
+    user = get_user(user_id)
+    if not user:
+        return False
+
+    if int(user.get("trial_completed") or 0) == 1:
+        return False
+
+    if not user.get("trial_started_at"):
+        return True
+
+    return is_trial_available(user_id)
+
+
 def get_trial_used_count(user_id: int) -> int:
     user = get_user(user_id)
     if not user:

@@ -36,6 +36,7 @@ from db import (
     get_user,
     set_user_language,
     is_trial_available,
+    can_view_basic_stats,
 )
 from bets_db import (
     init_bets_table,
@@ -366,15 +367,7 @@ async def stats_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
     user_id = update.effective_user.id
     lang = get_user_lang(user_id)
 
-    user = get_user(user_id)
-    trial_started = user.get("trial_started_at") if user else None
-    trial_active = (
-        trial_started is not None
-        and is_trial_available(user_id)
-    )
-    if (not user_has_access(user_id)
-            and not _is_trial_user(user_id)
-            and not trial_active):
+    if not can_view_basic_stats(user_id):
         await query.message.reply_text(get_text(lang, "no_access"))
         return
 
@@ -704,17 +697,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=stats_submenu_keyboard(lang, is_trial=show_lock)
         )
     elif text in ("\U0001F4CA \u041c\u043e\u044f \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430", "\U0001F4CA My stats"):
-        user = get_user(user_id)
-        has_access = user_has_access(user_id)
-        is_trial = _is_trial_user(user_id)
-
-        trial_started = user.get("trial_started_at") if user else None
-        trial_active = (
-            trial_started is not None
-            and is_trial_available(user_id)
-        )
-
-        if not has_access and not is_trial and not trial_active:
+        if not can_view_basic_stats(user_id):
             await update.message.reply_text(get_text(lang, "no_active_access_start"))
             return ConversationHandler.END
 

@@ -510,10 +510,13 @@ async def emotion_callback_handler(update: Update, context: ContextTypes.DEFAULT
     user_id = update.effective_user.id
     user = get_user(user_id)
     lang = _normalize_lang(user["lang"] if user and user.get("lang") else "en")
+    has_access = user_has_access(user_id)
+    in_trial = (not has_access) and is_trial_available(user_id) and get_trial_start(user_id) is not None
 
     bet_id = context.user_data.get("last_bet_id")
     result = context.user_data.get("last_bet_result")
     daily_limit = context.user_data.get("last_bet_daily_limit")
+    just_reached_limit = context.user_data.get("last_bet_just_reached_limit", False)
 
     if not bet_id or not result or daily_limit is None:
         await query.message.reply_text(get_text(lang, "bet_parse_failed"))
@@ -526,13 +529,59 @@ async def emotion_callback_handler(update: Update, context: ContextTypes.DEFAULT
     context.user_data.pop("last_bet_id", None)
     context.user_data.pop("last_bet_result", None)
     context.user_data.pop("last_bet_daily_limit", None)
+    context.user_data.pop("last_bet_just_reached_limit", None)
 
     remaining = get_user_remaining_photos_today(user_id)
 
     await query.message.edit_reply_markup(None)
+    if not in_trial:
+        await query.message.reply_text(
+            _bet_saved_confirmation_text(lang, result, remaining, daily_limit)
+        )
+        return
+
+    total_used = get_trial_used_count(user_id)
+    used_today = count_user_photos_today(user_id)
+    daily_limit = get_user_daily_limit(user_id)
+
     await query.message.reply_text(
-        _bet_saved_confirmation_text(lang, result, remaining, daily_limit)
+        _trial_bet_result_text(lang, result)
     )
+
+    if just_reached_limit or used_today >= daily_limit:
+        trial_start = get_trial_start(user_id)
+        start_dt = trial_start or datetime.now()
+        stats = get_basic_stats_between(
+            user_id, start_dt, datetime.now(),
+            include_trial=True
+        )
+        days_left = get_trial_remaining(user_id)
+        await query.message.reply_text(
+            _trial_pitch_after_5(lang, stats, days_left),
+            reply_markup=access_keyboard(lang)
+        )
+        return
+
+    if total_used >= 2:
+        remaining_today = daily_limit - used_today
+        days_left = get_trial_remaining(user_id)
+        await query.message.reply_text(
+            _trial_progress_text(
+                lang, used_today,
+                remaining_today, days_left
+            )
+        )
+
+    if total_used == 3:
+        trial_start = get_trial_start(user_id)
+        start_dt = trial_start or datetime.now()
+        stats = get_basic_stats_between(
+            user_id, start_dt, datetime.now(),
+            include_trial=True
+        )
+        await query.message.reply_text(
+            _trial_pitch_after_3(lang, stats)
+        )
 
 
 def _tilt_warning_keyboard(lang: str) -> InlineKeyboardMarkup:
@@ -699,6 +748,13 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         log_user_photo(user_id, file_id)
         increment_trial_usage(user_id)
 
+    if in_trial:
+        used_after = count_user_photos_today(user_id)
+        daily_limit_check = get_user_daily_limit(user_id)
+        just_reached_limit = (used_after >= daily_limit_check)
+    else:
+        just_reached_limit = False
+
     await update.message.reply_text(get_text(lang, "bet_analysis_started"))
 
     tg_file = await photo.get_file()
@@ -752,6 +808,7 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.user_data["last_bet_id"] = bet_id
             context.user_data["last_bet_result"] = result
             context.user_data["last_bet_daily_limit"] = daily_limit
+            context.user_data["last_bet_just_reached_limit"] = just_reached_limit
 
             for signal_code in signals:
                 await update.message.reply_text(

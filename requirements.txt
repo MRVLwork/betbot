@@ -2,6 +2,6 @@ python-telegram-bot==20.7
 openai
 psycopg2-binary
 python-dotenv
-Pillow
+Pillow==10.0.0
 APScheduler
 aiohttp>=3.9.0

@@ -27,34 +27,6 @@ LEVEL_NAMES = {
 
 LEVEL_XP = (0, 500, 1500, 3000, 6000, 999999)
 
-ACHIEVEMENT_HINTS = {
-    "ua": [
-        "🔒 Де ти зливаєш",
-        "🔒 Твої слабкі місця",
-        "🔒 Патерни програшів",
-        "🔒 Аналіз по коеф.",
-        "🔒 Тижневий звіт",
-        "🔒 Порівняння місяців",
-    ],
-    "ru": [
-        "🔒 Где ты сливаешь",
-        "🔒 Твои слабые места",
-        "🔒 Паттерны проигрышей",
-        "🔒 Анализ по коэф.",
-        "🔒 Недельный отчёт",
-        "🔒 Сравнение месяцев",
-    ],
-    "en": [
-        "🔒 Where you lose",
-        "🔒 Your weak spots",
-        "🔒 Losing patterns",
-        "🔒 Odds analysis",
-        "🔒 Weekly report",
-        "🔒 Month comparison",
-    ],
-}
-
-
 def _normalize_lang(lang: str) -> str:
     lang = (lang or "ua").lower()
     if lang.startswith("uk") or lang.startswith("ua"):
@@ -80,35 +52,46 @@ def _xp_progress_bar(current_xp: int, level: int) -> str:
 
 
 def _achievements_block(unlocked: list[str], lang: str) -> str:
+    """
+    Показує перші 6 досягнень:
+    - Розблоковані: emoji + назва
+    - Заблоковані: 🔒 + назва досягнення
+    """
+    from db import ALL_ACHIEVEMENTS
+
     all_ids = list(ALL_ACHIEVEMENTS.keys())[:6]
-    lines: list[str] = []
-    name_key = f"name_{lang}" if lang in ("ua", "ru", "en") else "name_ua"
-    hint_list = ACHIEVEMENT_HINTS.get(lang, ACHIEVEMENT_HINTS["ua"])
 
-    for index, achievement_id in enumerate(all_ids):
-        achievement = ALL_ACHIEVEMENTS[achievement_id]
-        if achievement_id in unlocked:
-            lines.append(
-                f"{achievement['emoji']} "
-                f"{achievement.get(name_key, achievement['name_ua'])}"
-            )
+    name_key = f"name_{lang}"
+    if lang not in ("ua", "ru", "en"):
+        name_key = "name_ua"
+
+    lines = []
+    for aid in all_ids:
+        ach = ALL_ACHIEVEMENTS.get(aid, {})
+        name = ach.get(name_key) or ach.get("name_ua", aid)
+        emoji = ach.get("emoji", "🏅")
+
+        if aid in unlocked:
+            lines.append(f"{emoji} {name}")
         else:
-            lines.append(hint_list[index])
+            lines.append(f"🔒 {name}")
 
-    unlocked_count = sum(
-        1 for achievement_id in ALL_ACHIEVEMENTS
-        if achievement_id in unlocked
+    row1 = " | ".join(lines[:3])
+    row2 = " | ".join(lines[3:6])
+
+    unlocked_count = len(
+        [a for a in ALL_ACHIEVEMENTS if a in unlocked]
     )
     total_count = len(ALL_ACHIEVEMENTS)
 
-    result = " | ".join(lines[:3]) + "\n" + " | ".join(lines[3:6]) + "\n"
-    if lang == "ua":
-        result += f"({unlocked_count}/{total_count} розблоковано)"
-    elif lang == "ru":
-        result += f"({unlocked_count}/{total_count} разблокировано)"
+    if lang == "ru":
+        counter = f"({unlocked_count}/{total_count} разблокировано)"
+    elif lang == "en":
+        counter = f"({unlocked_count}/{total_count} unlocked)"
     else:
-        result += f"({unlocked_count}/{total_count} unlocked)"
-    return result
+        counter = f"({unlocked_count}/{total_count} розблоковано)"
+
+    return f"{row1}\n{row2}\n{counter}"
 
 
 async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):

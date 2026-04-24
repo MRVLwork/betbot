@@ -807,8 +807,36 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             get_text(lang, "choose_analytics_period"),
             reply_markup=stats_periods_keyboard(is_vip, lang, prefix="analytics"),
         )
-    elif text in ("\U0001F6E0 \u0423\u0441\u0456 \u0456\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u0438", "\U0001F6E0 \u0412\u0441\u0435 \u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u044b", "\U0001F6E0 All tools"):
-        await open_tools_menu(update, context)
+    elif text in (
+        "\U0001F6E0 \u0423\u0441\u0456 \u0456\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u0438",
+        "\U0001F6E0 \u0412\u0441\u0435 \u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u044b",
+        "\U0001F6E0 All tools",
+        "🛠 Усі інструменти",
+        "🛠 Все инструменты",
+        "🛠 All tools",
+    ):
+        texts = {
+            "ua": (
+                "🛠 Інструменти в розробці\n\n"
+                "Слідкуй за оновленнями 👀"
+            ),
+            "ru": (
+                "🛠 Инструменты в разработке\n\n"
+                "Следи за обновлениями 👀"
+            ),
+            "en": (
+                "🛠 Tools coming soon\n\n"
+                "Coming up:\n"
+                " Bankroll calculator\n"
+                " Value bet detector\n"
+                " Bookmaker comparison\n"
+                " Streak analysis\n\n"
+                "Stay tuned 👀"
+            ),
+        }
+        await update.message.reply_text(
+            texts.get(lang, texts["ua"])
+        )
     elif text in ("\U0001F4B3 \u041a\u0443\u043f\u0438\u0442\u0438 \u0434\u043e\u0441\u0442\u0443\u043f", "\U0001F4B3 \u041a\u0443\u043f\u0438\u0442\u044c \u0434\u043e\u0441\u0442\u0443\u043f", "\U0001F4B3 Buy access"):
         await update.message.reply_text(
             get_text(lang, "choose_access_option"),

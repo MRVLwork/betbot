@@ -742,8 +742,64 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif text in ("\U0001F9E0 AI \u0422\u0440\u0435\u043d\u0435\u0440", "\U0001F9E0 AI Coach", "\U0001F512 AI \u0422\u0440\u0435\u043d\u0435\u0440 VIP", "\U0001F512 AI Coach VIP"):
         await open_coach(update, context)
     elif text in ("\U0001F9E0 \u0410\u043d\u0430\u043b\u0456\u0442\u0438\u043a\u0430", "\U0001F9E0 \u0410\u043d\u0430\u043b\u0438\u0442\u0438\u043a\u0430", "\U0001F9E0 Analytics"):
-        if not user_has_access(user_id) and not _is_trial_user(user_id):
-            await update.message.reply_text(get_text(lang, "no_active_access_start"))
+        is_trial = _is_trial_user(user_id)
+        has_access = user_has_access(user_id)
+
+        if is_trial and not has_access:
+            upsell_texts = {
+                "ua": (
+                    "\U0001F9E0 \u0410\u043d\u0430\u043b\u0456\u0442\u0438\u043a\u0430 \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u0430 \u0432 Basic \u0456 VIP\n\n"
+                    "\u0429\u043e \u0442\u0438 \u043e\u0442\u0440\u0438\u043c\u0430\u0454\u0448 \u0432 \u0410\u043d\u0430\u043b\u0456\u0442\u0438\u0446\u0456:\n"
+                    "\U0001F4CA \u0422\u0432\u0456\u0439 \u043f\u0440\u043e\u0444\u0456\u043b\u044c \u0431\u0435\u0442\u0442\u0435\u0440\u0430\n"
+                    "\U0001F4CA \u0414\u0435 \u0442\u0438 \u0437\u0430\u0440\u043e\u0431\u043b\u044f\u0454\u0448, \u0434\u0435 \u0437\u043b\u0438\u0432\u0430\u0454\u0448\n"
+                    "\U0001F4CA \u0410\u043d\u0430\u043b\u0456\u0437 \u043f\u043e \u0442\u0438\u043f\u0430\u0445 \u0441\u0442\u0430\u0432\u043e\u043a\n"
+                    "\U0001F4CA \u0422\u0440\u0435\u043d\u0434\u0438 \u0437\u0430 \u0442\u0438\u0436\u0434\u0435\u043d\u044c \u0456 \u043c\u0456\u0441\u044f\u0446\u044c\n"
+                    " \u0422\u0432\u043e\u0457 \u0440\u0438\u0437\u0438\u043a\u0438 \u0456 \u0441\u043b\u0430\u0431\u043a\u0456 \u043c\u0456\u0441\u0446\u044f\n\n"
+                    "\U0001F4A1 \u0421\u0430\u043c\u0435 \u0430\u043d\u0430\u043b\u0456\u0442\u0438\u043a\u0430 \u043f\u043e\u043a\u0430\u0437\u0443\u0454\n"
+                    "\u0434\u0435 \u043d\u0430\u0441\u043f\u0440\u0430\u0432\u0434\u0456 \u0445\u043e\u0432\u0430\u044e\u0442\u044c\u0441\u044f \u0442\u0432\u043e\u0457 \u0433\u0440\u043e\u0448\u0456.\n\n"
+                    "\U0001F539 Basic  $5/\u043c\u0456\u0441\n"
+                    " VIP  $19.99/\u043c\u0456\u0441\n\n"
+                    "\U0001F447 \u0412\u0456\u0434\u043a\u0440\u0438\u0439 \u043f\u043e\u0432\u043d\u0443 \u043a\u0430\u0440\u0442\u0438\u043d\u0443"
+                ),
+                "ru": (
+                    "\U0001F9E0 \u0410\u043d\u0430\u043b\u0438\u0442\u0438\u043a\u0430 \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u0430 \u0432 Basic \u0438 VIP\n\n"
+                    "\u0427\u0442\u043e \u0442\u044b \u043f\u043e\u043b\u0443\u0447\u0438\u0448\u044c \u0432 \u0410\u043d\u0430\u043b\u0438\u0442\u0438\u043a\u0435:\n"
+                    "\U0001F4CA \u0422\u0432\u043e\u0439 \u043f\u0440\u043e\u0444\u0438\u043b\u044c \u0431\u0435\u0442\u0442\u0435\u0440\u0430\n"
+                    "\U0001F4CA \u0413\u0434\u0435 \u0437\u0430\u0440\u0430\u0431\u0430\u0442\u044b\u0432\u0430\u0435\u0448\u044c, \u0433\u0434\u0435 \u0441\u043b\u0438\u0432\u0430\u0435\u0448\u044c\n"
+                    "\U0001F4CA \u0410\u043d\u0430\u043b\u0438\u0437 \u043f\u043e \u0442\u0438\u043f\u0430\u043c \u0441\u0442\u0430\u0432\u043e\u043a\n"
+                    "\U0001F4CA \u0422\u0440\u0435\u043d\u0434\u044b \u0437\u0430 \u043d\u0435\u0434\u0435\u043b\u044e \u0438 \u043c\u0435\u0441\u044f\u0446\n"
+                    " \u0422\u0432\u043e\u0438 \u0440\u0438\u0441\u043a\u0438 \u0438 \u0441\u043b\u0430\u0431\u044b\u0435 \u043c\u0435\u0441\u0442\u0430\n\n"
+                    "\U0001F4A1 \u0418\u043c\u0435\u043d\u043d\u043e \u0430\u043d\u0430\u043b\u0438\u0442\u0438\u043a\u0430 \u043f\u043e\u043a\u0430\u0437\u044b\u0432\u0430\u0435\u0442\n"
+                    "\u0433\u0434\u0435 \u043d\u0430 \u0441\u0430\u043c\u043e\u043c \u0434\u0435\u043b\u0435 \u043f\u0440\u044f\u0447\u0443\u0442\u0441\u044f \u0442\u0432\u043e\u0438 \u0434\u0435\u043d\u044c\u0433\u0438.\n\n"
+                    "\U0001F539 Basic  $5/\u043c\u0435\u0441\n"
+                    " VIP  $19.99/\u043c\u0435\u0441\n\n"
+                    "\U0001F447 \u041e\u0442\u043a\u0440\u043e\u0439 \u043f\u043e\u043b\u043d\u0443\u044e \u043a\u0430\u0440\u0442\u0438\u043d\u0443"
+                ),
+                "en": (
+                    "\U0001F9E0 Analytics available in Basic and VIP\n\n"
+                    "What you get in Analytics:\n"
+                    "\U0001F4CA Your bettor profile\n"
+                    "\U0001F4CA Where you earn, where you lose\n"
+                    "\U0001F4CA Analysis by bet type\n"
+                    "\U0001F4CA Weekly and monthly trends\n"
+                    " Your risks and weak spots\n\n"
+                    "\U0001F4A1 Analytics shows exactly\n"
+                    "where your money is hiding.\n\n"
+                    "\U0001F539 Basic  $5/mo\n"
+                    " VIP  $19.99/mo\n\n"
+                    "\U0001F447 See the full picture"
+                ),
+            }
+            await update.message.reply_text(
+                upsell_texts.get(lang, upsell_texts["en"]),
+                reply_markup=access_keyboard(lang)
+            )
+            return ConversationHandler.END
+
+        if not has_access and not is_trial:
+            await update.message.reply_text(
+                get_text(lang, "no_active_access_start")
+            )
             return ConversationHandler.END
 
         is_vip = is_user_vip(user_id)

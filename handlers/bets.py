@@ -9,6 +9,7 @@ from db import (
     TRIAL_SCREEN_LIMIT,
     XP_TABLE,
     add_xp,
+    get_subscription_type,
     get_user,
     user_has_access,
     get_user_daily_limit,
@@ -20,6 +21,7 @@ from db import (
     get_trial_used_count,
     increment_trial_usage,
     get_trial_start,
+    should_include_trial,
 )
 from keyboards import access_keyboard, welcome_offer_keyboard
 from languages import get_text
@@ -510,8 +512,9 @@ async def emotion_callback_handler(update: Update, context: ContextTypes.DEFAULT
     user_id = update.effective_user.id
     user = get_user(user_id)
     lang = _normalize_lang(user["lang"] if user and user.get("lang") else "en")
-    has_access = user_has_access(user_id)
-    in_trial = (not has_access) and is_trial_available(user_id) and get_trial_start(user_id) is not None
+    sub_type = get_subscription_type(user_id)
+    has_access = sub_type in ("basic", "vip")
+    in_trial = sub_type == "trial"
 
     bet_id = context.user_data.get("last_bet_id")
     result = context.user_data.get("last_bet_result")
@@ -553,7 +556,7 @@ async def emotion_callback_handler(update: Update, context: ContextTypes.DEFAULT
         start_dt = trial_start or datetime.now()
         stats = get_basic_stats_between(
             user_id, start_dt, datetime.now(),
-            include_trial=True
+            include_trial=in_trial
         )
         days_left = get_trial_remaining(user_id)
         await query.message.reply_text(
@@ -577,7 +580,7 @@ async def emotion_callback_handler(update: Update, context: ContextTypes.DEFAULT
         start_dt = trial_start or datetime.now()
         stats = get_basic_stats_between(
             user_id, start_dt, datetime.now(),
-            include_trial=True
+            include_trial=in_trial
         )
         await query.message.reply_text(
             _trial_pitch_after_3(lang, stats)
@@ -699,10 +702,11 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = _normalize_lang(user["lang"] if user and user.get("lang") else "en")
     plan = ((user.get("plan") if user else None) or "basic").lower()
 
-    has_access = user_has_access(user_id)
+    sub_type = get_subscription_type(user_id)
+    has_access = sub_type in ("basic", "vip")
+    in_trial = sub_type == "trial"
     trial_started = get_trial_start(user_id) is not None
-    is_trial_exhausted = (not has_access) and trial_started and not is_trial_available(user_id)
-    in_trial = (not has_access) and is_trial_available(user_id) and get_trial_start(user_id) is not None
+    is_trial_exhausted = (sub_type == "none") and trial_started and not has_access
 
     if is_trial_exhausted:
         await update.message.reply_text(
@@ -840,7 +844,7 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             trial_start = get_trial_start(user_id)
             start_dt = trial_start or datetime.now()
             stats = get_basic_stats_between(
-                user_id, start_dt, datetime.now(), include_trial=True
+                user_id, start_dt, datetime.now(), include_trial=in_trial
             )
             await update.message.reply_text(
                 _trial_pitch_after_3(lang, stats)
@@ -849,7 +853,7 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             trial_start = get_trial_start(user_id)
             start_dt = trial_start or datetime.now()
             stats = get_basic_stats_between(
-                user_id, start_dt, datetime.now(), include_trial=True
+                user_id, start_dt, datetime.now(), include_trial=in_trial
             )
             days_left = get_trial_remaining(user_id)
             await update.message.reply_text(
@@ -897,7 +901,7 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             trial_start = get_trial_start(user_id)
             start_dt = trial_start or datetime.now()
             stats = get_basic_stats_between(
-                user_id, start_dt, datetime.now(), include_trial=True
+                user_id, start_dt, datetime.now(), include_trial=in_trial
             )
             await update.message.reply_text(
                 _trial_pitch_after_3(lang, stats)
@@ -906,7 +910,7 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             trial_start = get_trial_start(user_id)
             start_dt = trial_start or datetime.now()
             stats = get_basic_stats_between(
-                user_id, start_dt, datetime.now(), include_trial=True
+                user_id, start_dt, datetime.now(), include_trial=in_trial
             )
             days_left = get_trial_remaining(user_id)
             await update.message.reply_text(
@@ -919,7 +923,11 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         start_dt = trial_start or datetime.now()
         end_dt = datetime.now()
 
-        stats = get_basic_stats_between(user_id, start_dt, end_dt, include_trial=True)
+        in_trial = should_include_trial(user_id)
+        stats = get_basic_stats_between(
+            user_id, start_dt, end_dt,
+            include_trial=in_trial
+        )
 
         await update.message.reply_text(
             _build_limit_pitch(lang, stats),

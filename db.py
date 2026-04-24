@@ -646,7 +646,11 @@ def check_and_unlock_achievements(user_id: int) -> list[str]:
 
     end_dt = datetime.now()
     start_dt = end_dt - timedelta(days=365)
-    stats = get_full_stats_between(user_id, start_dt, end_dt, include_trial=True)
+    inc_trial = should_include_trial(user_id)
+    stats = get_full_stats_between(
+        user_id, start_dt, end_dt,
+        include_trial=inc_trial
+    )
     streak_data = get_streak(user_id)
 
     checks = [
@@ -963,6 +967,41 @@ def user_has_access(user_id: int) -> bool:
         return datetime.fromisoformat(user["access_until"]) > datetime.now()
     except Exception:
         return False
+
+
+def get_subscription_type(user_id: int) -> str:
+    """
+    Returns the user's subscription type:
+    - "vip" active VIP subscription
+    - "basic" active Basic subscription
+    - "trial" active trial access
+    - "none" no access
+    """
+    user = get_user(user_id)
+    if not user:
+        return "none"
+
+    has_access = user_has_access(user_id)
+    plan = (user.get("plan") or "basic").lower()
+
+    if has_access and plan == "vip":
+        return "vip"
+    if has_access:
+        return "basic"
+
+    trial_started = user.get("trial_started_at")
+    if trial_started and is_trial_available(user_id):
+        return "trial"
+
+    return "none"
+
+
+def should_include_trial(user_id: int) -> bool:
+    """
+    Returns True when trial bets should be included in stats queries.
+    Trial users use include_trial=True, Basic/VIP use include_trial=False.
+    """
+    return get_subscription_type(user_id) == "trial"
 
 
 def activate_user_access(user_id: int, days: int, plan_type: str, source: str):

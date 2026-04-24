@@ -9,10 +9,12 @@ from db import (
     ALL_ACHIEVEMENTS,
     check_and_unlock_achievements,
     get_streak,
+    get_subscription_type,
     get_user,
     get_user_achievements,
     get_user_rank_percentile,
     get_xp,
+    should_include_trial,
     user_has_access,
 )
 
@@ -97,7 +99,11 @@ async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     end_dt = datetime.now()
     start_dt = end_dt - timedelta(days=30)
-    stats = get_full_stats_between(user_id, start_dt, end_dt, include_trial=True)
+    inc_trial = should_include_trial(user_id)
+    stats = get_full_stats_between(
+        user_id, start_dt, end_dt,
+        include_trial=inc_trial
+    )
     roi = round(float(stats.get("roi", 0) or 0), 2)
     winrate = round(float(stats.get("win_rate", 0) or 0), 2)
     total_bets = int(stats.get("total_bets") or 0)
@@ -106,14 +112,15 @@ async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     top_percent = max(1, 100 - rank)
     unlocked = get_user_achievements(user_id)
 
-    plan = (user.get("plan") or "trial").lower()
-    has_access = user_has_access(user_id)
-    if not has_access:
-        plan_label = "Trial 🔸"
-    elif plan == "vip":
+    sub_type = get_subscription_type(user_id)
+    if sub_type == "vip":
         plan_label = "VIP ⭐"
-    else:
+    elif sub_type == "basic":
         plan_label = "Basic 🔹"
+    elif sub_type == "trial":
+        plan_label = "Trial 🔸"
+    else:
+        plan_label = "⛔ Немає доступу"
 
     username = f"@{tg_user.username}" if tg_user.username else (tg_user.first_name or "Беттер")
     roi_str = f"+{roi}%" if roi > 0 else f"{roi}%"

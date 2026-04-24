@@ -37,6 +37,8 @@ from db import (
     set_user_language,
     is_trial_available,
     can_view_basic_stats,
+    get_subscription_type,
+    should_include_trial,
 )
 from bets_db import (
     init_bets_table,
@@ -129,15 +131,7 @@ def get_user_plan(user_id: int) -> str:
 
 
 def _is_trial_user(user_id: int) -> bool:
-    user = get_user(user_id)
-    if not user:
-        return False
-
-    return (
-        user.get("trial_started_at") is not None
-        and is_trial_available(user_id)
-        and not user_has_access(user_id)
-    )
+    return get_subscription_type(user_id) == "trial"
 
 
 def _trial_stats_upsell_text(lang: str) -> str:
@@ -375,7 +369,7 @@ async def stats_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
     if not start_dt:
         return
 
-    is_trial = _is_trial_user(user_id)
+    is_trial = should_include_trial(user_id)
     stats = get_basic_stats_between(
         user_id, start_dt, end_dt,
         include_trial=is_trial

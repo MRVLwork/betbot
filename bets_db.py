@@ -283,10 +283,16 @@ def expire_pending_bet(bet_id: int) -> bool:
     return updated
 
 
-def close_pending_bet(bet_id: int, user_id: int, result: str) -> bool:
+def close_pending_bet(
+    bet_id: int,
+    user_id: int,
+    result: str
+) -> bool:
     """
-    Close a pending bet with a settled result.
-    Allowed results: win, lose, refund/return.
+    Закриває pending ставку з результатом.
+    Також закриває всі схожі pending ставки
+    того ж юзера (захист від дублікатів і
+    повторних нагадувань).
     """
     normalized_result = "refund" if result == "return" else result
     if normalized_result not in {"win", "lose", "refund"}:
@@ -295,24 +301,27 @@ def close_pending_bet(bet_id: int, user_id: int, result: str) -> bool:
     conn = get_conn()
     cur = conn.cursor()
 
+    # Отримати дані основної ставки
     cur.execute(
         """
-        SELECT stake_amount, odds
+        SELECT stake_amount, odds, bet_market, bet_type
         FROM bets
         WHERE id = ? AND user_id = ?
-          AND bet_result = 'pending'
-    """,
+        """,
         (bet_id, user_id),
     )
-    row = cur.fetchone()
+    main_bet = cur.fetchone()
 
-    if not row:
+    if not main_bet:
         conn.close()
         return False
 
-    stake = float(row.get("stake_amount") or 0)
-    odds = float(row.get("odds") or 1)
+    stake = float(main_bet.get("stake_amount") or 0)
+    odds = float(main_bet.get("odds") or 1)
+    market = main_bet.get("bet_market") or ""
+    bet_type = main_bet.get("bet_type") or ""
 
+    # Розрахувати прибуток
     if normalized_result == "win":
         profit = round(stake * (odds - 1), 2)
     elif normalized_result == "lose":
@@ -320,20 +329,46 @@ def close_pending_bet(bet_id: int, user_id: int, result: str) -> bool:
     else:
         profit = 0.0
 
+    # Оновити основну ставку
     cur.execute(
         """
         UPDATE bets
         SET bet_result = ?,
             profit = ?
         WHERE id = ? AND user_id = ?
-    """,
+        """,
         (normalized_result, profit, bet_id, user_id),
+    )
+    main_updated = cur.rowcount > 0
+
+    # Закрити всі схожі pending ставки за останні 12 годин
+    # (захист від повторних нагадувань і дублікатів)
+    twelve_hours_ago = (
+        datetime.now() - timedelta(hours=12)
+    ).isoformat()
+
+    cur.execute(
+        """
+        UPDATE bets
+        SET bet_result = ?,
+            profit = ?
+        WHERE user_id = ?
+          AND bet_result = 'pending'
+          AND id != ?
+          AND ABS(stake_amount - ?) < 0.01
+          AND ABS(odds - ?) < 0.01
+          AND created_at >= ?
+        """,
+        (
+            normalized_result, profit,
+            user_id, bet_id,
+            stake, odds, twelve_hours_ago,
+        ),
     )
 
     conn.commit()
-    updated = cur.rowcount > 0
     conn.close()
-    return updated
+    return main_updated
 
 
 def get_pending_count(user_id: int) -> int:

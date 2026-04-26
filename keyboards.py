@@ -186,15 +186,15 @@ def stars_plans_keyboard(lang: str, promo_available: bool = True):
     if lang == "ru":
         keyboard = [
             [InlineKeyboardButton(
-                "Basic 1 ?????  399 ",
+                "Basic 1 месяц  399 ",
                 callback_data="stars_basic_month"
             )],
             [InlineKeyboardButton(
-                " VIP 1 ?????  1499 ",
+                "VIP 1 месяц  1499 ",
                 callback_data="stars_vip_month_promo"
             )],
             [InlineKeyboardButton(
-                " ?????",
+                " Назад",
                 callback_data="back_to_access"
             )],
         ]
@@ -205,7 +205,7 @@ def stars_plans_keyboard(lang: str, promo_available: bool = True):
                 callback_data="stars_basic_month"
             )],
             [InlineKeyboardButton(
-                " VIP 1 month  1499 ",
+                "VIP 1 month  1499 ",
                 callback_data="stars_vip_month_promo"
             )],
             [InlineKeyboardButton(
@@ -216,15 +216,15 @@ def stars_plans_keyboard(lang: str, promo_available: bool = True):
     else:  # ua
         keyboard = [
             [InlineKeyboardButton(
-                "Basic 1 ??????  399 ",
+                "Basic 1 місяць  399 ",
                 callback_data="stars_basic_month"
             )],
             [InlineKeyboardButton(
-                " VIP 1 ??????  1499 ",
+                "VIP 1 місяць  1499 ",
                 callback_data="stars_vip_month_promo"
             )],
             [InlineKeyboardButton(
-                " ?????",
+                " Назад",
                 callback_data="back_to_access"
             )],
         ]

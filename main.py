@@ -448,6 +448,58 @@ async def send_trial_expired_notifications(application):
             print(f"trial_expired error for {user_id}: {e}")
 
 
+async def send_daily_insights(application):
+    """Send personalized daily insights to active users at 10:00 Europe/Kiev."""
+    from db import get_conn, get_user, get_subscription_type
+    from bets_db import get_daily_insight_data
+    from services.daily_insights import generate_daily_insight
+
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT user_id
+        FROM users
+        WHERE (is_active = 1 OR trial_started_at IS NOT NULL)
+          AND (trial_completed IS NULL OR trial_completed = 0)
+        """
+    )
+    rows = cur.fetchall()
+    conn.close()
+
+    sent_count = 0
+    error_count = 0
+
+    for row in rows:
+        uid = row["user_id"]
+        try:
+            sub_type = get_subscription_type(uid)
+            if sub_type == "none":
+                continue
+
+            user = get_user(uid)
+            lang = ((user or {}).get("lang") or "ua").lower()
+            if lang.startswith("uk"):
+                lang = "ua"
+
+            data = get_daily_insight_data(uid, lang)
+            if not data:
+                continue
+
+            text = generate_daily_insight(data, lang)
+            if not text:
+                continue
+
+            await application.bot.send_message(chat_id=uid, text=text)
+            await asyncio.sleep(0.05)
+            sent_count += 1
+        except Exception as e:
+            error_count += 1
+            print(f"daily insight error for {uid}: {e}")
+
+    print(f"daily insights sent: {sent_count}, errors: {error_count}")
+
+
 async def send_pending_bet_reminders(application):
     """Send reminders about unsettled pending bets."""
     from bets_db import get_all_pending_bets_for_reminder, mark_pending_bet_reminder_sent
@@ -563,6 +615,16 @@ async def post_init(application):
         minute=0,
         timezone="Europe/Kiev",
         id="trial_day3",
+        args=[application],
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        send_daily_insights,
+        trigger="cron",
+        hour=10,
+        minute=0,
+        timezone="Europe/Kiev",
+        id="daily_insights",
         args=[application],
         replace_existing=True,
     )

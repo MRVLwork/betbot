@@ -1185,6 +1185,49 @@ def get_full_stats_between(user_id: int, start_dt, end_dt, include_trial: bool =
     return _calc_stats(rows)
 
 
+def get_daily_insight_data(user_id: int, lang: str) -> dict | None:
+    """
+    Returns data for the daily insight or None when recent activity is insufficient.
+    """
+    from db import should_include_trial
+
+    end_dt = datetime.now()
+    start_7d = end_dt - timedelta(days=7)
+    start_24h = end_dt - timedelta(hours=24)
+    start_30d = end_dt - timedelta(days=30)
+    include_trial = should_include_trial(user_id)
+
+    week_stats = get_full_stats_between(
+        user_id,
+        start_7d,
+        end_dt,
+        include_trial=include_trial,
+    )
+    if int(week_stats.get("settled_bets") or 0) < 3:
+        return None
+
+    yesterday_stats = get_full_stats_between(
+        user_id,
+        start_24h,
+        end_dt,
+        include_trial=include_trial,
+    )
+    month_stats = get_full_stats_between(
+        user_id,
+        start_30d,
+        end_dt,
+        include_trial=include_trial,
+    )
+
+    return {
+        "lang": lang,
+        "week": week_stats,
+        "yesterday": yesterday_stats,
+        "month": month_stats,
+        "day_of_year": end_dt.timetuple().tm_yday,
+    }
+
+
 def get_analytics_between(user_id: int, start_dt, end_dt, plan: str = "basic", include_trial: bool = False):
     rows = _get_rows_between(user_id, start_dt, end_dt, include_trial=include_trial)
     stats = _calc_stats(rows)

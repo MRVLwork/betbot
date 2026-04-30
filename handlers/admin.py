@@ -249,6 +249,165 @@ async def stars_revenue(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"VIP: {row['vip_stars']} ⭐"
     )
 
+async def gen_ref(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """/genref <key> [description] creates a referral link."""
+    if not is_admin(update.effective_user.id):
+        return
+
+    if not context.args:
+        await update.message.reply_text(
+            "Використання:\n"
+            "/genref <ключ> [опис]\n\n"
+            "Приклад:\n"
+            "/genref tiktok\n"
+            "/genref caper_x Каппер X\n"
+            "/genref insta_ad Реклама в Instagram\n\n"
+            "Ключ: тільки латиниця, цифри, _ і -"
+        )
+        return
+
+    source_key = context.args[0].lower()
+    clean_key = source_key.replace("_", "").replace("-", "")
+    if not clean_key.isascii() or not clean_key.isalnum():
+        await update.message.reply_text(
+            "Неправильний ключ.\n"
+            "Дозволено тільки латиниця, цифри, _ і -"
+        )
+        return
+
+    description = " ".join(context.args[1:]) if len(context.args) > 1 else ""
+
+    from db import create_referral_source
+
+    created = create_referral_source(source_key, description)
+    bot_username = context.bot.username
+    link = f"https://t.me/{bot_username}?start=ref_{source_key}"
+
+    if created:
+        msg = (
+            "Реферальне посилання створено\n\n"
+            f"Ключ: `{source_key}`\n"
+            f"Опис: {description or ''}\n\n"
+            f"Посилання:\n`{link}`\n\n"
+            f"Статистика: /refstats {source_key}"
+        )
+    else:
+        msg = (
+            "Посилання вже існує\n\n"
+            f"`{link}`\n\n"
+            f"Статистика: /refstats {source_key}"
+        )
+
+    await update.message.reply_text(msg, parse_mode="Markdown")
+
+
+async def list_refs(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """/refs shows all referral sources."""
+    if not is_admin(update.effective_user.id):
+        return
+
+    from db import get_all_referral_sources
+
+    sources = get_all_referral_sources()
+    if not sources:
+        await update.message.reply_text(
+            "Ще немає реферальних посилань.\n"
+            "Створи перше: /genref tiktok"
+        )
+        return
+
+    lines = ["*Реферальні джерела:*\n"]
+    for source in sources:
+        key = source["source_key"]
+        clicks = source.get("clicks") or 0
+        desc = source.get("description") or ""
+        lines.append(
+            f"`{key}`  {clicks} кліків\n"
+            f"{desc}\n"
+            f"/refstats {key}"
+        )
+
+    await update.message.reply_text("\n\n".join(lines), parse_mode="Markdown")
+
+
+async def ref_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """/refstats <key> shows detailed referral source stats."""
+    if not is_admin(update.effective_user.id):
+        return
+
+    if not context.args:
+        await update.message.reply_text(
+            "Використання: /refstats <ключ>\n"
+            "Приклад: /refstats tiktok"
+        )
+        return
+
+    source_key = context.args[0].lower()
+
+    from db import get_referral_source_stats
+
+    stats = get_referral_source_stats(source_key)
+    if stats["total_users"] == 0:
+        await update.message.reply_text(
+            f"Джерело: `{source_key}`\n\n"
+            "Поки немає юзерів з цього джерела.",
+            parse_mode="Markdown",
+        )
+        return
+
+    paid_total = stats["basic_active"] + stats["vip_active"]
+    conv_rate = round(paid_total / stats["total_users"] * 100, 1)
+
+    summary = (
+        f"*Статистика: {source_key}*\n\n"
+        f"Всього юзерів: *{stats['total_users']}*\n"
+        f"Платних: *{paid_total}* ({conv_rate}%)\n\n"
+        "Розподіл:\n"
+        f"VIP активні: {stats['vip_active']}\n"
+        f"Basic активні: {stats['basic_active']}\n"
+        f"Trial активні: {stats['trial_active']}\n"
+        f"Trial завершено: {stats['trial_completed_no_paid']}\n"
+        f"Не активовано: {stats['no_access']}\n\n"
+        "Дохід:\n"
+        f"Stars: {stats['stars_total']}\n"
+        f"USDT: ${stats['usdt_total']:.2f}"
+    )
+    await update.message.reply_text(summary, parse_mode="Markdown")
+
+    users_list = stats["users_list"]
+    if not users_list:
+        return
+
+    chunks = []
+    current = []
+    for index, user_row in enumerate(users_list, 1):
+        username = user_row.get("username")
+        if username:
+            user_str = f"@{username}"
+        elif user_row.get("first_name"):
+            user_str = user_row["first_name"]
+        else:
+            user_str = f"#{user_row['user_id']}"
+
+        line = f"{index}. {user_str} - {user_row['status']}"
+        if user_row["stars_spent"] > 0:
+            line += f" | {user_row['stars_spent']} Stars"
+        if user_row["usdt_spent"] > 0:
+            line += f" | ${user_row['usdt_spent']:.2f}"
+
+        current.append(line)
+        if len(current) >= 20:
+            chunks.append("\n".join(current))
+            current = []
+
+    if current:
+        chunks.append("\n".join(current))
+
+    for index, chunk in enumerate(chunks, 1):
+        prefix = f"Юзери ({index}/{len(chunks)}):\n\n" if len(chunks) > 1 else "Юзери:\n\n"
+        await update.message.reply_text(prefix + chunk)
+
+
 async def send_basic_bet_day(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update.effective_user.id):
         return

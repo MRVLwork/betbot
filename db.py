@@ -279,6 +279,15 @@ def init_db():
     """)
 
     cur.execute("""
+        CREATE TABLE IF NOT EXISTS referral_sources (
+            source_key TEXT PRIMARY KEY,
+            description TEXT,
+            created_at TEXT NOT NULL,
+            clicks INTEGER DEFAULT 0
+        )
+    """)
+
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS photo_logs (
             id SERIAL PRIMARY KEY,
             user_id BIGINT NOT NULL,
@@ -333,6 +342,8 @@ def init_db():
     add_column_if_not_exists("users", "ai_daily_reset_at", "TEXT")
     add_column_if_not_exists("users", "onboarding_completed", "INTEGER DEFAULT 0")
     add_column_if_not_exists("users", "onboarding_data", "TEXT")
+    add_column_if_not_exists("users", "ref_source", "TEXT")
+    add_column_if_not_exists("users", "ref_joined_at", "TEXT")
 
     add_column_if_not_exists("promo_codes", "plan_type", "TEXT DEFAULT 'basic'")
 
@@ -1845,6 +1856,207 @@ def delete_user_by_username(username: str):
         raise
     finally:
         conn.close()
+
+
+def create_referral_source(source_key: str, description: str = "") -> bool:
+    """Create a new referral source."""
+    clean_key = (source_key or "").replace("_", "").replace("-", "")
+    if not clean_key or not clean_key.isascii() or not clean_key.isalnum():
+        return False
+
+    conn = get_conn()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            """
+            INSERT INTO referral_sources (source_key, description, created_at, clicks)
+            VALUES (?, ?, ?, 0)
+            ON CONFLICT (source_key) DO NOTHING
+            """,
+            (source_key.lower(), description, datetime.now().isoformat()),
+        )
+        conn.commit()
+        return cur.rowcount > 0
+    except Exception:
+        conn.rollback()
+        return False
+    finally:
+        conn.close()
+
+
+def increment_referral_clicks(source_key: str):
+    """Increment the click counter for a referral source."""
+    if not source_key:
+        return
+
+    conn = get_conn()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "UPDATE referral_sources SET clicks = clicks + 1 WHERE source_key = ?",
+            (source_key.lower(),),
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+    finally:
+        conn.close()
+
+
+def set_user_ref_source(user_id: int, source_key: str):
+    """Store the user's referral source only if it is still empty."""
+    if not source_key:
+        return
+
+    conn = get_conn()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            """
+            UPDATE users
+            SET ref_source = ?, ref_joined_at = ?
+            WHERE user_id = ? AND (ref_source IS NULL OR ref_source = '')
+            """,
+            (source_key.lower(), datetime.now().isoformat(), user_id),
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+    finally:
+        conn.close()
+
+
+def get_all_referral_sources() -> list[dict]:
+    """Return all referral sources ordered by clicks."""
+    conn = get_conn()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            """
+            SELECT source_key, description, created_at, clicks
+            FROM referral_sources
+            ORDER BY clicks DESC
+            """
+        )
+        return [dict(row) for row in cur.fetchall()]
+    except Exception:
+        return []
+    finally:
+        conn.close()
+
+
+def get_referral_source_stats(source_key: str) -> dict:
+    """Return detailed user and revenue stats for one referral source."""
+    conn = get_conn()
+    cur = conn.cursor()
+
+    result = {
+        "source_key": source_key,
+        "total_users": 0,
+        "trial_active": 0,
+        "trial_completed_no_paid": 0,
+        "basic_active": 0,
+        "vip_active": 0,
+        "no_access": 0,
+        "stars_total": 0,
+        "usdt_total": 0.0,
+        "users_list": [],
+    }
+
+    try:
+        cur.execute(
+            """
+            SELECT user_id, username, first_name, plan, is_active,
+                   access_until, trial_started_at, trial_completed,
+                   trial_expires_at, ref_joined_at
+            FROM users
+            WHERE LOWER(ref_source) = LOWER(?)
+            ORDER BY ref_joined_at DESC
+            """,
+            (source_key,),
+        )
+        users = [dict(row) for row in cur.fetchall()]
+        result["total_users"] = len(users)
+
+        for user_row in users:
+            uid = user_row["user_id"]
+            plan = (user_row.get("plan") or "").lower()
+            is_active = int(user_row.get("is_active") or 0) == 1
+            trial_completed = int(user_row.get("trial_completed") or 0) == 1
+            has_paid_access = False
+
+            if is_active and user_row.get("access_until"):
+                try:
+                    has_paid_access = datetime.fromisoformat(user_row["access_until"]) > datetime.now()
+                except Exception:
+                    has_paid_access = False
+
+            trial_active = False
+            if user_row.get("trial_started_at") and not trial_completed:
+                try:
+                    if user_row.get("trial_expires_at"):
+                        trial_expires = datetime.fromisoformat(user_row["trial_expires_at"])
+                    else:
+                        trial_expires = datetime.fromisoformat(user_row["trial_started_at"]) + timedelta(days=7)
+                    trial_active = trial_expires > datetime.now()
+                except Exception:
+                    trial_active = False
+
+            if has_paid_access and plan == "vip":
+                result["vip_active"] += 1
+                status = "VIP"
+            elif has_paid_access:
+                result["basic_active"] += 1
+                status = "Basic"
+            elif trial_active:
+                result["trial_active"] += 1
+                status = "Trial"
+            elif trial_completed or user_row.get("trial_started_at"):
+                result["trial_completed_no_paid"] += 1
+                status = "Trial completed"
+            else:
+                result["no_access"] += 1
+                status = "No access"
+
+            cur.execute(
+                """
+                SELECT COALESCE(SUM(amount_xtr), 0) as stars
+                FROM star_payments
+                WHERE user_id = ? AND COALESCE(status, 'paid') = 'paid'
+                """,
+                (uid,),
+            )
+            stars_row = cur.fetchone() or {}
+            user_stars = int(stars_row.get("stars") or 0)
+
+            cur.execute(
+                """
+                SELECT COALESCE(SUM(amount_usd), 0) as usdt
+                FROM payments
+                WHERE user_id = ? AND status = 'promo_sent'
+                """,
+                (uid,),
+            )
+            usdt_row = cur.fetchone() or {}
+            user_usdt = float(usdt_row.get("usdt") or 0)
+
+            result["stars_total"] += user_stars
+            result["usdt_total"] += user_usdt
+            result["users_list"].append({
+                "user_id": uid,
+                "username": user_row.get("username"),
+                "first_name": user_row.get("first_name"),
+                "status": status,
+                "stars_spent": user_stars,
+                "usdt_spent": round(user_usdt, 2),
+                "joined_at": user_row.get("ref_joined_at"),
+            })
+    except Exception as exc:
+        print(f"get_referral_source_stats error: {exc}")
+    finally:
+        conn.close()
+
+    return result
 
 
 def _normalize_lang_code(lang: str) -> str:

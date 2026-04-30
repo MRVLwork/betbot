@@ -86,6 +86,9 @@ from handlers.admin import (
     promo_stats,
     delete_user,
     stars_revenue,
+    gen_ref,
+    list_refs,
+    ref_stats,
     send_basic_bet_day,
     send_vip_bet_day,
     senddaybet,
@@ -1434,6 +1437,9 @@ def main():
     app.add_handler(CommandHandler("statspromo", promo_stats))
     app.add_handler(CommandHandler("deluser", delete_user))
     app.add_handler(CommandHandler("stars", stars_revenue))
+    app.add_handler(CommandHandler("genref", gen_ref))
+    app.add_handler(CommandHandler("refs", list_refs))
+    app.add_handler(CommandHandler("refstats", ref_stats))
     app.add_handler(CommandHandler("sendbasicday", send_basic_bet_day))
     app.add_handler(CommandHandler("sendvipday", send_vip_bet_day))
     app.add_handler(CommandHandler("senddaybet", senddaybet))

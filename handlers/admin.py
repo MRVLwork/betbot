@@ -145,7 +145,7 @@ async def promos(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(text)
 
 
-async def users_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def _users_list_legacy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update.effective_user.id):
         return
 
@@ -584,6 +584,129 @@ async def admin_broadcast_photo_handler(update: Update, context: ContextTypes.DE
 
 
 from services.tools_service import send_day_bet
+
+
+async def users_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /users full users list:
+    TG ID | Username | Subscription | Trial | Spent | Referral
+    """
+    if not is_admin(update.effective_user.id):
+        return
+
+    from db import get_users_with_full_info
+
+    users = get_users_with_full_info()
+
+    if not users:
+        await update.message.reply_text("Користувачів немає")
+        return
+
+    total = len(users)
+    cnt_vip = 0
+    cnt_basic = 0
+    cnt_trial = 0
+    cnt_none = 0
+    cnt_trial_used = 0
+    cnt_referrals = 0
+    total_usdt = 0.0
+    total_stars = 0
+
+    lines = []
+
+    for user_row in users:
+        uid = user_row["user_id"]
+        username = user_row.get("username")
+        first_name = user_row.get("first_name")
+        plan = (user_row.get("plan") or "").lower()
+        is_active = int(user_row.get("is_active") or 0) == 1
+        trial_started = user_row.get("trial_started_at")
+        trial_completed = int(user_row.get("trial_completed") or 0) == 1
+        ref_source = user_row.get("ref_source") or ""
+        usdt_total = float(user_row.get("usdt_total") or 0)
+        stars_total = int(user_row.get("stars_total") or 0)
+
+        if is_active and plan == "vip":
+            subscription = "VIP"
+            cnt_vip += 1
+        elif is_active:
+            subscription = "Basic"
+            cnt_basic += 1
+        elif trial_started and not trial_completed:
+            subscription = "Trial"
+            cnt_trial += 1
+        else:
+            subscription = "none"
+            cnt_none += 1
+
+        if trial_started:
+            trial_status = "trial_active"
+            cnt_trial_used += 1
+        else:
+            trial_status = "trial_none"
+
+        if ref_source:
+            ref_str = f"ref: {ref_source}"
+            cnt_referrals += 1
+        else:
+            ref_str = "ref: ні"
+
+        if username:
+            user_name = f"@{username}"
+        elif first_name:
+            user_name = first_name
+        else:
+            user_name = ""
+
+        spent_parts = []
+        if usdt_total > 0:
+            spent_parts.append(f"${usdt_total:.2f}")
+            total_usdt += usdt_total
+        if stars_total > 0:
+            spent_parts.append(f"{stars_total} Stars")
+            total_stars += stars_total
+        spent_str = " + ".join(spent_parts) if spent_parts else "0"
+
+        line = (
+            f"{uid} | {user_name} | {subscription} | "
+            f"{trial_status} | {spent_str} | {ref_str}"
+        )
+        lines.append(line)
+
+    summary = (
+        f"👥 *Всього юзерів: {total}*\n"
+        f"{'-' * 25}\n"
+        f"VIP: {cnt_vip}\n"
+        f"Basic: {cnt_basic}\n"
+        f"Trial: {cnt_trial}\n"
+        f"None: {cnt_none}\n\n"
+        f"Активували trial: {cnt_trial_used}\n"
+        f"Прийшли по рефке: {cnt_referrals}\n\n"
+        f"💰 Загальні витрати:\n"
+        f"USDT: ${total_usdt:.2f}\n"
+        f"Stars: {total_stars}\n"
+    )
+
+    await update.message.reply_text(summary, parse_mode="Markdown")
+
+    chunk_size = 25
+    chunks = [
+        lines[i:i + chunk_size]
+        for i in range(0, len(lines), chunk_size)
+    ]
+
+    for index, chunk in enumerate(chunks, 1):
+        prefix = (
+            f"📋 Юзери ({index}/{len(chunks)}):\n\n"
+            if len(chunks) > 1
+            else "📋 Юзери:\n\n"
+        )
+        text = prefix + "\n".join(chunk)
+
+        if len(text) > 4000:
+            text = text[:3997] + "..."
+
+        await update.message.reply_text(text)
 
 async def senddaybet(update, context):
     if not is_admin(update.effective_user.id):

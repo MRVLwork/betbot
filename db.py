@@ -2136,3 +2136,44 @@ def get_broadcast_recipients(lang_tag: str = "alllangs", audience_tag: str = "al
         recipients.append(user_id)
 
     return recipients
+
+
+def get_users_with_full_info() -> list[dict]:
+    """
+    Returns all users with subscription, trial, payment, and referral details.
+    """
+    conn = get_conn()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+            SELECT
+                u.user_id,
+                u.username,
+                u.first_name,
+                u.plan,
+                u.is_active,
+                u.trial_started_at,
+                u.trial_completed,
+                u.access_until AS plan_expires_at,
+                u.ref_source,
+                COALESCE((
+                    SELECT SUM(amount_usd)
+                    FROM payments
+                    WHERE user_id = u.user_id AND status = 'paid'
+                ), 0) AS usdt_total,
+                COALESCE((
+                    SELECT SUM(amount_xtr)
+                    FROM star_payments
+                    WHERE user_id = u.user_id AND status = 'paid'
+                ), 0) AS stars_total
+            FROM users u
+            ORDER BY u.user_id DESC
+        """)
+        rows = cur.fetchall()
+        return [dict(row) for row in rows]
+    except Exception as exc:
+        print(f"get_users_with_full_info error: {exc}")
+        return []
+    finally:
+        conn.close()

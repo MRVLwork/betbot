@@ -611,6 +611,8 @@ async def users_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cnt_referrals = 0
     total_usdt = 0.0
     total_stars = 0
+    total_photos = 0
+    total_bets = 0
 
     lines = []
 
@@ -625,6 +627,8 @@ async def users_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ref_source = user_row.get("ref_source") or ""
         usdt_total = float(user_row.get("usdt_total") or 0)
         stars_total = int(user_row.get("stars_total") or 0)
+        photos_total = int(user_row.get("photos_total") or 0)
+        bets_total = int(user_row.get("bets_total") or 0)
 
         if is_active and plan == "vip":
             subscription = "VIP"
@@ -666,10 +670,13 @@ async def users_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
             spent_parts.append(f"{stars_total} Stars")
             total_stars += stars_total
         spent_str = " + ".join(spent_parts) if spent_parts else "0"
+        total_photos += photos_total
+        total_bets += bets_total
 
         line = (
             f"{uid} | {user_name} | {subscription} | "
-            f"{trial_status} | {spent_str} | {ref_str}"
+            f"{trial_status} | 📸 {photos_total}/{bets_total} | "
+            f"{spent_str} | {ref_str}"
         )
         lines.append(line)
 
@@ -684,7 +691,11 @@ async def users_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Прийшли по рефке: {cnt_referrals}\n\n"
         f"💰 Загальні витрати:\n"
         f"USDT: ${total_usdt:.2f}\n"
-        f"Stars: {total_stars}\n"
+        f"Stars: {total_stars}\n\n"
+        f"📸 Активність:\n"
+        f"Скрінів: {total_photos}\n"
+        f"Ставок збережено: {total_bets}\n"
+        f"Конверсія: {round(total_bets / total_photos * 100, 1) if total_photos else 0}%\n"
     )
 
     await update.message.reply_text(summary, parse_mode="Markdown")

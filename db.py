@@ -2140,7 +2140,7 @@ def get_broadcast_recipients(lang_tag: str = "alllangs", audience_tag: str = "al
 
 def get_users_with_full_info() -> list[dict]:
     """
-    Returns all users with subscription, trial, payment, and referral details.
+    Returns all users with subscription, trial, payment, referral, and activity details.
     """
     conn = get_conn()
     cur = conn.cursor()
@@ -2166,7 +2166,18 @@ def get_users_with_full_info() -> list[dict]:
                     SELECT SUM(amount_xtr)
                     FROM star_payments
                     WHERE user_id = u.user_id AND status = 'paid'
-                ), 0) AS stars_total
+                ), 0) AS stars_total,
+                COALESCE((
+                    SELECT COUNT(*)
+                    FROM photo_logs
+                    WHERE user_id = u.user_id
+                ), 0) AS photos_total,
+                COALESCE((
+                    SELECT COUNT(*)
+                    FROM bets
+                    WHERE user_id = u.user_id
+                      AND parse_status = 'parsed'
+                ), 0) AS bets_total
             FROM users u
             ORDER BY u.user_id DESC
         """)

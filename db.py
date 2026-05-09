@@ -344,6 +344,7 @@ def init_db():
     add_column_if_not_exists("users", "onboarding_data", "TEXT")
     add_column_if_not_exists("users", "ref_source", "TEXT")
     add_column_if_not_exists("users", "ref_joined_at", "TEXT")
+    add_column_if_not_exists("users", "daily_bank_limit", "DOUBLE PRECISION DEFAULT 0")
 
     add_column_if_not_exists("promo_codes", "plan_type", "TEXT DEFAULT 'basic'")
 
@@ -426,6 +427,28 @@ def get_user(user_id: int):
 
     conn.close()
     return row
+
+
+def set_user_bank_limit(user_id: int, daily_limit: float):
+    """Зберігає денний ліміт банку юзера"""
+    conn = get_conn()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "UPDATE users SET daily_bank_limit = ? WHERE user_id = ?",
+            (daily_limit, user_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def get_user_bank_limit(user_id: int) -> float:
+    """Повертає денний ліміт банку юзера"""
+    user = get_user(user_id)
+    if not user:
+        return 0.0
+    return float(user.get("daily_bank_limit") or 0)
 
 
 def is_onboarding_completed(user_id: int) -> bool:

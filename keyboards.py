@@ -313,23 +313,23 @@ def tools_keyboard(lang: str):
     if lang == "ru":
         keyboard = [
             [InlineKeyboardButton("🎯 Ставка дня", callback_data="tool_bet_day")],
-            [InlineKeyboardButton("⚡ Live", callback_data="tool_live")],
-            [InlineKeyboardButton("🤖 AI-анализ", callback_data="tool_ai")],
-            [InlineKeyboardButton("🚀 Челлендж", callback_data="tool_challenge")],
+            [InlineKeyboardButton("🤖 AI-анализ матча", callback_data="tool_ai")],
+            [InlineKeyboardButton("🧮 Калькулятор Келли", callback_data="tool_kelly")],
+            [InlineKeyboardButton("📊 Лимит банка", callback_data="tool_bank_limit")],
         ]
     elif lang == "en":
         keyboard = [
             [InlineKeyboardButton("🎯 Bet of the day", callback_data="tool_bet_day")],
-            [InlineKeyboardButton("⚡ Live", callback_data="tool_live")],
-            [InlineKeyboardButton("🤖 AI analysis", callback_data="tool_ai")],
-            [InlineKeyboardButton("🚀 Challenge", callback_data="tool_challenge")],
+            [InlineKeyboardButton("🤖 AI match analysis", callback_data="tool_ai")],
+            [InlineKeyboardButton("🧮 Kelly Calculator", callback_data="tool_kelly")],
+            [InlineKeyboardButton("📊 Bank limit", callback_data="tool_bank_limit")],
         ]
-    else:
+    else:  # ua
         keyboard = [
             [InlineKeyboardButton("🎯 Ставка дня", callback_data="tool_bet_day")],
-            [InlineKeyboardButton("⚡ Live", callback_data="tool_live")],
-            [InlineKeyboardButton("🤖 AI-аналіз", callback_data="tool_ai")],
-            [InlineKeyboardButton("🚀 Челендж", callback_data="tool_challenge")],
+            [InlineKeyboardButton("🤖 AI-аналіз матчу", callback_data="tool_ai")],
+            [InlineKeyboardButton("🧮 Калькулятор Келлі", callback_data="tool_kelly")],
+            [InlineKeyboardButton("📊 Ліміт банку", callback_data="tool_bank_limit")],
         ]
     return InlineKeyboardMarkup(keyboard)
 

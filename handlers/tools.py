@@ -172,13 +172,53 @@ async def tools_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
         await query.message.reply_text(text, reply_markup=bet_day_vip_keyboard(lang, has_access=True, is_subscribed=True))
         return
 
-    if query.data == "tool_live":
-        text = {
-            "ua": "⚡ Live\n\nРозділ live сигналів підключимо наступним етапом.",
-            "ru": "⚡ Live\n\nРаздел live сигналов подключим следующим этапом.",
-            "en": "⚡ Live\n\nThe live signals section will be connected in the next step.",
-        }[lang]
-        await query.message.reply_text(text)
+    if query.data == "tool_kelly":
+        if not has_access:
+            no_access = {
+                "ua": "🔒 Калькулятор Келлі доступний після активації підписки.\n\n👇 Обери тариф:",
+                "ru": "🔒 Калькулятор Келли доступен после активации подписки.\n\n👇 Выбери тариф:",
+                "en": "🔒 Kelly Calculator is available after subscription.\n\n👇 Choose a plan:",
+            }
+            await query.message.reply_text(
+                no_access.get(lang, no_access["en"]),
+                reply_markup=access_keyboard(lang),
+            )
+            return
+
+        context.user_data["awaiting_kelly_input"] = True
+        prompts = {
+            "ua": (
+                "🧮 *Калькулятор Келлі*\n\n"
+                "Допомагає визначити оптимальний розмір ставки\n"
+                "щоб захистити банк від злива.\n\n"
+                "Надішли 3 числа через пробіл:\n"
+                "`<банк> <коефіцієнт> <твоя_ймовірність_у_%>`\n\n"
+                "Приклад: 1000 2.10 55\n"
+                "(банк 1000, коеф 2.10, шанс 55%)"
+            ),
+            "ru": (
+                "🧮 *Калькулятор Келли*\n\n"
+                "Помогает определить оптимальный размер ставки\n"
+                "чтобы защитить банк от слива.\n\n"
+                "Отправь 3 числа через пробел:\n"
+                "`<банк> <коэффициент> <твоя_вероятность_в_%>`\n\n"
+                "Пример: 1000 2.10 55\n"
+                "(банк 1000, коэф 2.10, шанс 55%)"
+            ),
+            "en": (
+                "🧮 *Kelly Calculator*\n\n"
+                "Helps determine optimal bet size\n"
+                "to protect bankroll from drain.\n\n"
+                "Send 3 numbers separated by space:\n"
+                "`<bank> <odds> <your_probability_in_%>`\n\n"
+                "Example: 1000 2.10 55\n"
+                "(bank 1000, odds 2.10, chance 55%)"
+            ),
+        }
+        await query.message.reply_text(
+            prompts.get(lang, prompts["en"]),
+            parse_mode="Markdown",
+        )
         return
 
     if query.data == "tool_ai":
@@ -190,14 +230,243 @@ async def tools_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
         await query.message.reply_text(get_text(lang, "ai_analysis_send_prompt"))
         return
 
-    if query.data == "tool_challenge":
-        text = {
-            "ua": "🚀 Челендж\n\nЧелендж підключимо наступним етапом.",
-            "ru": "🚀 Челлендж\n\nЧеллендж подключим следующим этапом.",
-            "en": "🚀 Challenge\n\nThe challenge will be connected in the next step.",
-        }[lang]
-        await query.message.reply_text(text)
+    if query.data == "tool_bank_limit":
+        if not has_access:
+            no_access = {
+                "ua": "🔒 Налаштування ліміту банку доступне після підписки.\n\n👇 Обери тариф:",
+                "ru": "🔒 Настройка лимита банка доступна после подписки.\n\n👇 Выбери тариф:",
+                "en": "🔒 Bank limit setup is available after subscription.\n\n👇 Choose a plan:",
+            }
+            await query.message.reply_text(
+                no_access.get(lang, no_access["en"]),
+                reply_markup=access_keyboard(lang),
+            )
+            return
+
+        context.user_data["awaiting_bank_limit"] = True
+        prompts = {
+            "ua": (
+                "📊 *Ліміт банку*\n\n"
+                "Встанови денний ліміт ставок щоб не\n"
+                "зливати банк за один тілт.\n\n"
+                "Надішли число  максимум на день у твоїй валюті.\n"
+                "Приклад: 500\n\n"
+                "Бот попередить коли ти близький до ліміту\n"
+                "і заблокує нові скріни при перевищенні."
+            ),
+            "ru": (
+                "📊 *Лимит банка*\n\n"
+                "Установи дневной лимит ставок чтобы не\n"
+                "сливать банк за один тилт.\n\n"
+                "Отправь число  максимум на день в твоей валюте.\n"
+                "Пример: 500\n\n"
+                "Бот предупредит когда близко к лимиту\n"
+                "и заблокирует новые скрины при превышении."
+            ),
+            "en": (
+                "📊 *Bank limit*\n\n"
+                "Set daily betting limit to avoid\n"
+                "draining bankroll on tilt.\n\n"
+                "Send a number  max amount per day.\n"
+                "Example: 500\n\n"
+                "Bot will warn when you're near limit\n"
+                "and block new screens after exceeding."
+            ),
+        }
+        await query.message.reply_text(
+            prompts.get(lang, prompts["en"]),
+            parse_mode="Markdown",
+        )
         return
+
+
+async def handle_kelly_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обробляє ввід для калькулятора Келлі"""
+    if not context.user_data.get("awaiting_kelly_input"):
+        return
+
+    user_id = update.effective_user.id
+    user = get_user(user_id) or {}
+    lang = _normalize_lang(user.get("lang", "en"))
+
+    text = (update.message.text or "").strip()
+    parts = text.split()
+
+    error_text = {
+        "ua": " Неправильний формат.\nПриклад: 1000 2.10 55",
+        "ru": " Неправильный формат.\nПример: 1000 2.10 55",
+        "en": " Wrong format.\nExample: 1000 2.10 55",
+    }
+
+    if len(parts) != 3:
+        await update.message.reply_text(
+            error_text.get(lang, error_text["en"]),
+            parse_mode="Markdown",
+        )
+        return
+
+    try:
+        bank = float(parts[0])
+        odds = float(parts[1])
+        probability = float(parts[2])
+
+        if bank <= 0 or odds <= 1 or probability <= 0 or probability >= 100:
+            raise ValueError()
+
+    except (ValueError, IndexError):
+        await update.message.reply_text(
+            error_text.get(lang, error_text["en"]),
+            parse_mode="Markdown",
+        )
+        return
+
+    p = probability / 100
+    q = 1 - p
+    b = odds - 1
+    kelly_fraction = (b * p - q) / b
+
+    context.user_data["awaiting_kelly_input"] = False
+
+    if kelly_fraction <= 0:
+        no_value = {
+            "ua": (
+                f" *Не роби цю ставку!*\n\n"
+                f"При коеф {odds} і шансі {probability}%\n"
+                f"математичне очікування негативне.\n\n"
+                f"Букмекер пропонує тобі гірші умови\n"
+                f"ніж реальний шанс перемоги."
+            ),
+            "ru": (
+                f" *Не делай эту ставку!*\n\n"
+                f"При коэф {odds} и шансе {probability}%\n"
+                f"математическое ожидание отрицательное.\n\n"
+                f"Букмекер предлагает тебе худшие условия\n"
+                f"чем реальный шанс победы."
+            ),
+            "en": (
+                f" *Don't make this bet!*\n\n"
+                f"At odds {odds} and chance {probability}%\n"
+                f"expected value is negative.\n\n"
+                f"Bookmaker offers worse conditions\n"
+                f"than your real winning chance."
+            ),
+        }
+        await update.message.reply_text(
+            no_value.get(lang, no_value["en"]),
+            parse_mode="Markdown",
+        )
+        return
+
+    full_kelly = bank * kelly_fraction
+    half_kelly = full_kelly / 2
+    quarter_kelly = full_kelly / 4
+
+    result = {
+        "ua": (
+            f"🧮 *Калькулятор Келлі*\n\n"
+            f"Банк: {bank:.0f}\n"
+            f"Коеф: {odds}\n"
+            f"Твій шанс: {probability}%\n\n"
+            f"📊 Рекомендовані ставки:\n\n"
+            f"🟢 *Безпечно (Quarter):* {quarter_kelly:.0f}\n"
+            f"🟡 *Помірно (Half):* {half_kelly:.0f}\n"
+            f"🔴 *Агресивно (Full):* {full_kelly:.0f}\n\n"
+            f"💡 Більшість профі використовують\n"
+            f"Quarter або Half Kelly щоб мінімізувати\n"
+            f"волатильність банку."
+        ),
+        "ru": (
+            f"🧮 *Калькулятор Келли*\n\n"
+            f"Банк: {bank:.0f}\n"
+            f"Коэф: {odds}\n"
+            f"Твой шанс: {probability}%\n\n"
+            f"📊 Рекомендуемые ставки:\n\n"
+            f"🟢 *Безопасно (Quarter):* {quarter_kelly:.0f}\n"
+            f"🟡 *Умеренно (Half):* {half_kelly:.0f}\n"
+            f"🔴 *Агрессивно (Full):* {full_kelly:.0f}\n\n"
+            f"💡 Большинство профи используют\n"
+            f"Quarter или Half Kelly чтобы минимизировать\n"
+            f"волатильность банка."
+        ),
+        "en": (
+            f"🧮 *Kelly Calculator*\n\n"
+            f"Bank: {bank:.0f}\n"
+            f"Odds: {odds}\n"
+            f"Your chance: {probability}%\n\n"
+            f"📊 Recommended bet sizes:\n\n"
+            f"🟢 *Safe (Quarter):* {quarter_kelly:.0f}\n"
+            f"🟡 *Moderate (Half):* {half_kelly:.0f}\n"
+            f"🔴 *Aggressive (Full):* {full_kelly:.0f}\n\n"
+            f"💡 Most pros use Quarter or Half Kelly\n"
+            f"to minimize bankroll volatility."
+        ),
+    }
+    await update.message.reply_text(
+        result.get(lang, result["en"]),
+        parse_mode="Markdown",
+    )
+
+
+async def handle_bank_limit_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обробляє ввід для встановлення ліміту банку"""
+    if not context.user_data.get("awaiting_bank_limit"):
+        return
+
+    user_id = update.effective_user.id
+    user = get_user(user_id) or {}
+    lang = _normalize_lang(user.get("lang", "en"))
+
+    text = (update.message.text or "").strip()
+
+    try:
+        limit = float(text.replace(",", "."))
+        if limit < 0:
+            raise ValueError()
+    except ValueError:
+        error = {
+            "ua": " Введи число. Приклад: 500",
+            "ru": " Введи число. Пример: 500",
+            "en": " Enter a number. Example: 500",
+        }
+        await update.message.reply_text(
+            error.get(lang, error["en"]),
+            parse_mode="Markdown",
+        )
+        return
+
+    from db import set_user_bank_limit
+    set_user_bank_limit(user_id, limit)
+    context.user_data["awaiting_bank_limit"] = False
+
+    if limit == 0:
+        confirm = {
+            "ua": " Ліміт скасовано. Бот не буде блокувати ставки.",
+            "ru": " Лимит отменён. Бот не будет блокировать ставки.",
+            "en": " Limit cancelled. Bot won't block bets.",
+        }
+    else:
+        confirm = {
+            "ua": (
+                f" Денний ліміт встановлено: *{limit:.0f}*\n\n"
+                f"Бот попередить коли ти витратиш 70% ліміту\n"
+                f"і заблокує нові скріни при перевищенні."
+            ),
+            "ru": (
+                f" Дневной лимит установлен: *{limit:.0f}*\n\n"
+                f"Бот предупредит когда ты потратишь 70% лимита\n"
+                f"и заблокирует новые скрины при превышении."
+            ),
+            "en": (
+                f" Daily limit set: *{limit:.0f}*\n\n"
+                f"Bot will warn when you spend 70% of limit\n"
+                f"and block new screens after exceeding."
+            ),
+        }
+
+    await update.message.reply_text(
+        confirm.get(lang, confirm["en"]),
+        parse_mode="Markdown",
+    )
 
 
 async def handle_ai_analysis_input(update: Update, context: ContextTypes.DEFAULT_TYPE):

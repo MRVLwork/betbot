@@ -108,7 +108,13 @@ from handlers.bets import (
 from handlers.coach import coach_end_callback, handle_coach_message, open_coach
 from handlers.discipline import show_streak
 from handlers.profile import profile_callback_handler, show_profile
-from handlers.tools import open_tools_menu, tools_callback_handler, handle_ai_analysis_input
+from handlers.tools import (
+    open_tools_menu,
+    tools_callback_handler,
+    handle_ai_analysis_input,
+    handle_kelly_input,
+    handle_bank_limit_input,
+)
 from handlers.weekly_wrap import send_weekly_wrap, send_weekly_wrap_broadcast
 from webhook_server import create_webhook_app, set_bot
 from states import (
@@ -1219,6 +1225,14 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "\U0001F525 Streak",
         " \u041d\u0430\u0437\u0430\u0434", " Back",
     }
+
+    if context.user_data.get("awaiting_kelly_input"):
+        await handle_kelly_input(update, context)
+        return ConversationHandler.END
+
+    if context.user_data.get("awaiting_bank_limit"):
+        await handle_bank_limit_input(update, context)
+        return ConversationHandler.END
 
     if context.user_data.get("awaiting_ai_match_analysis") and text not in ai_menu_labels:
         await handle_ai_analysis_input(update, context)

@@ -162,6 +162,7 @@ def _personalized_text(lang: str, sport: str, experience: str, goal: str) -> str
             f"Бот покаже де твоя реальна перевага\n"
             f"і коли ти ставиш гірше ніж думаєш.\n\n"
             f"Надішли перший скрін ставки\n"
+            f"Інструкція t.me/bet_tracker_info_ua\n"
             f"побачиш реальну картину за 30 секунд 👇"
         )
 
@@ -196,6 +197,7 @@ def _personalized_text(lang: str, sport: str, experience: str, goal: str) -> str
             f"73% збитків беттерів  це емоційні рішення.\n\n"
             f"Бот покаже точно коли і скільки ти\n"
             f"втрачаєш через емоції.\n\n"
+            f"Інструкція t.me/bet_tracker_info_ua\n"
             f"Надішли перший скрін ставки 👇"
         )
 
@@ -207,6 +209,7 @@ def _personalized_text(lang: str, sport: str, experience: str, goal: str) -> str
                 f"{experience_line}\n\n"
                 f"Системный подход  это правильно.\n"
                 f"Бот даст полную аналитику твоих ставок.\n\n"
+                f"Інструкція t.me/bet_tracker_info_ua\n"
                 f"Пришли первый скрин ставки 👇"
             )
         if lang == "en":
@@ -224,6 +227,7 @@ def _personalized_text(lang: str, sport: str, experience: str, goal: str) -> str
             f"{experience_line}\n\n"
             f"Системний підхід  це правильно.\n"
             f"Бот дасть повну аналітику твоїх ставок.\n\n"
+            f"Інструкція t.me/bet_tracker_info_ua\n"
             f"Надішли перший скрін ставки 👇"
         )
 
@@ -248,6 +252,7 @@ def _personalized_text(lang: str, sport: str, experience: str, goal: str) -> str
         f"Ти ставиш на {sport_value}.\n\n"
         f"{experience_line}\n\n"
         f"Бот дасть повну картину по твоїх ставках.\n\n"
+        f"Інструкція t.me/bet_tracker_info_ua\n"
         f"Надішли перший скрін ставки 👇"
     )
 

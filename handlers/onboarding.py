@@ -143,6 +143,7 @@ def _personalized_text(lang: str, sport: str, experience: str, goal: str) -> str
                 f"Бот покажет, где твое реальное преимущество\n"
                 f"и когда ты ставишь хуже, чем думаешь.\n\n"
                 f"Пришли первый скрин ставки\n"
+                f"Инструкция t.me/bet_tracker_info_r\n"
                 f"увидишь реальную картину за 30 секунд 👇"
             )
         if lang == "en":
@@ -176,6 +177,7 @@ def _personalized_text(lang: str, sport: str, experience: str, goal: str) -> str
                 f"73% убытков беттеров  это эмоциональные решения.\n\n"
                 f"Бот покажет точно когда и сколько ты\n"
                 f"теряешь из-за эмоций.\n\n"
+                f"Инструкция t.me/bet_tracker_info_r\n"
                 f"Пришли первый скрин ставки 👇"
             )
         if lang == "en":
@@ -209,7 +211,7 @@ def _personalized_text(lang: str, sport: str, experience: str, goal: str) -> str
                 f"{experience_line}\n\n"
                 f"Системный подход  это правильно.\n"
                 f"Бот даст полную аналитику твоих ставок.\n\n"
-                f"Інструкція t.me/bet_tracker_info_ua\n"
+                f"Инструкция t.me/bet_tracker_info_r\n"
                 f"Пришли первый скрин ставки 👇"
             )
         if lang == "en":
@@ -237,6 +239,7 @@ def _personalized_text(lang: str, sport: str, experience: str, goal: str) -> str
             f"Ты ставишь на {sport_value}.\n\n"
             f"{experience_line}\n\n"
             f"Бот даст полную картину по твоим ставкам.\n\n"
+            f"Инструкция t.me/bet_tracker_info_r\n"
             f"Пришли первый скрин ставки 👇"
         )
     if lang == "en":

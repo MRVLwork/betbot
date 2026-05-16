@@ -3,7 +3,7 @@ from aiohttp import web
 import logging
 
 from config import WEBHOOK_SECRET
-from db import activate_user_access, get_user
+from db import activate_user_access, activate_vip_signals_access, get_user, subscribe_to_signal
 from services.cryptobot_service import parse_webhook_payload, verify_webhook_signature
 
 
@@ -48,6 +48,7 @@ async def handle_cryptobot_webhook(request: web.Request):
             "usdt_basic_month": {"plan_type": "basic", "duration_days": 30, "min_amount": 4.9},
             "usdt_vip_month": {"plan_type": "vip", "duration_days": 30, "min_amount": 19.0},
             "usdt_vip_month_promo": {"plan_type": "vip", "duration_days": 30, "min_amount": 14.9},
+            "usdt_vip_signals_10d": {"plan_type": "vip_signals", "duration_days": 10, "min_amount": 4.9},
         }.get(plan_key)
 
         if not plan_config:
@@ -58,12 +59,16 @@ async def handle_cryptobot_webhook(request: web.Request):
             logger.warning("Amount too low: %s for plan %s", amount, plan_key)
             return web.Response(status=400, text="Amount too low")
 
-        activate_user_access(
-            user_id=user_id,
-            days=plan_config["duration_days"],
-            plan_type=plan_config["plan_type"],
-            source="cryptobot",
-        )
+        if plan_config["plan_type"] == "vip_signals":
+            activate_vip_signals_access(user_id=user_id, days=plan_config["duration_days"])
+            subscribe_to_signal(user_id, "vip", duration_days=plan_config["duration_days"])
+        else:
+            activate_user_access(
+                user_id=user_id,
+                days=plan_config["duration_days"],
+                plan_type=plan_config["plan_type"],
+                source="cryptobot",
+            )
         logger.info("Activated %s for user %s", plan_config["plan_type"], user_id)
 
         if _bot:

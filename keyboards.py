@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 
 
 def welcome_offer_keyboard(lang: str):
@@ -21,46 +21,35 @@ def welcome_offer_keyboard(lang: str):
     return InlineKeyboardMarkup(keyboard)
 
 
-def main_menu_keyboard(lang: str, plan: str = "basic"):
-    is_vip = (plan or "basic").lower() == "vip"
-
+def main_menu_keyboard(lang: str = "ua", plan: str = "basic"):
     if lang == "ru":
         keyboard = [
-            ["👤 Профиль"],
-            ["📊 Статистика", "🧠 Аналитика"],
-            ["📊 Wrapped", "🔥 Streak"],
-            ["💳 Купить доступ"],
-            ["🌐 Язык", "🛠 Все инструменты"],
+            [KeyboardButton(" AI Сигналы дня")],
+            [KeyboardButton(" Добавить ставку")],
+            [KeyboardButton(" Моя статистика"), KeyboardButton(" AI-разбор")],
+            [KeyboardButton(" Мой профиль"), KeyboardButton(" Итоги недели")],
+            [KeyboardButton(" Подписка VIP")],
+            [KeyboardButton(" Настройки"), KeyboardButton(" Инструменты")],
         ]
-        if is_vip:
-            keyboard.insert(3, ["🧠 AI Тренер"])
-        else:
-            keyboard.insert(3, ["🔒 AI Тренер VIP"])
     elif lang == "en":
         keyboard = [
-            ["👤 Profile"],
-            ["📊 Statistics", "🧠 Analytics"],
-            ["📊 Wrapped", "🔥 Streak"],
-            ["💳 Buy access"],
-            ["🌐 Language", "🛠 All tools"],
+            [KeyboardButton(" AI Signals")],
+            [KeyboardButton(" Add bet")],
+            [KeyboardButton(" My stats"), KeyboardButton(" AI analysis")],
+            [KeyboardButton(" My profile"), KeyboardButton(" Weekly recap")],
+            [KeyboardButton(" VIP subscription")],
+            [KeyboardButton(" Settings"), KeyboardButton(" Tools")],
         ]
-        if is_vip:
-            keyboard.insert(3, ["🧠 AI Coach"])
-        else:
-            keyboard.insert(3, ["🔒 AI Coach VIP"])
     else:
         keyboard = [
-            ["👤 Профіль"],
-            ["📊 Статистика", "🧠 Аналітика"],
-            ["📊 Wrapped", "🔥 Streak"],
-            ["💳 Купити доступ"],
-            ["🌐 Мова", "🛠 Усі інструменти"],
+            [KeyboardButton(" AI Сигнали дня")],
+            [KeyboardButton(" Додати ставку")],
+            [KeyboardButton(" Моя статистика"), KeyboardButton(" AI-розбір")],
+            [KeyboardButton(" Мій профіль"), KeyboardButton(" Підсумки тижня")],
+            [KeyboardButton(" Підписка VIP")],
+            [KeyboardButton(" Налаштування"), KeyboardButton(" Інструменти")],
         ]
-        if is_vip:
-            keyboard.insert(3, ["🧠 AI Тренер"])
-        else:
-            keyboard.insert(3, ["🔒 AI Тренер VIP"])
-    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
 
 
 def stats_submenu_keyboard(lang: str, is_trial: bool = False):
@@ -185,48 +174,135 @@ def access_keyboard(lang: str):
 def stars_plans_keyboard(lang: str, promo_available: bool = True):
     if lang == "ru":
         keyboard = [
-            [InlineKeyboardButton(
-                "Basic 1 месяц  399 ",
-                callback_data="stars_basic_month"
-            )],
-            [InlineKeyboardButton(
-                "VIP 1 месяц  1499 ",
-                callback_data="stars_vip_month_promo"
-            )],
-            [InlineKeyboardButton(
-                " Назад",
-                callback_data="back_to_access"
-            )],
+            [InlineKeyboardButton("Basic 1 месяц  399⭐", callback_data="stars_basic_month")],
+            [InlineKeyboardButton("VIP 1 месяц  1500⭐", callback_data="stars_vip_1m")],
+            [InlineKeyboardButton("VIP 3 месяца (-17%)  3750⭐", callback_data="stars_vip_3m")],
+            [InlineKeyboardButton("VIP 6 месяцев (-25%)  6750⭐", callback_data="stars_vip_6m")],
+            [InlineKeyboardButton("VIP Сигналы 10 дней  399⭐", callback_data="stars_vip_signals_10d")],
+            [InlineKeyboardButton(" Назад", callback_data="back_to_access")],
         ]
     elif lang == "en":
         keyboard = [
-            [InlineKeyboardButton(
-                "Basic 1 month  399 ",
-                callback_data="stars_basic_month"
-            )],
-            [InlineKeyboardButton(
-                "VIP 1 month  1499 ",
-                callback_data="stars_vip_month_promo"
-            )],
-            [InlineKeyboardButton(
-                " Back",
-                callback_data="back_to_access"
-            )],
+            [InlineKeyboardButton("Basic 1 month  399⭐", callback_data="stars_basic_month")],
+            [InlineKeyboardButton("VIP 1 month  1500⭐", callback_data="stars_vip_1m")],
+            [InlineKeyboardButton("VIP 3 months (-17%)  3750⭐", callback_data="stars_vip_3m")],
+            [InlineKeyboardButton("VIP 6 months (-25%)  6750⭐", callback_data="stars_vip_6m")],
+            [InlineKeyboardButton("VIP Signals 10 days  399⭐", callback_data="stars_vip_signals_10d")],
+            [InlineKeyboardButton(" Back", callback_data="back_to_access")],
         ]
     else:  # ua
         keyboard = [
-            [InlineKeyboardButton(
-                "Basic 1 місяць  399 ",
-                callback_data="stars_basic_month"
-            )],
-            [InlineKeyboardButton(
-                "VIP 1 місяць  1499 ",
-                callback_data="stars_vip_month_promo"
-            )],
-            [InlineKeyboardButton(
-                " Назад",
-                callback_data="back_to_access"
-            )],
+            [InlineKeyboardButton("Basic 1 місяць  399⭐", callback_data="stars_basic_month")],
+            [InlineKeyboardButton("VIP 1 місяць  1500⭐", callback_data="stars_vip_1m")],
+            [InlineKeyboardButton("VIP 3 місяці (-17%)  3750⭐", callback_data="stars_vip_3m")],
+            [InlineKeyboardButton("VIP 6 місяців (-25%)  6750⭐", callback_data="stars_vip_6m")],
+            [InlineKeyboardButton("VIP Сигнали 10 днів  399⭐", callback_data="stars_vip_signals_10d")],
+            [InlineKeyboardButton(" Назад", callback_data="back_to_access")],
+        ]
+    return InlineKeyboardMarkup(keyboard)
+
+
+def ai_signals_keyboard(lang: str, vip_access: bool = False):
+    if lang == "ru":
+        rows = [
+            [InlineKeyboardButton(" Trial сигналы", callback_data="signal_trial")],
+            [InlineKeyboardButton(" Basic сигналы", callback_data="signal_basic")],
+        ]
+        if vip_access:
+            rows.append([InlineKeyboardButton(" VIP сигналы", callback_data="signal_vip")])
+        else:
+            rows.append([InlineKeyboardButton(" Купить VIP сигналы 399⭐ / 10 дней", callback_data="stars_vip_signals_10d")])
+        return InlineKeyboardMarkup(rows)
+    if lang == "en":
+        rows = [
+            [InlineKeyboardButton(" Trial signals", callback_data="signal_trial")],
+            [InlineKeyboardButton(" Basic signals", callback_data="signal_basic")],
+        ]
+        if vip_access:
+            rows.append([InlineKeyboardButton(" VIP signals", callback_data="signal_vip")])
+        else:
+            rows.append([InlineKeyboardButton(" Buy VIP signals 399⭐ / 10 days", callback_data="stars_vip_signals_10d")])
+        return InlineKeyboardMarkup(rows)
+
+    rows = [
+        [InlineKeyboardButton(" Trial сигнали", callback_data="signal_trial")],
+        [InlineKeyboardButton(" Basic сигнали", callback_data="signal_basic")],
+    ]
+    if vip_access:
+        rows.append([InlineKeyboardButton(" VIP сигнали", callback_data="signal_vip")])
+    else:
+        rows.append([InlineKeyboardButton(" Купити VIP сигнали 399⭐ / 10 днів", callback_data="stars_vip_signals_10d")])
+    return InlineKeyboardMarkup(rows)
+
+
+def vip_subscription_keyboard(lang: str = "ua"):
+    """Keyboard with 3 VIP plans."""
+    if lang == "ru":
+        keyboard = [
+            [InlineKeyboardButton("1 месяц  $20 / 1500⭐", callback_data="vip_buy_1m")],
+            [InlineKeyboardButton("3 месяца  $49.99 / 3750⭐  (-17%)", callback_data="vip_buy_3m")],
+            [InlineKeyboardButton("6 месяцев  $89.99 / 6750⭐  (-25%)", callback_data="vip_buy_6m")],
+        ]
+    elif lang == "en":
+        keyboard = [
+            [InlineKeyboardButton("1 month  $20 / 1500⭐", callback_data="vip_buy_1m")],
+            [InlineKeyboardButton("3 months  $49.99 / 3750⭐  (-17%)", callback_data="vip_buy_3m")],
+            [InlineKeyboardButton("6 months  $89.99 / 6750⭐  (-25%)", callback_data="vip_buy_6m")],
+        ]
+    else:
+        keyboard = [
+            [InlineKeyboardButton("1 місяць  $20 / 1500⭐", callback_data="vip_buy_1m")],
+            [InlineKeyboardButton("3 місяці  $49.99 / 3750⭐  (-17%)", callback_data="vip_buy_3m")],
+            [InlineKeyboardButton("6 місяців  $89.99 / 6750⭐  (-25%)", callback_data="vip_buy_6m")],
+        ]
+    return InlineKeyboardMarkup(keyboard)
+
+
+def vip_signals_payment_keyboard(lang: str = "ua"):
+    """Buy VIP signals for $5 / 10 days."""
+    if lang == "ru":
+        keyboard = [
+            [InlineKeyboardButton(" Купить через Stars  399⭐", callback_data="stars_vip_signals_10d")],
+            [InlineKeyboardButton(" USDT  $5", callback_data="usdt_vip_signals_10d")],
+        ]
+    elif lang == "en":
+        keyboard = [
+            [InlineKeyboardButton(" Pay with Stars  399⭐", callback_data="stars_vip_signals_10d")],
+            [InlineKeyboardButton(" USDT  $5", callback_data="usdt_vip_signals_10d")],
+        ]
+    else:
+        keyboard = [
+            [InlineKeyboardButton(" Купити через Stars  399⭐", callback_data="stars_vip_signals_10d")],
+            [InlineKeyboardButton(" USDT  $5", callback_data="usdt_vip_signals_10d")],
+        ]
+    return InlineKeyboardMarkup(keyboard)
+
+
+def settings_keyboard(lang: str = "ua"):
+    """Settings menu."""
+    if lang == "ru":
+        keyboard = [
+            [InlineKeyboardButton(" Язык", callback_data="settings_lang")],
+            [InlineKeyboardButton(" Промокод", callback_data="settings_promo")],
+            [InlineKeyboardButton(" Рефералы", callback_data="settings_referrals")],
+            [InlineKeyboardButton(" AI Тренер VIP", callback_data="settings_coach")],
+            [InlineKeyboardButton(" Streak дисциплины", callback_data="settings_streak")],
+        ]
+    elif lang == "en":
+        keyboard = [
+            [InlineKeyboardButton(" Language", callback_data="settings_lang")],
+            [InlineKeyboardButton(" Promo code", callback_data="settings_promo")],
+            [InlineKeyboardButton(" Referrals", callback_data="settings_referrals")],
+            [InlineKeyboardButton(" AI Coach VIP", callback_data="settings_coach")],
+            [InlineKeyboardButton(" Discipline streak", callback_data="settings_streak")],
+        ]
+    else:
+        keyboard = [
+            [InlineKeyboardButton(" Мова", callback_data="settings_lang")],
+            [InlineKeyboardButton(" Промокод", callback_data="settings_promo")],
+            [InlineKeyboardButton(" Реферали", callback_data="settings_referrals")],
+            [InlineKeyboardButton(" AI Тренер VIP", callback_data="settings_coach")],
+            [InlineKeyboardButton(" Streak дисципліни", callback_data="settings_streak")],
         ]
     return InlineKeyboardMarkup(keyboard)
 

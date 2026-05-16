@@ -324,6 +324,28 @@ def init_db():
         )
     """)
 
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS signal_subscriptions (
+            user_id BIGINT NOT NULL,
+            signal_type TEXT NOT NULL,
+            subscribed_at TEXT NOT NULL,
+            expires_at TEXT,
+            is_active INTEGER DEFAULT 1,
+            PRIMARY KEY (user_id, signal_type)
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS sent_signals (
+            id SERIAL PRIMARY KEY,
+            signal_type TEXT NOT NULL,
+            content TEXT NOT NULL,
+            sent_by BIGINT,
+            sent_at TEXT NOT NULL,
+            recipients_count INTEGER DEFAULT 0
+        )
+    """)
+
     conn.commit()
     conn.close()
 
@@ -345,6 +367,7 @@ def init_db():
     add_column_if_not_exists("users", "ref_source", "TEXT")
     add_column_if_not_exists("users", "ref_joined_at", "TEXT")
     add_column_if_not_exists("users", "daily_bank_limit", "DOUBLE PRECISION DEFAULT 0")
+    add_column_if_not_exists("users", "vip_signals_expires_at", "TEXT")
 
     add_column_if_not_exists("promo_codes", "plan_type", "TEXT DEFAULT 'basic'")
 
@@ -441,6 +464,161 @@ def set_user_bank_limit(user_id: int, daily_limit: float):
         conn.commit()
     finally:
         conn.close()
+
+
+def subscribe_to_signal(user_id: int, signal_type: str, duration_days: int = None):
+    """
+    Subscribe user to signal type: trial / basic / vip.
+    duration_days=None means subscription does not expire.
+    """
+    conn = get_conn()
+    cur = conn.cursor()
+    try:
+        now = datetime.now().isoformat()
+        expires = None
+        if duration_days:
+            expires = (datetime.now() + timedelta(days=duration_days)).isoformat()
+        cur.execute(
+            """
+            INSERT INTO signal_subscriptions
+                (user_id, signal_type, subscribed_at, expires_at, is_active)
+            VALUES (?, ?, ?, ?, 1)
+            ON CONFLICT (user_id, signal_type) DO UPDATE
+            SET is_active = 1,
+                subscribed_at = EXCLUDED.subscribed_at,
+                expires_at = EXCLUDED.expires_at
+            """,
+            (user_id, signal_type, now, expires),
+        )
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"subscribe_to_signal error: {e}")
+        return False
+    finally:
+        conn.close()
+
+
+def is_subscribed_to_signal(user_id: int, signal_type: str) -> bool:
+    """Return True when user has an active subscription for a signal type."""
+    conn = get_conn()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            """
+            SELECT expires_at, is_active
+            FROM signal_subscriptions
+            WHERE user_id = ? AND signal_type = ?
+            """,
+            (user_id, signal_type),
+        )
+        row = cur.fetchone()
+        if not row:
+            return False
+        if int(row.get("is_active") or 0) != 1:
+            return False
+        expires = row.get("expires_at")
+        if not expires:
+            return True
+        try:
+            return datetime.fromisoformat(expires) > datetime.now()
+        except Exception:
+            return False
+    finally:
+        conn.close()
+
+
+def get_signal_subscribers(signal_type: str) -> list:
+    """Return user_ids of active subscribers for a signal type."""
+    conn = get_conn()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            """
+            SELECT user_id, expires_at
+            FROM signal_subscriptions
+            WHERE signal_type = ? AND is_active = 1
+            """,
+            (signal_type,),
+        )
+        rows = cur.fetchall()
+        now = datetime.now()
+        result = []
+        for row in rows:
+            expires = row.get("expires_at")
+            if not expires:
+                result.append(row["user_id"])
+                continue
+            try:
+                if datetime.fromisoformat(expires) > now:
+                    result.append(row["user_id"])
+            except Exception:
+                pass
+        return result
+    finally:
+        conn.close()
+
+
+def log_sent_signal(signal_type: str, content: str, sent_by: int, recipients_count: int):
+    conn = get_conn()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            """
+            INSERT INTO sent_signals
+                (signal_type, content, sent_by, sent_at, recipients_count)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (signal_type, content, sent_by, datetime.now().isoformat(), recipients_count),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def activate_vip_signals_access(user_id: int, days: int = 10):
+    conn = get_conn()
+    cur = conn.cursor()
+    user = get_user(user_id)
+    now = datetime.now()
+
+    base_time = now
+    if user and user.get("vip_signals_expires_at"):
+        try:
+            current_until = datetime.fromisoformat(user["vip_signals_expires_at"])
+            if current_until > now:
+                base_time = current_until
+        except Exception:
+            pass
+
+    new_until = base_time + timedelta(days=days)
+    cur.execute(
+        """
+        UPDATE users
+        SET vip_signals_expires_at = ?
+        WHERE user_id = ?
+        """,
+        (new_until.isoformat(), user_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def has_vip_signals_access(user_id: int) -> bool:
+    user = get_user(user_id)
+    if not user:
+        return False
+
+    if (user.get("plan") or "").lower() == "vip" and user_has_access(user_id):
+        return True
+
+    expires_at = user.get("vip_signals_expires_at")
+    if not expires_at:
+        return False
+    try:
+        return datetime.fromisoformat(expires_at) > datetime.now()
+    except Exception:
+        return False
 
 
 def get_user_bank_limit(user_id: int) -> float:

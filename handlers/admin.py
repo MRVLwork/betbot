@@ -13,6 +13,8 @@ from db import (
     get_conn,
     get_basic_bet_day_subscribers,
     get_vip_bet_day_subscribers,
+    get_signal_subscribers,
+    log_sent_signal,
 )
 from keyboards import main_menu_keyboard
 from services.promo_service import generate_promo_code
@@ -512,6 +514,132 @@ async def admin_vip_bet_day_photo_handler(update: Update, context: ContextTypes.
             pass
 
     await update.message.reply_text(f"✅ Відправлено VIP ставку дня: {sent}")
+
+
+async def _send_ai_signal(update: Update, context: ContextTypes.DEFAULT_TYPE, signal_type: str):
+    if not is_admin(update.effective_user.id):
+        return
+
+    text = update.message.text.partition(" ")[2].strip()
+    if not text:
+        await update.message.reply_text(f"Формат: /send{signal_type}signal текст сигналу")
+        return
+
+    user_ids = get_signal_subscribers(signal_type)
+    titles = {
+        "trial": " AI Trial сигнал дня",
+        "basic": " AI Basic сигнал дня",
+        "vip": " AI VIP сигнал дня",
+    }
+
+    sent = 0
+    for user_id in user_ids:
+        try:
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=f"{titles.get(signal_type, ' AI сигнал дня')}\n\n{text}",
+            )
+            sent += 1
+        except Exception:
+            pass
+
+    log_sent_signal(signal_type, text, update.effective_user.id, sent)
+    await update.message.reply_text(
+        f"✅ AI сигнал відправлено\nТип: {signal_type}\nОтримали: {sent}"
+    )
+
+
+async def send_trial_signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await _send_ai_signal(update, context, "trial")
+
+
+async def send_basic_signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await _send_ai_signal(update, context, "basic")
+
+
+async def send_vip_signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await _send_ai_signal(update, context, "vip")
+
+
+async def send_signal_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /sendsignal <type> <signal text>
+    Types: trial / basic / vip
+    """
+    if not is_admin(update.effective_user.id):
+        return
+
+    if not context.args or len(context.args) < 2:
+        await update.message.reply_text(
+            " Використання:\n"
+            "/sendsignal <тип> <текст>\n\n"
+            "Типи: trial / basic / vip\n\n"
+            "Приклад:\n"
+            "/sendsignal basic Шахтар - Динамо ТМ 2.5 за 1.85"
+        )
+        return
+
+    signal_type = context.args[0].lower()
+    if signal_type not in ("trial", "basic", "vip"):
+        await update.message.reply_text(" Невідомий тип. Доступно: trial, basic, vip")
+        return
+
+    content = " ".join(context.args[1:])
+    subscribers = set(get_signal_subscribers(signal_type))
+
+    if signal_type == "trial":
+        subscribers.update(get_signal_subscribers("basic"))
+        subscribers.update(get_signal_subscribers("vip"))
+    elif signal_type == "basic":
+        subscribers.update(get_signal_subscribers("vip"))
+
+    if signal_type == "vip":
+        from datetime import datetime
+
+        conn = get_conn()
+        cur = conn.cursor()
+        try:
+            cur.execute(
+                "SELECT user_id, vip_signals_expires_at FROM users WHERE vip_signals_expires_at IS NOT NULL"
+            )
+            for row in cur.fetchall():
+                expires = row.get("vip_signals_expires_at")
+                try:
+                    if expires and datetime.fromisoformat(expires) > datetime.now():
+                        subscribers.add(row["user_id"])
+                except Exception:
+                    pass
+        finally:
+            conn.close()
+
+    prefixes = {
+        "trial": " *Trial Сигнал дня*",
+        "basic": " *Basic Сигнал дня*",
+        "vip": " *VIP Сигнал дня*",
+    }
+
+    success_count = 0
+    error_count = 0
+    for uid in subscribers:
+        try:
+            prefix = prefixes.get(signal_type, " *Сигнал*")
+            await context.bot.send_message(
+                chat_id=uid,
+                text=f"{prefix}\n\n{content}",
+                parse_mode="Markdown",
+            )
+            success_count += 1
+        except Exception as e:
+            error_count += 1
+            print(f"Signal send error to {uid}: {e}")
+
+    log_sent_signal(signal_type, content, update.effective_user.id, success_count)
+    await update.message.reply_text(
+        f" Сигнал надіслано\n\n"
+        f" Тип: {signal_type}\n"
+        f" Доставлено: {success_count}\n"
+        f" Помилок: {error_count}"
+    )
 
 
 async def sendposthelp(update: Update, context: ContextTypes.DEFAULT_TYPE):

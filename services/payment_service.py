@@ -58,6 +58,17 @@ USDT_PLANS = {
         "is_promo": False,
         "wallet_address": TRC20_WALLET,
     },
+    "usdt_vip_signals_10d": {
+        "plan_name_ua": "VIP Сигнали 10 днів",
+        "plan_name_ru": "VIP Сигналы 10 дней",
+        "plan_name_en": "VIP Signals 10 days",
+        "plan_type": "vip_signals",
+        "duration_days": 10,
+        "amount_usd": 5.0,
+        "full_amount_usd": 5.0,
+        "is_promo": False,
+        "wallet_address": TRC20_WALLET,
+    },
 }
 
 

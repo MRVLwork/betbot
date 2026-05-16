@@ -13,8 +13,17 @@ from db import (
     is_subscribed_bet_day_basic,
     is_subscribed_bet_day_vip,
     has_vip_bet_day_access,
+    subscribe_to_signal,
+    is_subscribed_to_signal,
+    has_vip_signals_access,
 )
-from keyboards import bet_day_menu_keyboard, bet_day_basic_keyboard, bet_day_vip_keyboard, access_keyboard
+from keyboards import (
+    ai_signals_keyboard,
+    bet_day_menu_keyboard,
+    bet_day_basic_keyboard,
+    bet_day_vip_keyboard,
+    access_keyboard,
+)
 from services.tools_service import get_tools_menu
 from services.match_analysis_service import analyze_match_screenshot, analyze_match_text
 from languages import get_text
@@ -39,6 +48,41 @@ async def open_tools_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(text, reply_markup=keyboard)
 
 
+async def open_ai_signals_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    user = get_user(user_id) or {}
+    lang = _normalize_lang(user.get("lang", "en"))
+    vip_access = has_vip_signals_access(user_id)
+
+    texts = {
+        "ua": (
+            " AI Сигнали дня\n\n"
+            "Обери потік сигналів:\n"
+            "Trial - безкоштовні сигнали для пробного доступу\n"
+            "Basic - сигнали для активної підписки\n"
+            "VIP - преміум сигнали для VIP або окремої підписки"
+        ),
+        "ru": (
+            " AI Сигналы дня\n\n"
+            "Выбери поток сигналов:\n"
+            "Trial - бесплатные сигналы для пробного доступа\n"
+            "Basic - сигналы для активной подписки\n"
+            "VIP - премиум сигналы для VIP или отдельной подписки"
+        ),
+        "en": (
+            " AI Signals\n\n"
+            "Choose a signal stream:\n"
+            "Trial - free signals for trial access\n"
+            "Basic - signals for active subscribers\n"
+            "VIP - premium signals for VIP or separate subscription"
+        ),
+    }
+    await update.message.reply_text(
+        texts.get(lang, texts["en"]),
+        reply_markup=ai_signals_keyboard(lang, vip_access=vip_access),
+    )
+
+
 async def tools_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -52,6 +96,74 @@ async def tools_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
     if query.data == "tools_back":
         text, keyboard = get_tools_menu(lang, has_access)
         await query.message.reply_text(text, reply_markup=keyboard)
+        return
+
+    if query.data in ("tool_ai_signals", "signal_back"):
+        texts = {
+            "ua": " AI Сигнали дня\n\nОбери тип сигналів:",
+            "ru": " AI Сигналы дня\n\nВыбери тип сигналов:",
+            "en": " AI Signals\n\nChoose signal type:",
+        }
+        await query.message.reply_text(
+            texts.get(lang, texts["en"]),
+            reply_markup=ai_signals_keyboard(lang, vip_access=has_vip_signals_access(user_id)),
+        )
+        return
+
+    if query.data in ("signal_trial", "signal_basic", "signal_vip"):
+        signal_type = query.data.replace("signal_", "")
+
+        if signal_type == "basic" and not has_access:
+            no_access = {
+                "ua": " Basic сигнали доступні після активації підписки.",
+                "ru": " Basic сигналы доступны после активации подписки.",
+                "en": " Basic signals are available after activating a subscription.",
+            }
+            await query.message.reply_text(no_access.get(lang, no_access["en"]), reply_markup=access_keyboard(lang))
+            return
+
+        if signal_type == "vip" and not has_vip_signals_access(user_id):
+            no_vip = {
+                "ua": " VIP сигнали доступні у повному VIP або окремо на 10 днів за 399⭐.",
+                "ru": " VIP сигналы доступны в полном VIP или отдельно на 10 дней за 399⭐.",
+                "en": " VIP signals are included in VIP or available separately for 10 days at 399⭐.",
+            }
+            await query.message.reply_text(
+                no_vip.get(lang, no_vip["en"]),
+                reply_markup=ai_signals_keyboard(lang, vip_access=False),
+            )
+            return
+
+        if is_subscribed_to_signal(user_id, signal_type):
+            already = {
+                "ua": f" Ти вже підписаний на {signal_type.upper()} сигнали.",
+                "ru": f" Ты уже подписан на {signal_type.upper()} сигналы.",
+                "en": f" You are already subscribed to {signal_type.upper()} signals.",
+            }
+            await query.message.reply_text(already.get(lang, already["en"]))
+            return
+
+        duration_days = None
+        if signal_type == "vip":
+            from datetime import datetime
+
+            expires_raw = user.get("vip_signals_expires_at")
+            if plan == "vip":
+                expires_raw = user.get("access_until") or expires_raw
+            if expires_raw:
+                try:
+                    seconds_left = (datetime.fromisoformat(expires_raw) - datetime.now()).total_seconds()
+                    duration_days = max(1, int(seconds_left // 86400) + 1)
+                except Exception:
+                    duration_days = 10
+
+        subscribe_to_signal(user_id, signal_type, duration_days=duration_days)
+        success = {
+            "ua": f" Підписку на {signal_type.upper()} сигнали активовано.",
+            "ru": f" Подписка на {signal_type.upper()} сигналы активирована.",
+            "en": f" {signal_type.upper()} signals subscription activated.",
+        }
+        await query.message.reply_text(success.get(lang, success["en"]))
         return
 
     if query.data == "tool_bet_day":

@@ -16,6 +16,8 @@ from db import (
     has_used_promo_offer,
     mark_promo_offer_used,
     activate_vip_bet_day_access,
+    activate_vip_signals_access,
+    subscribe_to_signal,
     user_has_access,
 )
 from keyboards import cryptobot_plans_keyboard, main_menu_keyboard, payment_check_keyboard, usdt_plans_keyboard
@@ -361,6 +363,20 @@ async def admin_payment_reply_handler(update: Update, context: ContextTypes.DEFA
             await context.bot.send_message(chat_id=payment["user_id"], text=success_text)
         except Exception:
             pass
+    elif payment.get("plan_key") == "usdt_vip_signals_10d":
+        activate_vip_signals_access(payment["user_id"], days=10)
+        subscribe_to_signal(payment["user_id"], "vip", duration_days=10)
+        target_user = get_user(payment["user_id"])
+        target_lang = _normalize_lang(target_user["lang"] if target_user and target_user.get("lang") else "en")
+        success_text = {
+            "ua": "✅ VIP Сигнали активовано на 10 днів.",
+            "ru": "✅ VIP Сигналы активированы на 10 дней.",
+            "en": "✅ VIP Signals activated for 10 days.",
+        }[target_lang]
+        try:
+            await context.bot.send_message(chat_id=payment["user_id"], text=success_text)
+        except Exception:
+            pass
 
 
 async def cryptobot_payment_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -478,32 +494,39 @@ async def check_payment_status_handler(update: Update, context: ContextTypes.DEF
     status = await get_invoice_status(invoice_id)
 
     if status.get("paid"):
-        if not user_has_access(user_id):
-            plan_key = status.get("plan_key")
-            plan = USDT_PLANS.get(plan_key or "")
-            if plan:
+        plan_key = status.get("plan_key")
+        plan = USDT_PLANS.get(plan_key or "")
+        if not plan:
+            fallback_texts = {
+                "ua": "✅ Оплата знайдена! Але план не вдалося визначити автоматично.",
+                "ru": "✅ Оплата найдена! Но план не удалось определить автоматически.",
+                "en": "✅ Payment found, but the plan could not be resolved automatically.",
+            }
+            await query.message.reply_text(fallback_texts.get(lang, fallback_texts["en"]))
+            return
+
+        should_activate = bool(plan and (plan["plan_type"] == "vip_signals" or not user_has_access(user_id)))
+
+        if should_activate:
+            if plan["plan_type"] == "vip_signals":
+                activate_vip_signals_access(user_id=user_id, days=plan["duration_days"])
+                subscribe_to_signal(user_id, "vip", duration_days=plan["duration_days"])
+            else:
                 activate_user_access(
                     user_id=user_id,
                     days=plan["duration_days"],
                     plan_type=plan["plan_type"],
                     source="cryptobot_manual_check",
                 )
-                success_texts = {
-                    "ua": "✅ Оплата знайдена! Підписку активовано.",
-                    "ru": "✅ Оплата найдена! Подписка активирована.",
-                    "en": "✅ Payment found! Subscription activated.",
-                }
-                await query.message.reply_text(
-                    success_texts.get(lang, success_texts["en"]),
-                    reply_markup=main_menu_keyboard(lang, plan["plan_type"]),
-                )
-            else:
-                fallback_texts = {
-                    "ua": "✅ Оплата знайдена! Але план не вдалося визначити автоматично.",
-                    "ru": "✅ Оплата найдена! Но план не удалось определить автоматически.",
-                    "en": "✅ Payment found, but the plan could not be resolved automatically.",
-                }
-                await query.message.reply_text(fallback_texts.get(lang, fallback_texts["en"]))
+            success_texts = {
+                "ua": "✅ Оплата знайдена! Підписку активовано.",
+                "ru": "✅ Оплата найдена! Подписка активирована.",
+                "en": "✅ Payment found! Subscription activated.",
+            }
+            await query.message.reply_text(
+                success_texts.get(lang, success_texts["en"]),
+                reply_markup=main_menu_keyboard(lang, plan["plan_type"]),
+            )
         else:
             already_texts = {
                 "ua": "✅ Підписка вже активна!",

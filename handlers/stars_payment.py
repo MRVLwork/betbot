@@ -9,6 +9,8 @@ from db import (
     has_used_promo_offer,
     mark_promo_offer_used,
     activate_vip_bet_day_access,
+    activate_vip_signals_access,
+    subscribe_to_signal,
 )
 from keyboards import stars_plans_keyboard
 from services.stars_service import get_stars_plan
@@ -55,6 +57,15 @@ def _plan_title(plan: dict, lang: str) -> str:
     return plan.get("title_en") or plan["title_ru"]
 
 
+def _normalize_plan_key(plan_key: str) -> str:
+    aliases = {
+        "vip_buy_1m": "stars_vip_1m",
+        "vip_buy_3m": "stars_vip_3m",
+        "vip_buy_6m": "stars_vip_6m",
+    }
+    return aliases.get(plan_key, plan_key)
+
+
 def _description(plan: dict, title: str, lang: str) -> str:
     amount_xtr = plan["amount_xtr"]
     if plan.get("is_promo") and plan["full_price_xtr"] > amount_xtr:
@@ -90,7 +101,8 @@ async def open_stars_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    plan = get_stars_plan(query.data)
+    plan_key = _normalize_plan_key(query.data)
+    plan = get_stars_plan(plan_key)
     if not plan:
         await query.message.reply_text(_unknown_plan_text(lang))
         return
@@ -111,7 +123,7 @@ async def open_stars_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id=user_id,
         title=title,
         description=description,
-        payload=query.data,
+        payload=plan_key,
         provider_token="",
         currency="XTR",
         prices=[LabeledPrice(label=title, amount=amount_xtr)],
@@ -125,7 +137,7 @@ async def precheckout_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 async def successful_payment_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     payment = update.message.successful_payment
-    plan_key = payment.invoice_payload
+    plan_key = _normalize_plan_key(payment.invoice_payload)
     plan = get_stars_plan(plan_key)
     user_id = update.effective_user.id
 
@@ -145,6 +157,9 @@ async def successful_payment_handler(update: Update, context: ContextTypes.DEFAU
 
     if plan_key == "stars_vip_bet_day_month":
         activate_vip_bet_day_access(user_id=user_id, days=plan["duration_days"])
+    elif plan_key == "stars_vip_signals_10d":
+        activate_vip_signals_access(user_id=user_id, days=plan["duration_days"])
+        subscribe_to_signal(user_id, "vip", duration_days=plan["duration_days"])
     else:
         activate_user_access(
             user_id=user_id,

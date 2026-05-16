@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 STARS_PLANS = {
     "stars_basic_month": {
         "title_ua": "Basic 1 місяць",

@@ -24,30 +24,30 @@ def welcome_offer_keyboard(lang: str):
 def main_menu_keyboard(lang: str = "ua", plan: str = "basic"):
     if lang == "ru":
         keyboard = [
-            [KeyboardButton(" AI Сигналы дня")],
-            [KeyboardButton(" Добавить ставку")],
-            [KeyboardButton(" Моя статистика"), KeyboardButton(" AI-разбор")],
-            [KeyboardButton(" Мой профиль"), KeyboardButton(" Итоги недели")],
-            [KeyboardButton(" Подписка VIP")],
-            [KeyboardButton(" Настройки"), KeyboardButton(" Инструменты")],
+            [KeyboardButton("🔥 AI Сигналы дня")],
+            [KeyboardButton("📸 Добавить ставку")],
+            [KeyboardButton("📊 Моя статистика"), KeyboardButton("🧠 AI-разбор")],
+            [KeyboardButton("🎯 Мой профиль"), KeyboardButton("📅 Итоги недели")],
+            [KeyboardButton("💎 Подписка VIP")],
+            [KeyboardButton(" Настройки"), KeyboardButton("🛠 Инструменты")],
         ]
     elif lang == "en":
         keyboard = [
-            [KeyboardButton(" AI Signals")],
-            [KeyboardButton(" Add bet")],
-            [KeyboardButton(" My stats"), KeyboardButton(" AI analysis")],
-            [KeyboardButton(" My profile"), KeyboardButton(" Weekly recap")],
-            [KeyboardButton(" VIP subscription")],
-            [KeyboardButton(" Settings"), KeyboardButton(" Tools")],
+            [KeyboardButton("🔥 AI Signals")],
+            [KeyboardButton("📸 Add bet")],
+            [KeyboardButton("📊 My stats"), KeyboardButton("🧠 AI analysis")],
+            [KeyboardButton("🎯 My profile"), KeyboardButton("📅 Weekly recap")],
+            [KeyboardButton("💎 VIP subscription")],
+            [KeyboardButton(" Settings"), KeyboardButton("🛠 Tools")],
         ]
     else:
         keyboard = [
-            [KeyboardButton(" AI Сигнали дня")],
-            [KeyboardButton(" Додати ставку")],
-            [KeyboardButton(" Моя статистика"), KeyboardButton(" AI-розбір")],
-            [KeyboardButton(" Мій профіль"), KeyboardButton(" Підсумки тижня")],
-            [KeyboardButton(" Підписка VIP")],
-            [KeyboardButton(" Налаштування"), KeyboardButton(" Інструменти")],
+            [KeyboardButton("🔥 AI Сигнали дня")],
+            [KeyboardButton("📸 Додати ставку")],
+            [KeyboardButton("📊 Моя статистика"), KeyboardButton("🧠 AI-розбір")],
+            [KeyboardButton("🎯 Мій профіль"), KeyboardButton("📅 Підсумки тижня")],
+            [KeyboardButton("💎 Підписка VIP")],
+            [KeyboardButton(" Налаштування"), KeyboardButton("🛠 Інструменти")],
         ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
 

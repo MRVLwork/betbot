@@ -1216,30 +1216,30 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return ConversationHandler.END
 
     ai_menu_labels = {
-        "\U0001F464 \u041f\u0440\u043e\u0444\u0456\u043b\u044c", "\U0001F464 \u041f\u0440\u043e\u0444\u0438\u043b\u044c", "\U0001F464 Profile",
-        "\U0001F4CA \u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430", "\U0001F4CA Statistics",
-        "\U0001F4CA \u041c\u043e\u044f \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430", "\U0001F4CA My stats",
-        "\U0001F4C8 \u041f\u043e\u0432\u043d\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430", "\U0001F4C8 \u041f\u043e\u043b\u043d\u0430\u044f \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430", "\U0001F4C8 Full stats",
-        "\U0001F512 \u041f\u043e\u0432\u043d\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430  \u0442\u0456\u043b\u044c\u043a\u0438 Basic/VIP",
-        "\U0001F512 \u041f\u043e\u043b\u043d\u0430\u044f \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430  \u0442\u043e\u043b\u044c\u043a\u043e Basic/VIP",
-        "\U0001F512 Full stats  Basic/VIP only",
-        "\U0001F4CA Wrapped",
-        "\U0001F9E0 AI \u0422\u0440\u0435\u043d\u0435\u0440", "\U0001F9E0 AI Coach", "\U0001F512 AI \u0422\u0440\u0435\u043d\u0435\u0440 VIP", "\U0001F512 AI Coach VIP",
-        "\U0001F9E0 \u0410\u043d\u0430\u043b\u0456\u0442\u0438\u043a\u0430", "\U0001F9E0 \u0410\u043d\u0430\u043b\u0438\u0442\u0438\u043a\u0430", "\U0001F9E0 Analytics",
-        "\U0001F6E0 \u0423\u0441\u0456 \u0456\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u0438", "\U0001F6E0 \u0412\u0441\u0435 \u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u044b", "\U0001F6E0 All tools",
-        "\U0001F4B3 \u041a\u0443\u043f\u0438\u0442\u0438 \u0434\u043e\u0441\u0442\u0443\u043f", "\U0001F4B3 \u041a\u0443\u043f\u0438\u0442\u044c \u0434\u043e\u0441\u0442\u0443\u043f", "\U0001F4B3 Buy access",
-        "\U0001F310 \u041c\u043e\u0432\u0430", "\U0001F310 \u042f\u0437\u044b\u043a", "\U0001F310 Language",
-        "\U0001F511 \u0412\u0432\u0435\u0441\u0442\u0438 \u043f\u0440\u043e\u043c\u043e\u043a\u043e\u0434", "\U0001F511 Enter promo code",
-        "\U0001F525 Streak",
-        " AI Сигнали дня", " AI Сигналы дня", " AI Signals",
-        " Додати ставку", " Добавить ставку", " Add bet",
-        " Моя статистика", " My stats",
-        " AI-розбір", " AI-разбор", " AI analysis",
-        " Мій профіль", " Мой профиль", " My profile",
-        " Підсумки тижня", " Итоги недели", " Weekly recap",
-        " Підписка VIP", " Подписка VIP", " VIP subscription",
+        "👤 Профіль", "👤 Профиль", "👤 Profile",
+        "📊 Статистика", "📊 Statistics",
+        "📊 Моя статистика", "📊 My stats",
+        "📈 Повна статистика", "📈 Полная статистика", "📈 Full stats",
+        "🔒 Повна статистика  тільки Basic/VIP",
+        "🔒 Полная статистика  только Basic/VIP",
+        "🔒 Full stats  Basic/VIP only",
+        "📊 Wrapped",
+        "🧠 AI Тренер", "🧠 AI Coach", "🔒 AI Тренер VIP", "🔒 AI Coach VIP",
+        "🧠 Аналітика", "🧠 Аналитика", "🧠 Analytics",
+        "🛠 Усі інструменти", "🛠 Все инструменты", "🛠 All tools",
+        "💳 Купити доступ", "💳 Купить доступ", "💳 Buy access",
+        "🌐 Мова", "🌐 Язык", "🌐 Language",
+        "🔑 Ввести промокод", "🔑 Enter promo code",
+        "🔥 Streak",
+        "🔥 AI Сигнали дня", "🔥 AI Сигналы дня", "🔥 AI Signals",
+        "📸 Додати ставку", "📸 Добавить ставку", "📸 Add bet",
+        "📊 Моя статистика", "📊 My stats",
+        "🧠 AI-розбір", "🧠 AI-разбор", "🧠 AI analysis",
+        "🎯 Мій профіль", "🎯 Мой профиль", "🎯 My profile",
+        "📅 Підсумки тижня", "📅 Итоги недели", "📅 Weekly recap",
+        "💎 Підписка VIP", "💎 Подписка VIP", "💎 VIP subscription",
         " Налаштування", " Настройки", " Settings",
-        " Інструменти", " Инструменты", " Tools",
+        "🛠 Інструменти", "🛠 Инструменты", "🛠 Tools",
         " \u041d\u0430\u0437\u0430\u0434", " Back",
     }
 
@@ -1263,18 +1263,18 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await handle_coach_message(update, context)
         return ConversationHandler.END
 
-    if text in (" AI Сигнали дня", " AI Сигналы дня", " AI Signals"):
+    if text in ("🔥 AI Сигнали дня", "🔥 AI Сигналы дня", "🔥 AI Signals"):
         await open_ai_signals_menu(update, context)
-    elif text in (" Додати ставку", " Добавить ставку", " Add bet"):
+    elif text in ("📸 Додати ставку", "📸 Добавить ставку", "📸 Add bet"):
         info = {
             "ua": " Надішли скрін купона або текст ставки. Я розпізнаю її та додам у трекер.",
             "ru": " Отправь скрин купона или текст ставки. Я распознаю её и добавлю в трекер.",
             "en": " Send a bet slip screenshot or bet text. I will parse it and add it to the tracker.",
         }
         await update.message.reply_text(info.get(lang, info["en"]))
-    elif text in (" Мій профіль", " Мой профиль", " My profile", "\U0001F464 \u041f\u0440\u043e\u0444\u0456\u043b\u044c", "\U0001F464 \u041f\u0440\u043e\u0444\u0438\u043b\u044c", "\U0001F464 Profile"):
+    elif text in ("🎯 Мій профіль", "🎯 Мой профиль", "🎯 My profile", "👤 Профіль", "👤 Профиль", "👤 Profile"):
         await show_profile(update, context)
-    elif text in (" Моя статистика", " My stats", "\U0001F4CA \u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430", "\U0001F4CA Statistics"):
+    elif text in ("📊 Моя статистика", "📊 My stats", "📊 Статистика", "📊 Statistics"):
         is_trial_user = _is_trial_user(user_id)
         has_access = user_has_access(user_id)
         show_lock = is_trial_user and not has_access
@@ -1291,7 +1291,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ),
             reply_markup=stats_submenu_keyboard(lang, is_trial=show_lock)
         )
-    elif text in ("\U0001F4CA \u041c\u043e\u044f \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430", "\U0001F4CA My stats"):
+    elif text in ("📊 Моя статистика", "📊 My stats"):
         if not can_view_basic_stats(user_id):
             await update.message.reply_text(get_text(lang, "no_active_access_start"))
             return ConversationHandler.END
@@ -1302,11 +1302,11 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=stats_periods_keyboard(is_vip, lang, prefix="stats"),
         )
     elif text in (
-        "\U0001F4C8 \u041f\u043e\u0432\u043d\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430",
-        "\U0001F4C8 Full stats",
-        "\U0001F512 \u041f\u043e\u0432\u043d\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430  \u0442\u0456\u043b\u044c\u043a\u0438 Basic/VIP",
-        "\U0001F512 \u041f\u043e\u043b\u043d\u0430\u044f \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430  \u0442\u043e\u043b\u044c\u043a\u043e Basic/VIP",
-        "\U0001F512 Full stats  Basic/VIP only",
+        "📈 Повна статистика",
+        "📈 Full stats",
+        "🔒 Повна статистика  тільки Basic/VIP",
+        "🔒 Полная статистика  только Basic/VIP",
+        "🔒 Full stats  Basic/VIP only",
     ):
         has_access = user_has_access(user_id)
         is_trial = _is_trial_user(user_id)
@@ -1328,18 +1328,18 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             get_text(lang, "choose_full_stats_period"),
             reply_markup=stats_periods_keyboard(is_vip, lang, prefix="fullstats"),
         )
-    elif text in (" Підсумки тижня", " Итоги недели", " Weekly recap", "\U0001F4CA Wrapped"):
+    elif text in ("📅 Підсумки тижня", "📅 Итоги недели", "📅 Weekly recap", "📊 Wrapped"):
         await send_weekly_wrap(update, context)
-    elif text in ("\U0001F9E0 AI \u0422\u0440\u0435\u043d\u0435\u0440", "\U0001F9E0 AI Coach", "\U0001F512 AI \u0422\u0440\u0435\u043d\u0435\u0440 VIP", "\U0001F512 AI Coach VIP"):
+    elif text in ("🧠 AI Тренер", "🧠 AI Coach", "🔒 AI Тренер VIP", "🔒 AI Coach VIP"):
         await open_coach(update, context)
-    elif text in (" AI-розбір", " AI-разбор", " AI analysis"):
+    elif text in ("🧠 AI-розбір", "🧠 AI-разбор", "🧠 AI analysis"):
         if not user_has_access(user_id):
             await update.message.reply_text(get_text(lang, "ai_analysis_no_access"), reply_markup=access_keyboard(lang))
             return ConversationHandler.END
 
         context.user_data["awaiting_ai_match_analysis"] = True
         await update.message.reply_text(get_text(lang, "ai_analysis_send_prompt"))
-    elif text in ("\U0001F9E0 \u0410\u043d\u0430\u043b\u0456\u0442\u0438\u043a\u0430", "\U0001F9E0 \u0410\u043d\u0430\u043b\u0438\u0442\u0438\u043a\u0430", "\U0001F9E0 Analytics"):
+    elif text in ("🧠 Аналітика", "🧠 Аналитика", "🧠 Analytics"):
         is_trial = _is_trial_user(user_id)
         has_access = user_has_access(user_id)
 
@@ -1406,15 +1406,15 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=stats_periods_keyboard(is_vip, lang, prefix="analytics"),
         )
     elif text in (
-        " Інструменти",
-        " Инструменты",
-        " Tools",
+        "🛠 Інструменти",
+        "🛠 Инструменты",
+        "🛠 Tools",
         "🛠 Усі інструменти",
         "🛠 Все инструменты",
         "🛠 All tools",
     ):
         await open_tools_menu(update, context)
-    elif text in (" Підписка VIP", " Подписка VIP", " VIP subscription"):
+    elif text in ("💎 Підписка VIP", "💎 Подписка VIP", "💎 VIP subscription"):
         vip_texts = {
             "ua": " VIP підписка\n\nОбери тривалість VIP або окремий доступ до VIP сигналів:",
             "ru": " VIP подписка\n\nВыбери срок VIP или отдельный доступ к VIP сигналам:",
@@ -1424,7 +1424,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             vip_texts.get(lang, vip_texts["en"]),
             reply_markup=vip_subscription_keyboard(lang),
         )
-    elif text in ("\U0001F4B3 \u041a\u0443\u043f\u0438\u0442\u0438 \u0434\u043e\u0441\u0442\u0443\u043f", "\U0001F4B3 \u041a\u0443\u043f\u0438\u0442\u044c \u0434\u043e\u0441\u0442\u0443\u043f", "\U0001F4B3 Buy access"):
+    elif text in ("💳 Купити доступ", "💳 Купить доступ", "💳 Buy access"):
         await update.message.reply_text(
             get_text(lang, "choose_access_option"),
             reply_markup=access_keyboard(lang),
@@ -1439,12 +1439,12 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             settings_texts.get(lang, settings_texts["en"]),
             reply_markup=language_keyboard(),
         )
-    elif text in ("\U0001F310 \u041c\u043e\u0432\u0430", "\U0001F310 \u042f\u0437\u044b\u043a", "\U0001F310 Language"):
+    elif text in ("🌐 Мова", "🌐 Язык", "🌐 Language"):
         await update.message.reply_text(
             get_text(lang, "choose_lang"),
             reply_markup=language_keyboard(),
         )
-    elif text in ("\U0001F511 \u0412\u0432\u0435\u0441\u0442\u0438 \u043f\u0440\u043e\u043c\u043e\u043a\u043e\u0434", "\U0001F511 Enter promo code"):
+    elif text in ("🔑 Ввести промокод", "🔑 Enter promo code"):
         await update.message.reply_text(get_text(lang, "enter_promo_hint"))
         return WAITING_PROMO
 
@@ -1663,15 +1663,15 @@ def main():
 
     app.add_handler(CallbackQueryHandler(start_offer_buttons, pattern="^(try_trial|pay_now)$"))
     app.add_handler(MessageHandler(
-        filters.Regex(r"^ (AI Сигнали дня|AI Сигналы дня|AI Signals)$"),
+        filters.Regex(r"^🔥 (AI Сигнали дня|AI Сигналы дня|AI Signals)$"),
         open_signals_menu,
     ))
     app.add_handler(MessageHandler(
-        filters.Regex(r"^ (Додати ставку|Добавить ставку|Add bet)$"),
+        filters.Regex(r"^📸 (Додати ставку|Добавить ставку|Add bet)$"),
         add_bet_info,
     ))
     app.add_handler(MessageHandler(
-        filters.Regex(r"^ (Підписка VIP|Подписка VIP|VIP subscription)$"),
+        filters.Regex(r"^💎 (Підписка VIP|Подписка VIP|VIP subscription)$"),
         open_vip_subscription,
     ))
     app.add_handler(MessageHandler(
@@ -1712,7 +1712,7 @@ def main():
     app.add_handler(
         MessageHandler(filters.PHOTO & filters.CaptionRegex(r"^/sendpost(?:@\w+)?(?:\s|$)"), admin_broadcast_photo_handler)
     )
-    app.add_handler(MessageHandler(filters.Regex(r"^(\U0001F525 Streak|\U0001F525 \u0421\u0435\u0440\u0456\u044f)$"), show_streak))
+    app.add_handler(MessageHandler(filters.Regex(r"^(🔥 Streak|🔥 Серія)$"), show_streak))
     app.add_handler(MessageHandler(filters.PHOTO, process_bet_photo))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, menu_handler))
 

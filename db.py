@@ -667,6 +667,55 @@ def is_eligible_for_first_payment_promo(user_id: int) -> bool:
     return not has_user_ever_paid(user_id)
 
 
+def get_users_by_subscription_and_lang(sub_filter: str, lang: str) -> list:
+    """
+    Return user ids by subscription filter and saved language.
+
+    sub_filter:
+    - "basic": active Basic users only
+    - "vip": active VIP users only
+    - "trial": active Trial users only
+    - "all": all users with the requested language
+    """
+    sub_filter = (sub_filter or "").lower()
+    lang = (lang or "").lower()
+
+    if sub_filter not in ("basic", "vip", "trial", "all"):
+        return []
+
+    if lang == "ua":
+        lang_condition = "(LOWER(lang) = 'ua' OR LOWER(lang) = 'uk' OR LOWER(lang) LIKE 'uk%')"
+    elif lang == "ru":
+        lang_condition = "(LOWER(lang) = 'ru' OR LOWER(lang) LIKE 'ru%')"
+    elif lang == "en":
+        lang_condition = "(LOWER(lang) = 'en' OR LOWER(lang) LIKE 'en%')"
+    else:
+        return []
+
+    conn = get_conn()
+    cur = conn.cursor()
+    try:
+        cur.execute(f"SELECT user_id FROM users WHERE {lang_condition}")
+        rows = cur.fetchall()
+    except Exception as e:
+        print(f"get_users_by_subscription_and_lang error: {e}")
+        return []
+    finally:
+        conn.close()
+
+    result = []
+    for row in rows:
+        user_id = row["user_id"]
+        if sub_filter == "all":
+            result.append(user_id)
+            continue
+
+        if get_subscription_type(user_id) == sub_filter:
+            result.append(user_id)
+
+    return result
+
+
 def get_user_bank_limit(user_id: int) -> float:
     """Повертає денний ліміт банку юзера"""
     user = get_user(user_id)

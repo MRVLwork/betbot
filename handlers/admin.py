@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import asyncio
+
 from telegram import Update
 from telegram.ext import ContextTypes
 
@@ -11,20 +13,9 @@ from db import (
     delete_user_by_id,
     delete_user_by_username,
     get_conn,
-    get_basic_bet_day_subscribers,
-    get_vip_bet_day_subscribers,
-    get_signal_subscribers,
-    log_sent_signal,
 )
 from keyboards import main_menu_keyboard
 from services.promo_service import generate_promo_code
-
-from services.broadcast_service import (
-    parse_broadcast_text,
-    broadcast_help_text,
-    send_broadcast,
-    send_photo_broadcast,
-)
 
 
 def is_admin(user_id: int) -> bool:
@@ -466,309 +457,142 @@ async def ref_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(prefix + chunk)
 
 
-async def send_basic_bet_day(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update.effective_user.id):
-        return
+def _parse_broadcast_command(text: str):
+    """
+    Parse broadcast command.
+    Format: /sendvip /ua message text
+    Returns (lang, message_text) or (None, None) on error.
+    """
+    parts = (text or "").strip().split(maxsplit=2)
+    if len(parts) < 3:
+        return None, None
 
-    text = update.message.text.partition(" ")[2].strip()
-    if not text:
-        await update.message.reply_text("Формат: /sendbasicday текст ставки")
-        return
-
-    user_ids = get_basic_bet_day_subscribers()
-    sent = 0
-    for user_id in user_ids:
-        try:
-            await context.bot.send_message(chat_id=user_id, text=f"🎯 Basic ставка дня\n\n{text}")
-            sent += 1
-        except Exception:
-            pass
-
-    await update.message.reply_text(f"✅ Відправлено Basic ставку дня: {sent}")
-
-
-async def admin_basic_bet_day_photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message or not update.message.photo:
-        return
-
-    if not is_admin(update.effective_user.id):
-        return
-
-    caption = update.message.caption or ""
-    if not caption.strip().lower().startswith("/sendbasicday"):
-        return
-
-    text = caption.split(maxsplit=1)[1].strip() if len(caption.split(maxsplit=1)) > 1 else ""
-    final_caption = f"🎯 Basic ставка дня\n\n{text}" if text else "🎯 Basic ставка дня"
-
-    photo_file_id = update.message.photo[-1].file_id
-    user_ids = get_basic_bet_day_subscribers()
-
-    sent = 0
-    for user_id in user_ids:
-        try:
-            await context.bot.send_photo(
-                chat_id=user_id,
-                photo=photo_file_id,
-                caption=final_caption,
-            )
-            sent += 1
-        except Exception:
-            pass
-
-    await update.message.reply_text(f"✅ Відправлено Basic ставку дня: {sent}")
-
-
-async def send_vip_bet_day(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update.effective_user.id):
-        return
-
-    text = update.message.text.partition(" ")[2].strip()
-    if not text:
-        await update.message.reply_text("Формат: /sendvipday текст ставки")
-        return
-
-    user_ids = get_vip_bet_day_subscribers()
-    sent = 0
-    for user_id in user_ids:
-        try:
-            await context.bot.send_message(chat_id=user_id, text=f"🔥 VIP ставка дня\n\n{text}")
-            sent += 1
-        except Exception:
-            pass
-
-    await update.message.reply_text(f"✅ Відправлено VIP ставку дня: {sent}")
-
-
-async def admin_vip_bet_day_photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message or not update.message.photo:
-        return
-
-    if not is_admin(update.effective_user.id):
-        return
-
-    caption = update.message.caption or ""
-    if not caption.strip().lower().startswith("/sendvipday"):
-        return
-
-    text = caption.split(maxsplit=1)[1].strip() if len(caption.split(maxsplit=1)) > 1 else ""
-    final_caption = f"🔥 VIP ставка дня\n\n{text}" if text else "🔥 VIP ставка дня"
-
-    photo_file_id = update.message.photo[-1].file_id
-    user_ids = get_vip_bet_day_subscribers()
-
-    sent = 0
-    for user_id in user_ids:
-        try:
-            await context.bot.send_photo(
-                chat_id=user_id,
-                photo=photo_file_id,
-                caption=final_caption,
-            )
-            sent += 1
-        except Exception:
-            pass
-
-    await update.message.reply_text(f"✅ Відправлено VIP ставку дня: {sent}")
-
-
-async def _send_ai_signal(update: Update, context: ContextTypes.DEFAULT_TYPE, signal_type: str):
-    if not is_admin(update.effective_user.id):
-        return
-
-    text = update.message.text.partition(" ")[2].strip()
-    if not text:
-        await update.message.reply_text(f"Формат: /send{signal_type}signal текст сигналу")
-        return
-
-    user_ids = get_signal_subscribers(signal_type)
-    titles = {
-        "trial": " AI Trial сигнал дня",
-        "basic": " AI Basic сигнал дня",
-        "vip": " AI VIP сигнал дня",
+    lang_tag = parts[1].lower().lstrip("/")
+    lang_map = {
+        "ua": "ua",
+        "uk": "ua",
+        "ukr": "ua",
+        "ru": "ru",
+        "rus": "ru",
+        "en": "en",
+        "eng": "en",
     }
+    lang = lang_map.get(lang_tag)
+    if not lang:
+        return None, None
 
-    sent = 0
+    message_text = parts[2].strip()
+    if not message_text:
+        return None, None
+
+    return lang, message_text
+
+
+async def _do_broadcast(
+    context,
+    sub_filter: str,
+    lang: str,
+    message_text: str,
+    photo_file_id: str = None,
+) -> tuple:
+    """Send broadcast and return (success, errors)."""
+    from db import get_users_by_subscription_and_lang
+
+    user_ids = get_users_by_subscription_and_lang(sub_filter, lang)
+    success = 0
+    errors = 0
+
     for user_id in user_ids:
         try:
-            await context.bot.send_message(
-                chat_id=user_id,
-                text=f"{titles.get(signal_type, ' AI сигнал дня')}\n\n{text}",
-            )
-            sent += 1
-        except Exception:
-            pass
+            if photo_file_id:
+                await context.bot.send_photo(
+                    chat_id=user_id,
+                    photo=photo_file_id,
+                    caption=message_text,
+                )
+            else:
+                await context.bot.send_message(
+                    chat_id=user_id,
+                    text=message_text,
+                )
+            success += 1
+            await asyncio.sleep(0.05)
+        except Exception as e:
+            errors += 1
+            print(f"Broadcast error to {user_id}: {e}")
 
-    log_sent_signal(signal_type, text, update.effective_user.id, sent)
-    await update.message.reply_text(
-        f"✅ AI сигнал відправлено\nТип: {signal_type}\nОтримали: {sent}"
-    )
-
-
-async def send_trial_signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _send_ai_signal(update, context, "trial")
-
-
-async def send_basic_signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _send_ai_signal(update, context, "basic")
+    return success, errors
 
 
-async def send_vip_signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _send_ai_signal(update, context, "vip")
-
-
-async def send_signal_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    /sendsignal <type> <signal text>
-    Types: trial / basic / vip
-    """
+async def _handle_broadcast(update, context, sub_filter: str):
+    """Common handler for text and photo broadcasts."""
     if not is_admin(update.effective_user.id):
         return
 
-    if not context.args or len(context.args) < 2:
-        await update.message.reply_text(
-            " Використання:\n"
-            "/sendsignal <тип> <текст>\n\n"
-            "Типи: trial / basic / vip\n\n"
-            "Приклад:\n"
-            "/sendsignal basic Шахтар - Динамо ТМ 2.5 за 1.85"
+    message = update.message
+    if not message:
+        return
+
+    raw_text = message.text or message.caption or ""
+    photo_file_id = message.photo[-1].file_id if message.photo else None
+
+    lang, message_text = _parse_broadcast_command(raw_text)
+    if not lang or not message_text:
+        await message.reply_text(
+            "Format:\n"
+            "/sendvip /ua <text>\n\n"
+            "Language tags: /ua /ru /en\n\n"
+            "Examples:\n"
+            "/sendvip /ua Hello VIP users!\n"
+            "/sendbasic /ru Text for Basic\n"
+            "/sendall /en Message for everyone\n\n"
+            "For photo broadcasts, attach an image and put the command in the caption."
         )
         return
 
-    signal_type = context.args[0].lower()
-    if signal_type not in ("trial", "basic", "vip"):
-        await update.message.reply_text(" Невідомий тип. Доступно: trial, basic, vip")
-        return
-
-    content = " ".join(context.args[1:])
-    subscribers = set(get_signal_subscribers(signal_type))
-
-    if signal_type == "trial":
-        subscribers.update(get_signal_subscribers("basic"))
-        subscribers.update(get_signal_subscribers("vip"))
-    elif signal_type == "basic":
-        subscribers.update(get_signal_subscribers("vip"))
-
-    if signal_type == "vip":
-        from datetime import datetime
-
-        conn = get_conn()
-        cur = conn.cursor()
-        try:
-            cur.execute(
-                "SELECT user_id, vip_signals_expires_at FROM users WHERE vip_signals_expires_at IS NOT NULL"
-            )
-            for row in cur.fetchall():
-                expires = row.get("vip_signals_expires_at")
-                try:
-                    if expires and datetime.fromisoformat(expires) > datetime.now():
-                        subscribers.add(row["user_id"])
-                except Exception:
-                    pass
-        finally:
-            conn.close()
-
-    prefixes = {
-        "trial": " *Trial Сигнал дня*",
-        "basic": " *Basic Сигнал дня*",
-        "vip": " *VIP Сигнал дня*",
+    audience_names = {
+        "basic": "Basic",
+        "vip": "VIP",
+        "trial": "Trial",
+        "all": "All",
     }
+    audience = audience_names.get(sub_filter, sub_filter)
 
-    success_count = 0
-    error_count = 0
-    for uid in subscribers:
-        try:
-            prefix = prefixes.get(signal_type, " *Сигнал*")
-            await context.bot.send_message(
-                chat_id=uid,
-                text=f"{prefix}\n\n{content}",
-                parse_mode="Markdown",
-            )
-            success_count += 1
-        except Exception as e:
-            error_count += 1
-            print(f"Signal send error to {uid}: {e}")
+    status_msg = await message.reply_text(
+        f"Broadcast {audience} ({lang.upper()})...\n"
+        f"{'With photo' if photo_file_id else 'Text only'}"
+    )
 
-    log_sent_signal(signal_type, content, update.effective_user.id, success_count)
-    await update.message.reply_text(
-        f" Сигнал надіслано\n\n"
-        f" Тип: {signal_type}\n"
-        f" Доставлено: {success_count}\n"
-        f" Помилок: {error_count}"
+    success, errors = await _do_broadcast(
+        context,
+        sub_filter,
+        lang,
+        message_text,
+        photo_file_id,
+    )
+
+    await status_msg.edit_text(
+        f"Broadcast completed\n\n"
+        f"Audience: {audience} ({lang.upper()})\n"
+        f"Delivered: {success}\n"
+        f"Errors: {errors}"
     )
 
 
-async def sendposthelp(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update.effective_user.id):
-        return
-    await update.message.reply_text(broadcast_help_text())
+async def send_basic_broadcast(update, context):
+    await _handle_broadcast(update, context, "basic")
 
 
-async def sendpost(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update.effective_user.id):
-        return
-
-    raw_text = update.message.text or ""
-    clean_text, lang_tag, audience_tag = parse_broadcast_text(raw_text)
-
-    if not clean_text:
-        await update.message.reply_text("❌ Немає тексту для розсилки.\n\n/sendposthelp")
-        return
-
-    sent, failed = await send_broadcast(
-        bot=context.bot,
-        text=clean_text,
-        lang_tag=lang_tag,
-        audience_tag=audience_tag,
-    )
-
-    await update.message.reply_text(
-        f"✅ Розсилка завершена\n\n"
-        f"Мова: {lang_tag}\n"
-        f"Аудиторія: {audience_tag}\n"
-        f"Відправлено: {sent}\n"
-        f"Помилки: {failed}"
-    )
+async def send_vip_broadcast(update, context):
+    await _handle_broadcast(update, context, "vip")
 
 
-async def admin_broadcast_photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message or not update.message.photo:
-        return
-
-    if not is_admin(update.effective_user.id):
-        return
-
-    caption = update.message.caption or ""
-    if not caption.strip().lower().startswith("/sendpost"):
-        return
-
-    clean_text, lang_tag, audience_tag = parse_broadcast_text(caption)
-
-    if not clean_text:
-        await update.message.reply_text("❌ Немає тексту в caption для розсилки.\n\n/sendposthelp")
-        return
-
-    photo_file_id = update.message.photo[-1].file_id
-
-    sent, failed = await send_photo_broadcast(
-        bot=context.bot,
-        photo_file_id=photo_file_id,
-        caption=clean_text,
-        lang_tag=lang_tag,
-        audience_tag=audience_tag,
-    )
-
-    await update.message.reply_text(
-        f"✅ Фото-розсилка завершена\n\n"
-        f"Мова: {lang_tag}\n"
-        f"Аудиторія: {audience_tag}\n"
-        f"Відправлено: {sent}\n"
-        f"Помилки: {failed}"
-    )
+async def send_trial_broadcast(update, context):
+    await _handle_broadcast(update, context, "trial")
 
 
-from services.tools_service import send_day_bet
-
+async def send_all_broadcast(update, context):
+    await _handle_broadcast(update, context, "all")
 
 async def users_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
@@ -902,44 +726,3 @@ async def users_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text = text[:3997] + "..."
 
         await update.message.reply_text(text)
-
-async def senddaybet(update, context):
-    if not is_admin(update.effective_user.id):
-        return
-
-    raw = update.message.text or ""
-    text = raw.replace("/senddaybet", "").strip()
-
-    lang = "alllangs"
-    audience = "basic"
-
-    if "/ua" in text:
-        lang = "ua"
-    elif "/ru" in text:
-        lang = "ru"
-    elif "/en" in text:
-        lang = "en"
-
-    if "/vip" in text:
-        audience = "vip"
-    elif "/basic" in text:
-        audience = "basic"
-
-    for tag in ["/ua","/ru","/en","/alllangs","/basic","/vip"]:
-        text = text.replace(tag, "")
-
-    text = text.strip()
-
-    if not text:
-        await update.message.reply_text("❌ Немає тексту")
-        return
-
-    sent, errors = await send_day_bet(context.bot, text, lang, audience)
-
-    await update.message.reply_text(
-        f"✅ Ставка дня відправлена\n\n"
-        f"Мова: {lang}\n"
-        f"Аудиторія: {audience}\n"
-        f"Відправлено: {sent}\n"
-        f"Помилки: {errors}"
-    )

@@ -92,19 +92,11 @@ from handlers.admin import (
     gen_ref,
     list_refs,
     ref_stats,
-    send_basic_bet_day,
-    send_vip_bet_day,
-    senddaybet,
-    sendposthelp,
-    sendpost,
     update_menu_all,
-    admin_broadcast_photo_handler,
-    admin_basic_bet_day_photo_handler,
-    admin_vip_bet_day_photo_handler,
-    send_trial_signal,
-    send_basic_signal,
-    send_vip_signal,
-    send_signal_admin,
+    send_basic_broadcast,
+    send_vip_broadcast,
+    send_trial_broadcast,
+    send_all_broadcast,
 )
 from handlers.bets import (
     close_bet_callback,
@@ -1691,15 +1683,10 @@ def main():
     app.add_handler(CommandHandler("genref", gen_ref))
     app.add_handler(CommandHandler("refs", list_refs))
     app.add_handler(CommandHandler("refstats", ref_stats))
-    app.add_handler(CommandHandler("sendbasicday", send_basic_bet_day))
-    app.add_handler(CommandHandler("sendvipday", send_vip_bet_day))
-    app.add_handler(CommandHandler("sendtrialsignal", send_trial_signal))
-    app.add_handler(CommandHandler("sendbasicsignal", send_basic_signal))
-    app.add_handler(CommandHandler("sendvipsignal", send_vip_signal))
-    app.add_handler(CommandHandler("sendsignal", send_signal_admin))
-    app.add_handler(CommandHandler("senddaybet", senddaybet))
-    app.add_handler(CommandHandler("sendposthelp", sendposthelp))
-    app.add_handler(CommandHandler("sendpost", sendpost))
+    app.add_handler(CommandHandler("sendbasic", send_basic_broadcast))
+    app.add_handler(CommandHandler("sendvip", send_vip_broadcast))
+    app.add_handler(CommandHandler("sendtrial", send_trial_broadcast))
+    app.add_handler(CommandHandler("sendall", send_all_broadcast))
     app.add_handler(CommandHandler("updatemenu", update_menu_all))
 
     promo_conv = ConversationHandler(
@@ -1761,13 +1748,20 @@ def main():
 
     app.add_handler(MessageHandler(filters.REPLY & filters.TEXT & ~filters.COMMAND, admin_payment_reply_handler))
     app.add_handler(
-        MessageHandler(filters.PHOTO & filters.CaptionRegex(r"^/sendbasicday(?:@\w+)?(?:\s|$)"), admin_basic_bet_day_photo_handler)
+        MessageHandler(filters.PHOTO & filters.CaptionRegex(r"^/sendbasic(?:@\w+)?(?:\s|$)"), send_basic_broadcast),
+        group=0,
     )
     app.add_handler(
-        MessageHandler(filters.PHOTO & filters.CaptionRegex(r"^/sendvipday(?:@\w+)?(?:\s|$)"), admin_vip_bet_day_photo_handler)
+        MessageHandler(filters.PHOTO & filters.CaptionRegex(r"^/sendvip(?:@\w+)?(?:\s|$)"), send_vip_broadcast),
+        group=0,
     )
     app.add_handler(
-        MessageHandler(filters.PHOTO & filters.CaptionRegex(r"^/sendpost(?:@\w+)?(?:\s|$)"), admin_broadcast_photo_handler)
+        MessageHandler(filters.PHOTO & filters.CaptionRegex(r"^/sendtrial(?:@\w+)?(?:\s|$)"), send_trial_broadcast),
+        group=0,
+    )
+    app.add_handler(
+        MessageHandler(filters.PHOTO & filters.CaptionRegex(r"^/sendall(?:@\w+)?(?:\s|$)"), send_all_broadcast),
+        group=0,
     )
     app.add_handler(MessageHandler(filters.Regex(r"^(🔥 Streak|🔥 Серія)$"), show_streak))
     app.add_handler(MessageHandler(filters.PHOTO, process_bet_photo))

@@ -169,13 +169,13 @@ def _trial_stats_upsell_text(lang: str) -> str:
             "\u2022 \u0411\u0430\u0437\u043e\u0432\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 (ROI, winrate)\n"
             "\u2022 5 \u0441\u043a\u0440\u0456\u043d\u0456\u0432 \u043d\u0430 \u0434\u0435\u043d\u044c  7 \u0434\u043d\u0456\u0432\n"
             "\u2022 \u0415\u043c\u043e\u0446\u0456\u0439\u043d\u0438\u0439 \u0442\u0440\u0435\u043a\u0435\u0440\n\n"
-            "\u0429\u043e \u043e\u0442\u0440\u0438\u043c\u0430\u0454\u0448 \u0432 Basic - $5/\u043c\u0456\u0441:\n"
+            "\u0429\u043e \u043e\u0442\u0440\u0438\u043c\u0430\u0454\u0448 \u0432 Basic - $7/\u043c\u0456\u0441:\n"
             "\U0001F4CA \u041f\u043e\u0432\u043d\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 \u043f\u043e \u0442\u0438\u043f\u0430\u0445 \u0441\u0442\u0430\u0432\u043e\u043a\n"
             "\U0001F4CA \u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 \u043f\u043e \u043a\u043e\u0435\u0444\u0456\u0446\u0456\u0454\u043d\u0442\u0430\u0445 (\u0434\u043e 2.0 / 2.0-2.5 / 2.5+)\n"
             "\U0001F4CA \u0410\u043d\u0430\u043b\u0456\u0442\u0438\u043a\u0430 \u0442\u0440\u0435\u043d\u0434\u0456\u0432 \u0456 \u0441\u043b\u0430\u0431\u043a\u0438\u0445 \u043c\u0456\u0441\u0446\u044c\n"
             "\U0001F4CA 15 \u0441\u043a\u0440\u0456\u043d\u0456\u0432 \u043d\u0430 \u0434\u0435\u043d\u044c\n"
             "\U0001F4C8 \u041f\u0440\u043e\u0444\u0456\u043b\u044c \u0431\u0435\u0442\u0442\u0435\u0440\u0430\n\n"
-            "\u0429\u043e \u043e\u0442\u0440\u0438\u043c\u0430\u0454\u0448 \u0443 VIP - $20/\u043c\u0456\u0441:\n"
+            "\u0429\u043e \u043e\u0442\u0440\u0438\u043c\u0430\u0454\u0448 \u0443 VIP - $19.99/\u043c\u0456\u0441:\n"
             "\U0001F9E0 AI \u0422\u0440\u0435\u043d\u0435\u0440 (\u043f\u0435\u0440\u0441\u043e\u043d\u0430\u043b\u044c\u043d\u0438\u0439 \u0440\u043e\u0437\u0431\u0456\u0440)\n"
             "\U0001F4CA \u041f\u043e\u0433\u043b\u0438\u0431\u043b\u0435\u043d\u0430 \u0430\u043d\u0430\u043b\u0456\u0442\u0438\u043a\u0430 \u043f\u043e \u0440\u0438\u043d\u043a\u0430\u0445\n"
             "\U0001F4CA 30 \u0441\u043a\u0440\u0456\u043d\u0456\u0432 \u043d\u0430 \u0434\u0435\u043d\u044c\n"
@@ -189,13 +189,13 @@ def _trial_stats_upsell_text(lang: str) -> str:
             "\u2022 \u0411\u0430\u0437\u043e\u0432\u0430\u044f \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 (ROI, winrate)\n"
             "\u2022 5 \u0441\u043a\u0440\u0438\u043d\u043e\u0432 \u0432 \u0434\u0435\u043d\u044c  7 \u0434\u043d\u0435\u0439\n"
             "\u2022 \u042d\u043c\u043e\u0446\u0438\u043e\u043d\u0430\u043b\u044c\u043d\u044b\u0439 \u0442\u0440\u0435\u043a\u0435\u0440\n\n"
-            "\u0427\u0442\u043e \u043f\u043e\u043b\u0443\u0447\u0438\u0448\u044c \u0432 Basic - $5/\u043c\u0435\u0441:\n"
+            "\u0427\u0442\u043e \u043f\u043e\u043b\u0443\u0447\u0438\u0448\u044c \u0432 Basic - $7/\u043c\u0435\u0441:\n"
             "\U0001F4CA \u041f\u043e\u043b\u043d\u0430\u044f \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 \u043f\u043e \u0442\u0438\u043f\u0430\u043c \u0441\u0442\u0430\u0432\u043e\u043a\n"
             "\U0001F4CA \u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 \u043f\u043e \u043a\u043e\u044d\u0444\u0444\u0438\u0446\u0438\u0435\u043d\u0442\u0430\u043c\n"
             "\U0001F4CA \u0410\u043d\u0430\u043b\u0438\u0442\u0438\u043a\u0430 \u0442\u0440\u0435\u043d\u0434\u043e\u0432 \u0438 \u0441\u043b\u0430\u0431\u044b\u0445 \u043c\u0435\u0441\u0442\n"
             "\U0001F4CA 15 \u0441\u043a\u0440\u0438\u043d\u043e\u0432 \u0432 \u0434\u0435\u043d\u044c\n"
             "\U0001F4C8 \u041f\u0440\u043e\u0444\u0438\u043b\u044c \u0431\u0435\u0442\u0442\u0435\u0440\u0430\n\n"
-            "\u0427\u0442\u043e \u043f\u043e\u043b\u0443\u0447\u0438\u0448\u044c \u0432 VIP - $20/\u043c\u0435\u0441:\n"
+            "\u0427\u0442\u043e \u043f\u043e\u043b\u0443\u0447\u0438\u0448\u044c \u0432 VIP - $19.99/\u043c\u0435\u0441:\n"
             "\U0001F9E0 AI \u0422\u0440\u0435\u043d\u0435\u0440 (\u043f\u0435\u0440\u0441\u043e\u043d\u0430\u043b\u044c\u043d\u044b\u0439 \u0440\u0430\u0437\u0431\u043e\u0440)\n"
             "\U0001F4CA \u0423\u0433\u043b\u0443\u0431\u043b\u0451\u043d\u043d\u0430\u044f \u0430\u043d\u0430\u043b\u0438\u0442\u0438\u043a\u0430 \u043f\u043e \u0440\u044b\u043d\u043a\u0430\u043c\n"
             "\U0001F4CA 30 \u0441\u043a\u0440\u0438\u043d\u043e\u0432 \u0432 \u0434\u0435\u043d\u044c\n"
@@ -209,13 +209,13 @@ def _trial_stats_upsell_text(lang: str) -> str:
             "\u2022 Basic stats (ROI, winrate)\n"
             "\u2022 5 screenshots per day  7 days\n"
             "\u2022 Emotion tracker\n\n"
-            "What you get in Basic - $5/mo:\n"
+            "What you get in Basic - $7/mo:\n"
             "\U0001F4CA Full stats by bet type\n"
             "\U0001F4CA Stats by odds range\n"
             "\U0001F4CA Trend & weak spot analytics\n"
             "\U0001F4CA 15 screenshots per day\n"
             "\U0001F4C8 Bettor profile\n\n"
-            "What you get in VIP - $20/mo:\n"
+            "What you get in VIP - $19.99/mo:\n"
             "\U0001F9E0 AI Coach (personal analysis)\n"
             "\U0001F4CA Deep market analytics\n"
             "\U0001F4CA 30 screenshots per day\n"
@@ -250,7 +250,7 @@ def _trial_day3_text(lang: str, stats: dict) -> str:
             f"🔒 Когда ты ставишь хуже чем думаешь\n"
             f"🔒 Твои реальные паттерны проигрышей\n\n"
             f"Осталось 4 дня trial.\n\n"
-            f"🔹 Basic $5  меньше одной проигрышной ставки\n"
+            f"🔹 Basic $7  меньше одной проигрышной ставки\n"
             f"👇 Открой полную картину"
         )
     if lang == "en":
@@ -268,7 +268,7 @@ def _trial_day3_text(lang: str, stats: dict) -> str:
             f"🔒 When you bet worse than you think\n"
             f"🔒 Your real losing patterns\n\n"
             f"4 days of trial left.\n\n"
-            f"🔹 Basic $5  less than one losing bet\n"
+            f"🔹 Basic $7  less than one losing bet\n"
             f"👇 See the full picture"
         )
     stats_line = (
@@ -285,7 +285,7 @@ def _trial_day3_text(lang: str, stats: dict) -> str:
         f"🔒 Коли ти ставиш гірше ніж думаєш\n"
         f"🔒 Твої реальні патерни програшів\n\n"
         f"Залишилось 4 дні trial.\n\n"
-        f"🔹 Basic $5  менше однієї програшної ставки\n"
+        f"🔹 Basic $7  менше однієї програшної ставки\n"
         f"👇 Відкрий повну картину"
     )
 
@@ -304,7 +304,7 @@ def _trial_day6_text(lang: str, stats: dict) -> str:
             f"Прогресс  обнулится.\n\n"
             f"Но главное  ты так и не увидишь\n"
             f"где именно теряешь деньги.\n\n"
-            f"🔹 Basic $5/мес  сохрани всё\n"
+            f"🔹 Basic $7/мес  сохрани всё\n"
             f" VIP $19.99/мес  плюс AI Тренер\n\n"
             f"👇 Не теряй прогресс"
         )
@@ -317,7 +317,7 @@ def _trial_day6_text(lang: str, stats: dict) -> str:
             f"Progress  gone.\n\n"
             f"And you still won't know\n"
             f"exactly where you're losing money.\n\n"
-            f"🔹 Basic $5/mo  keep everything\n"
+            f"🔹 Basic $7/mo  keep everything\n"
             f" VIP $19.99/mo  plus AI Coach\n\n"
             f"👇 Don't lose your progress"
         )
@@ -329,7 +329,7 @@ def _trial_day6_text(lang: str, stats: dict) -> str:
         f"Прогрес  обнулиться.\n\n"
         f"Але головне  ти так і не побачиш\n"
         f"де саме втрачаєш гроші.\n\n"
-        f"🔹 Basic $5/міс  збережи все\n"
+        f"🔹 Basic $7/міс  збережи все\n"
         f" VIP $19.99/міс  плюс AI Тренер\n\n"
         f"👇 Не втрать прогрес"
     )
@@ -344,7 +344,7 @@ def _trial_expired_text(lang: str, stats: dict) -> str:
             f"За 7 дней ты добавил {total} ставок.\n"
             f"Вся статистика сохранена и ждёт тебя.\n\n"
             f"Одно из двух:\n"
-            f" Купи Basic $5  и увидишь полную картину\n"
+            f" Купи Basic $7  и увидишь полную картину\n"
             f" Продолжай ставить вслепую\n\n"
             f"👇 Открой доступ"
         )
@@ -354,7 +354,7 @@ def _trial_expired_text(lang: str, stats: dict) -> str:
             f"You tracked {total} bets over 7 days.\n"
             f"All your stats are saved and waiting.\n\n"
             f"Two options:\n"
-            f" Get Basic $5  see the full picture\n"
+            f" Get Basic $7  see the full picture\n"
             f" Keep betting blind\n\n"
             f"👇 Get access"
         )
@@ -363,7 +363,7 @@ def _trial_expired_text(lang: str, stats: dict) -> str:
         f"За 7 днів ти додав {total} ставок.\n"
         f"Вся статистика збережена і чекає тебе.\n\n"
         f"Два варіанти:\n"
-        f" Купи Basic $5  побач повну картину\n"
+        f" Купи Basic $7  побач повну картину\n"
         f" Продовжуй ставити наосліп\n\n"
         f"👇 Відкрий доступ"
     )
@@ -1356,7 +1356,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     " \u0422\u0432\u043e\u0457 \u0440\u0438\u0437\u0438\u043a\u0438 \u0456 \u0441\u043b\u0430\u0431\u043a\u0456 \u043c\u0456\u0441\u0446\u044f\n\n"
                     "\U0001F4A1 \u0421\u0430\u043c\u0435 \u0430\u043d\u0430\u043b\u0456\u0442\u0438\u043a\u0430 \u043f\u043e\u043a\u0430\u0437\u0443\u0454\n"
                     "\u0434\u0435 \u043d\u0430\u0441\u043f\u0440\u0430\u0432\u0434\u0456 \u0445\u043e\u0432\u0430\u044e\u0442\u044c\u0441\u044f \u0442\u0432\u043e\u0457 \u0433\u0440\u043e\u0448\u0456.\n\n"
-                    "\U0001F539 Basic  $5/\u043c\u0456\u0441\n"
+                    "\U0001F539 Basic  $7/\u043c\u0456\u0441\n"
                     " VIP  $19.99/\u043c\u0456\u0441\n\n"
                     "\U0001F447 \u0412\u0456\u0434\u043a\u0440\u0438\u0439 \u043f\u043e\u0432\u043d\u0443 \u043a\u0430\u0440\u0442\u0438\u043d\u0443"
                 ),
@@ -1370,7 +1370,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     " \u0422\u0432\u043e\u0438 \u0440\u0438\u0441\u043a\u0438 \u0438 \u0441\u043b\u0430\u0431\u044b\u0435 \u043c\u0435\u0441\u0442\u0430\n\n"
                     "\U0001F4A1 \u0418\u043c\u0435\u043d\u043d\u043e \u0430\u043d\u0430\u043b\u0438\u0442\u0438\u043a\u0430 \u043f\u043e\u043a\u0430\u0437\u044b\u0432\u0430\u0435\u0442\n"
                     "\u0433\u0434\u0435 \u043d\u0430 \u0441\u0430\u043c\u043e\u043c \u0434\u0435\u043b\u0435 \u043f\u0440\u044f\u0447\u0443\u0442\u0441\u044f \u0442\u0432\u043e\u0438 \u0434\u0435\u043d\u044c\u0433\u0438.\n\n"
-                    "\U0001F539 Basic  $5/\u043c\u0435\u0441\n"
+                    "\U0001F539 Basic  $7/\u043c\u0435\u0441\n"
                     " VIP  $19.99/\u043c\u0435\u0441\n\n"
                     "\U0001F447 \u041e\u0442\u043a\u0440\u043e\u0439 \u043f\u043e\u043b\u043d\u0443\u044e \u043a\u0430\u0440\u0442\u0438\u043d\u0443"
                 ),
@@ -1384,7 +1384,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     " Your risks and weak spots\n\n"
                     "\U0001F4A1 Analytics shows exactly\n"
                     "where your money is hiding.\n\n"
-                    "\U0001F539 Basic  $5/mo\n"
+                    "\U0001F539 Basic  $7/mo\n"
                     " VIP  $19.99/mo\n\n"
                     "\U0001F447 See the full picture"
                 ),
@@ -1416,6 +1416,9 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ):
         await open_tools_menu(update, context)
     elif text in ("💎 Підписка VIP", "💎 Подписка VIP", "💎 VIP subscription"):
+        from db import is_eligible_for_first_payment_promo
+
+        show_promo = is_eligible_for_first_payment_promo(user_id)
         vip_texts = {
             "ua": " VIP підписка\n\nОбери тривалість VIP або окремий доступ до VIP сигналів:",
             "ru": " VIP подписка\n\nВыбери срок VIP или отдельный доступ к VIP сигналам:",
@@ -1423,7 +1426,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         }
         await update.message.reply_text(
             vip_texts.get(lang, vip_texts["en"]),
-            reply_markup=vip_subscription_keyboard(lang),
+            reply_markup=vip_subscription_keyboard(lang, show_promo=show_promo),
         )
     elif text in ("💳 Купити доступ", "💳 Купить доступ", "💳 Buy access"):
         await update.message.reply_text(
@@ -1497,45 +1500,89 @@ async def open_vip_subscription(update, context):
     lang = (user.get("lang") or "ua").lower()
     if lang.startswith("uk"):
         lang = "ua"
-    texts = {
-        "ua": (
-            " *VIP підписка*\n\n"
-            "Що отримуєш:\n"
-            " 30 скрінів/день\n"
-            " AI Тренер з персональним аналізом\n"
-            " Повна статистика з емоціями\n"
-            " Бенчмарк серед топ беттерів\n"
-            " AI Сигнали Basic + VIP щодня\n"
-            " Калькулятор Келлі + Ліміт банку\n\n"
-            " Обери план:"
-        ),
-        "ru": (
-            " *VIP подписка*\n\n"
-            "Что получаешь:\n"
-            " 30 скринов/день\n"
-            " AI Тренер с персональным анализом\n"
-            " Полная статистика с эмоциями\n"
-            " Бенчмарк среди топ беттеров\n"
-            " AI Сигналы Basic + VIP каждый день\n"
-            " Калькулятор Келли + Лимит банка\n\n"
-            " Выбери план:"
-        ),
-        "en": (
-            " *VIP*\n\n"
-            "Includes:\n"
-            " 30 screens/day\n"
-            " AI Coach with personal analysis\n"
-            " Full emotional stats\n"
-            " Ranking among top bettors\n"
-            " Basic + VIP AI Signals daily\n"
-            " Kelly Calculator + Bank Limit\n\n"
-            " Choose plan:"
-        ),
-    }
+    from db import is_eligible_for_first_payment_promo
+
+    user_id = update.effective_user.id
+    show_promo = is_eligible_for_first_payment_promo(user_id)
+    if show_promo:
+        texts = {
+            "ua": (
+                "⭐ *VIP підписка*\n\n"
+                "⭐ *СПЕЦІАЛЬНА ПРОПОЗИЦІЯ*\n"
+                "_Тільки при першій оплаті!_\n\n"
+                "Що отримуєш:\n"
+                " 30 скрінів/день\n"
+                " AI Тренер з персональним аналізом\n"
+                " Повна статистика з емоціями\n"
+                " AI Сигнали Basic + VIP\n"
+                " Калькулятор Келлі + Ліміт банку\n\n"
+                "⭐ Обери план:\n"
+                "⭐ 3 міс і 6 міс  знижка тільки зараз!"
+            ),
+            "ru": (
+                "⭐ *VIP подписка*\n\n"
+                "⭐ *СПЕЦИАЛЬНОЕ ПРЕДЛОЖЕНИЕ*\n"
+                "_Только при первой оплате!_\n\n"
+                "Что получаешь:\n"
+                " 30 скринов/день\n"
+                " AI Тренер с персональным анализом\n"
+                " Полная статистика с эмоциями\n"
+                " AI Сигналы Basic + VIP\n"
+                " Калькулятор Келли + Лимит банка\n\n"
+                "⭐ Выбери план:\n"
+                "⭐ 3 мес и 6 мес  скидка только сейчас!"
+            ),
+            "en": (
+                "⭐ *VIP*\n\n"
+                "⭐ *SPECIAL OFFER*\n"
+                "_First payment only!_\n\n"
+                "Includes:\n"
+                " 30 screens/day\n"
+                " AI Coach\n"
+                " Full emotional stats\n"
+                " Basic + VIP AI Signals\n"
+                " Kelly Calc + Bank Limit\n\n"
+                "⭐ Choose plan:\n"
+                "⭐ 3 & 6 months  discount only now!"
+            ),
+        }
+    else:
+        texts = {
+            "ua": (
+                "⭐ *VIP підписка*\n\n"
+                "Що отримуєш:\n"
+                " 30 скрінів/день\n"
+                " AI Тренер з персональним аналізом\n"
+                " Повна статистика з емоціями\n"
+                " AI Сигнали Basic + VIP\n"
+                " Калькулятор Келлі + Ліміт банку\n\n"
+                "⭐ VIP 1 місяць  $19.99"
+            ),
+            "ru": (
+                "⭐ *VIP подписка*\n\n"
+                "Что получаешь:\n"
+                " 30 скринов/день\n"
+                " AI Тренер\n"
+                " Полная статистика с эмоциями\n"
+                " AI Сигналы Basic + VIP\n"
+                " Калькулятор Келли + Лимит банка\n\n"
+                "⭐ VIP 1 месяц  $19.99"
+            ),
+            "en": (
+                "⭐ *VIP*\n\n"
+                "Includes:\n"
+                " 30 screens/day\n"
+                " AI Coach\n"
+                " Full emotional stats\n"
+                " Basic + VIP AI Signals\n"
+                " Kelly Calc + Bank Limit\n\n"
+                "⭐ VIP 1 month  $19.99"
+            ),
+        }
     await update.message.reply_text(
         texts.get(lang, texts["ua"]),
         parse_mode="Markdown",
-        reply_markup=vip_subscription_keyboard(lang),
+        reply_markup=vip_subscription_keyboard(lang, show_promo=show_promo),
     )
 
 
@@ -1571,12 +1618,20 @@ async def settings_callback_handler(update: Update, context: ContextTypes.DEFAUL
         await query.message.reply_text(get_text(lang, "enter_promo_hint"))
         context.user_data["awaiting_settings_promo"] = True
     elif query.data == "settings_coach":
+        from db import is_eligible_for_first_payment_promo
+
         texts = {
             "ua": "AI Тренер доступний у VIP підписці.",
             "ru": "AI Тренер доступен в VIP подписке.",
             "en": "AI Coach is available with VIP subscription.",
         }
-        await query.message.reply_text(texts.get(lang, texts["ua"]), reply_markup=vip_subscription_keyboard(lang))
+        await query.message.reply_text(
+            texts.get(lang, texts["ua"]),
+            reply_markup=vip_subscription_keyboard(
+                lang,
+                show_promo=is_eligible_for_first_payment_promo(update.effective_user.id),
+            ),
+        )
     elif query.data == "settings_streak":
         from db import get_streak
 
@@ -1681,7 +1736,7 @@ def main():
         open_settings,
     ))
 
-    app.add_handler(CallbackQueryHandler(open_stars_menu, pattern="^(buy_stars|stars_.*|vip_buy_.*)$"))
+    app.add_handler(CallbackQueryHandler(open_stars_menu, pattern="^(buy_stars|stars_.*|vip_buy_.*|basic_buy_.*)$"))
     app.add_handler(CallbackQueryHandler(signals_callback_handler, pattern=r"^signals_"))
     app.add_handler(CallbackQueryHandler(cryptobot_payment_handler, pattern="^cb_pay_"))
     app.add_handler(CallbackQueryHandler(check_payment_status_handler, pattern="^check_payment_"))

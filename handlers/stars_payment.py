@@ -6,8 +6,8 @@ from db import (
     activate_user_access,
     save_star_payment,
     get_user,
-    has_used_promo_offer,
     mark_promo_offer_used,
+    is_eligible_for_first_payment_promo,
     activate_vip_bet_day_access,
     activate_vip_signals_access,
     subscribe_to_signal,
@@ -43,10 +43,10 @@ def _unknown_plan_text(lang: str) -> str:
 
 def _promo_used_text(lang: str) -> str:
     if lang == "ua":
-        return "Акційна ціна вже використана. Доступні лише повні тарифи."
+        return "⭐ Ця акція доступна тільки при першій оплаті."
     if lang == "ru":
-        return "Акционная цена уже использована. Доступны только полные тарифы."
-    return "The promo price has already been used. Only full-price plans are available."
+        return "⭐ Эта акция доступна только при первой оплате."
+    return "⭐ This offer is available only for the first payment."
 
 
 def _plan_title(plan: dict, lang: str) -> str:
@@ -60,8 +60,12 @@ def _plan_title(plan: dict, lang: str) -> str:
 def _normalize_plan_key(plan_key: str) -> str:
     aliases = {
         "vip_buy_1m": "stars_vip_1m",
-        "vip_buy_3m": "stars_vip_3m",
-        "vip_buy_6m": "stars_vip_6m",
+        "vip_buy_3m": "stars_vip_3m_promo",
+        "vip_buy_6m": "stars_vip_6m_promo",
+        "vip_buy_3m_promo": "stars_vip_3m_promo",
+        "vip_buy_6m_promo": "stars_vip_6m_promo",
+        "basic_buy_1m": "stars_basic_month",
+        "basic_buy_6m_promo": "stars_basic_6m_promo",
     }
     return aliases.get(plan_key, plan_key)
 
@@ -92,7 +96,7 @@ async def open_stars_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user = get_user(user_id)
     lang = _normalize_lang(user["lang"] if user and user.get("lang") else "en")
-    promo_available = not has_used_promo_offer(user_id)
+    promo_available = is_eligible_for_first_payment_promo(user_id)
 
     if query.data == "buy_stars":
         await query.message.reply_text(
@@ -107,7 +111,7 @@ async def open_stars_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.reply_text(_unknown_plan_text(lang))
         return
 
-    if not promo_available and plan.get("is_promo"):
+    if plan.get("first_payment_only") and not is_eligible_for_first_payment_promo(user_id):
         await query.message.reply_text(_promo_used_text(lang))
         await query.message.reply_text(
             _stars_menu_text(lang),
@@ -168,7 +172,7 @@ async def successful_payment_handler(update: Update, context: ContextTypes.DEFAU
             source=f"stars:{plan_key}",
         )
 
-    if plan_key == "stars_vip_month_promo":
+    if plan.get("first_payment_only"):
         mark_promo_offer_used(user_id)
 
     user = get_user(user_id)

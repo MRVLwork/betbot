@@ -9,6 +9,7 @@ from db import (
     get_subscription_type,
     subscribe_to_signal,
     is_subscribed_to_signal,
+    is_eligible_for_first_payment_promo,
 )
 
 
@@ -178,7 +179,7 @@ async def signals_callback_handler(update: Update, context: ContextTypes.DEFAULT
 
         promo = {
             "ua": (
-                " *Basic підписка  $5/міс*\n\n"
+                " *Basic підписка  $7/міс*\n\n"
                 "Що отримуєш:\n"
                 " 15 скрінів/день\n"
                 " Повна статистика з інсайтами\n"
@@ -188,7 +189,7 @@ async def signals_callback_handler(update: Update, context: ContextTypes.DEFAULT
                 " Обери спосіб оплати:"
             ),
             "ru": (
-                " *Basic подписка  $5/мес*\n\n"
+                " *Basic подписка  $7/мес*\n\n"
                 "Что получаешь:\n"
                 " 15 скринов/день\n"
                 " Полная статистика с инсайтами\n"
@@ -198,7 +199,7 @@ async def signals_callback_handler(update: Update, context: ContextTypes.DEFAULT
                 " Выбери способ оплаты:"
             ),
             "en": (
-                " *Basic  $5/mo*\n\n"
+                " *Basic  $7/mo*\n\n"
                 "Includes:\n"
                 " 15 screens/day\n"
                 " Full stats with insights\n"
@@ -256,7 +257,10 @@ async def signals_callback_handler(update: Update, context: ContextTypes.DEFAULT
         await query.message.reply_text(
             promo.get(lang, promo["ua"]),
             parse_mode="Markdown",
-            reply_markup=vip_subscription_keyboard(lang),
+            reply_markup=vip_subscription_keyboard(
+                lang,
+                show_promo=is_eligible_for_first_payment_promo(user_id),
+            ),
         )
         return
 

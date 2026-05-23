@@ -2,7 +2,7 @@
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import ContextTypes, ConversationHandler
 
-from db import complete_onboarding, get_user, has_used_promo_offer, save_onboarding_data, user_has_access
+from db import complete_onboarding, get_user, is_eligible_for_first_payment_promo, save_onboarding_data, user_has_access
 from keyboards import main_menu_keyboard, welcome_offer_keyboard
 from states import ONBOARDING_DEPOSIT, ONBOARDING_EXPERIENCE, ONBOARDING_GOAL, ONBOARDING_SPORT
 
@@ -272,7 +272,7 @@ async def _send_standard_welcome(update: Update, lang: str):
         await update.message.reply_text(active_text, reply_markup=main_menu_keyboard(lang, (get_user(user_id) or {}).get("plan", "basic")))
         return
 
-    promo_available = not has_used_promo_offer(user_id)
+    promo_available = is_eligible_for_first_payment_promo(user_id)
     from handlers.start import _welcome_text  # local import to avoid circular import at module load
 
     await update.message.reply_text(

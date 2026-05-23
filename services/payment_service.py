@@ -9,31 +9,10 @@ USDT_PLANS = {
         "plan_name_en": "Basic 1 month",
         "plan_type": "basic",
         "duration_days": 30,
-        "amount_usd": 5.0,
-        "full_amount_usd": 5.0,
+        "amount_usd": 7.0,
+        "full_amount_usd": 7.0,
         "is_promo": False,
-        "wallet_address": TRC20_WALLET,
-    },
-    "usdt_vip_month_promo": {
-        "plan_name_ua": "VIP 1 місяць",
-        "plan_name_ru": "VIP 1 месяц",
-        "plan_name_en": "VIP 1 month",
-        "plan_type": "vip",
-        "duration_days": 30,
-        "amount_usd": 14.99,
-        "full_amount_usd": 19.99,
-        "is_promo": True,
-        "wallet_address": TRC20_WALLET,
-    },
-    "usdt_vip_month_full": {
-        "plan_name_ua": "VIP 1 місяць",
-        "plan_name_ru": "VIP 1 месяц",
-        "plan_name_en": "VIP 1 month",
-        "plan_type": "vip",
-        "duration_days": 30,
-        "amount_usd": 19.99,
-        "full_amount_usd": 19.99,
-        "is_promo": False,
+        "first_payment_only": False,
         "wallet_address": TRC20_WALLET,
     },
     "usdt_vip_month": {
@@ -45,17 +24,46 @@ USDT_PLANS = {
         "amount_usd": 19.99,
         "full_amount_usd": 19.99,
         "is_promo": False,
+        "first_payment_only": False,
         "wallet_address": TRC20_WALLET,
     },
-    "usdt_vip_bet_day_month": {
-        "plan_name_ua": "VIP ставка дня 1 місяць",
-        "plan_name_ru": "VIP ставка дня 1 месяц",
-        "plan_name_en": "VIP bet of the day 1 month",
-        "plan_type": "vip_bet_day",
-        "duration_days": 30,
-        "amount_usd": 4.99,
-        "full_amount_usd": 4.99,
-        "is_promo": False,
+    "usdt_basic_6m_promo": {
+        "plan_name_ua": "Basic 6 місяців (-29%)",
+        "plan_name_ru": "Basic 6 месяцев (-29%)",
+        "plan_name_en": "Basic 6 months (-29%)",
+        "plan_type": "basic",
+        "duration_days": 180,
+        "amount_usd": 30.0,
+        "full_amount_usd": 42.0,
+        "is_promo": True,
+        "first_payment_only": True,
+        "discount_percent": 29,
+        "wallet_address": TRC20_WALLET,
+    },
+    "usdt_vip_3m_promo": {
+        "plan_name_ua": "VIP 3 місяці (-17%)",
+        "plan_name_ru": "VIP 3 месяца (-17%)",
+        "plan_name_en": "VIP 3 months (-17%)",
+        "plan_type": "vip",
+        "duration_days": 90,
+        "amount_usd": 50.0,
+        "full_amount_usd": 59.97,
+        "is_promo": True,
+        "first_payment_only": True,
+        "discount_percent": 17,
+        "wallet_address": TRC20_WALLET,
+    },
+    "usdt_vip_6m_promo": {
+        "plan_name_ua": "VIP 6 місяців (-25%)",
+        "plan_name_ru": "VIP 6 месяцев (-25%)",
+        "plan_name_en": "VIP 6 months (-25%)",
+        "plan_type": "vip",
+        "duration_days": 180,
+        "amount_usd": 89.99,
+        "full_amount_usd": 119.94,
+        "is_promo": True,
+        "first_payment_only": True,
+        "discount_percent": 25,
         "wallet_address": TRC20_WALLET,
     },
     "usdt_vip_signals_10d": {
@@ -67,6 +75,7 @@ USDT_PLANS = {
         "amount_usd": 5.0,
         "full_amount_usd": 5.0,
         "is_promo": False,
+        "first_payment_only": False,
         "wallet_address": TRC20_WALLET,
     },
 }
@@ -77,10 +86,10 @@ def get_usdt_plan(plan_key: str):
 
 
 def get_default_usdt_plan_keys():
-    return ["usdt_basic_month", "usdt_vip_month_promo"]
+    return ["usdt_basic_month", "usdt_vip_month"]
 
 
 def get_renewal_usdt_plan_key(plan_type: str, duration_days: int = 30):
     if plan_type == "vip":
-        return "usdt_vip_month_full"
+        return "usdt_vip_month"
     return "usdt_basic_month"

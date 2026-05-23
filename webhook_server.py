@@ -3,7 +3,13 @@ from aiohttp import web
 import logging
 
 from config import WEBHOOK_SECRET
-from db import activate_user_access, activate_vip_signals_access, get_user, subscribe_to_signal
+from db import (
+    activate_user_access,
+    activate_vip_signals_access,
+    get_user,
+    is_eligible_for_first_payment_promo,
+    subscribe_to_signal,
+)
 from services.cryptobot_service import parse_webhook_payload, verify_webhook_signature
 
 
@@ -45,9 +51,11 @@ async def handle_cryptobot_webhook(request: web.Request):
         amount = payload["amount"]
 
         plan_config = {
-            "usdt_basic_month": {"plan_type": "basic", "duration_days": 30, "min_amount": 4.9},
+            "usdt_basic_month": {"plan_type": "basic", "duration_days": 30, "min_amount": 6.9},
             "usdt_vip_month": {"plan_type": "vip", "duration_days": 30, "min_amount": 19.0},
-            "usdt_vip_month_promo": {"plan_type": "vip", "duration_days": 30, "min_amount": 14.9},
+            "usdt_basic_6m_promo": {"plan_type": "basic", "duration_days": 180, "min_amount": 29.9, "first_payment_only": True},
+            "usdt_vip_3m_promo": {"plan_type": "vip", "duration_days": 90, "min_amount": 49.9, "first_payment_only": True},
+            "usdt_vip_6m_promo": {"plan_type": "vip", "duration_days": 180, "min_amount": 89.0, "first_payment_only": True},
             "usdt_vip_signals_10d": {"plan_type": "vip_signals", "duration_days": 10, "min_amount": 4.9},
         }.get(plan_key)
 
@@ -58,6 +66,10 @@ async def handle_cryptobot_webhook(request: web.Request):
         if amount < plan_config["min_amount"]:
             logger.warning("Amount too low: %s for plan %s", amount, plan_key)
             return web.Response(status=400, text="Amount too low")
+
+        if plan_config.get("first_payment_only") and not is_eligible_for_first_payment_promo(user_id):
+            logger.warning("First-payment promo denied for user %s plan %s", user_id, plan_key)
+            return web.Response(status=400, text="Promo unavailable")
 
         if plan_config["plan_type"] == "vip_signals":
             activate_vip_signals_access(user_id=user_id, days=plan_config["duration_days"])

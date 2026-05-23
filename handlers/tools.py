@@ -635,21 +635,21 @@ async def handle_ai_analysis_input(update: Update, context: ContextTypes.DEFAULT
                 "ua": (
                     "🚫 Денний ліміт вичерпано (5/5)\n\n"
                     "Щоб продовжити аналіз сьогодні:\n\n"
-                    "🔹 Basic  $5/міс  15 скрінів/день\n"
+                    "🔹 Basic  $7/міс  15 скрінів/день\n"
                     " VIP  $19.99/міс  30 скрінів/день\n\n"
                     "👇 Оформи підписку і аналізуй без обмежень"
                 ),
                 "ru": (
                     "🚫 Дневной лимит исчерпан (5/5)\n\n"
                     "Чтобы продолжить анализ сегодня:\n\n"
-                    "🔹 Basic  $5/мес  15 скринов/день\n"
+                    "🔹 Basic  $7/мес  15 скринов/день\n"
                     " VIP  $19.99/мес  30 скринов/день\n\n"
                     "👇 Оформи подписку и анализируй без ограничений"
                 ),
                 "en": (
                     "🚫 Daily limit reached (5/5)\n\n"
                     "To continue analysis today:\n\n"
-                    "🔹 Basic  $5/mo  15 screenshots/day\n"
+                    "🔹 Basic  $7/mo  15 screenshots/day\n"
                     " VIP  $19.99/mo  30 screenshots/day\n\n"
                     "👇 Subscribe and analyze without limits"
                 ),

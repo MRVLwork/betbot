@@ -621,6 +621,52 @@ def has_vip_signals_access(user_id: int) -> bool:
         return False
 
 
+def has_user_ever_paid(user_id: int) -> bool:
+    """
+    Return True if user has ever paid via USDT or Stars.
+    """
+    conn = get_conn()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "SELECT COUNT(*) as cnt FROM payments WHERE user_id = ? AND status IN ('paid', 'promo_sent')",
+            (user_id,),
+        )
+        usdt_count = int((cur.fetchone() or {}).get("cnt") or 0)
+        if usdt_count > 0:
+            return True
+
+        cur.execute(
+            "SELECT COUNT(*) as cnt FROM star_payments WHERE user_id = ? AND status = 'paid'",
+            (user_id,),
+        )
+        stars_count = int((cur.fetchone() or {}).get("cnt") or 0)
+        if stars_count > 0:
+            return True
+
+        cur.execute(
+            """
+            SELECT COUNT(*) as cnt
+            FROM users
+            WHERE user_id = ?
+              AND activated_by IN ('cryptobot', 'cryptobot_manual_check')
+            """,
+            (user_id,),
+        )
+        cryptobot_count = int((cur.fetchone() or {}).get("cnt") or 0)
+        return cryptobot_count > 0
+    except Exception as e:
+        print(f"has_user_ever_paid error: {e}")
+        return False
+    finally:
+        conn.close()
+
+
+def is_eligible_for_first_payment_promo(user_id: int) -> bool:
+    """User can buy first-payment promo only before any successful payment."""
+    return not has_user_ever_paid(user_id)
+
+
 def get_user_bank_limit(user_id: int) -> float:
     """Повертає денний ліміт банку юзера"""
     user = get_user(user_id)

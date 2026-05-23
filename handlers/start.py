@@ -11,7 +11,7 @@ from db import (
     is_trial_available,
     get_trial_remaining,
     start_trial_mode,
-    has_used_promo_offer,
+    is_eligible_for_first_payment_promo,
 )
 from handlers.onboarding import start_onboarding
 
@@ -99,6 +99,7 @@ async def send_standard_start(update: Update, lang: str):
     user = update.effective_user
 
     if user_has_access(user.id):
+        db_user = get_user(user.id) or {}
         active_text = {
             "ua": "✔ Доступ активний.",
             "ru": "✔ Доступ активен.",
@@ -111,7 +112,7 @@ async def send_standard_start(update: Update, lang: str):
         )
         return
 
-    promo_available = not has_used_promo_offer(user.id)
+    promo_available = is_eligible_for_first_payment_promo(user.id)
 
     await update.message.reply_text(
         _welcome_text(lang, promo_available),
@@ -183,7 +184,7 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
         buy_text = {
             "ua": (
                 "💳 Обери тариф:\n\n"
-                "🔹 Basic 1 місяць  $5\n"
+                "🔹 Basic 1 місяць  $7\n"
                 "Аналіз 15 ставок на день\n"
                 " Повна статистика і аналітика\n\n"
                 " VIP 1 місяць  $19.99\n"
@@ -193,7 +194,7 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
             ),
             "ru": (
                 "💳 Выбери тариф:\n\n"
-                "🔹 Basic 1 месяц  $5\n"
+                "🔹 Basic 1 месяц  $7\n"
                 "Анализ 15 ставок в день\n"
                 " Полная статистика и аналитика\n\n"
                 " VIP 1 месяц  $19.99\n"
@@ -203,7 +204,7 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
             ),
             "en": (
                 "💳 Choose your plan:\n\n"
-                "🔹 Basic 1 month  $5\n"
+                "🔹 Basic 1 month  $7\n"
                 " 15 screenshots per day\n"
                 " Full statistics and analytics\n\n"
                 " VIP 1 month  $19.99\n"

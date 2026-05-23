@@ -13,10 +13,10 @@ from db import (
     get_payment_by_id,
     mark_payment_promo_sent,
     get_user,
-    has_used_promo_offer,
     mark_promo_offer_used,
     activate_vip_bet_day_access,
     activate_vip_signals_access,
+    is_eligible_for_first_payment_promo,
     subscribe_to_signal,
     user_has_access,
 )
@@ -61,10 +61,10 @@ def _unknown_plan_text(lang: str) -> str:
 
 def _promo_already_used_text(lang: str) -> str:
     if lang == "ua":
-        return "Акційна ціна вже використана. Доступні лише повні тарифи."
+        return "⭐ Ця акція доступна тільки при першій оплаті."
     if lang == "ru":
-        return "Акционная цена уже использована. Доступны только полные тарифы."
-    return "The promo price has already been used. Only full-price plans are available."
+        return "⭐ Эта акция доступна только при первой оплате."
+    return "⭐ This offer is available only for the first payment."
 
 
 def _cancel_payment_text(lang: str) -> str:
@@ -101,14 +101,28 @@ def _payment_card_text(lang: str, plan_name: str, amount_usd: float, wallet: str
     )
 
 
-def _promo_hint_text(lang: str, full_price: float, promo_price: float) -> str:
+def _normalize_usdt_plan_key(plan_key: str) -> str:
+    usdt_callback_map = {
+        "usdt_basic_1m": "usdt_basic_month",
+        "usdt_basic_6m_promo": "usdt_basic_6m_promo",
+        "usdt_vip_1m": "usdt_vip_month",
+        "usdt_vip_3m_promo": "usdt_vip_3m_promo",
+        "usdt_vip_6m_promo": "usdt_vip_6m_promo",
+        "usdt_vip_signals_10d": "usdt_vip_signals_10d",
+    }
+    return usdt_callback_map.get(plan_key, plan_key)
+
+
+def _promo_hint_text(lang: str, full_price: float, promo_price: float, discount_percent=None) -> str:
     if full_price <= promo_price:
         return ""
+    saved = round(full_price - promo_price, 2)
+    pct = discount_percent or round((1 - promo_price / full_price) * 100)
     if lang == "ua":
-        return f"\n🔥 Акційна ціна: {full_price}$ → {promo_price}$"
+        return f"\n⭐ Знижка {pct}%  економія ${saved}!"
     if lang == "ru":
-        return f"\n🔥 Акционная цена: {full_price}$ → {promo_price}$"
-    return f"\n🔥 Promo price: ${full_price} → ${promo_price}"
+        return f"\n⭐ Скидка {pct}%  экономия ${saved}!"
+    return f"\n⭐ {pct}% off  save ${saved}!"
 
 
 def _choose_plan_first_text(lang: str) -> str:
@@ -193,7 +207,7 @@ async def payment_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user = get_user(user_id)
     lang = _normalize_lang(user["lang"] if user and user.get("lang") else "en")
-    promo_available = not has_used_promo_offer(user_id)
+    promo_available = is_eligible_for_first_payment_promo(user_id)
 
     if query.data == "buy_usdt":
         await query.message.reply_text(
@@ -213,12 +227,13 @@ async def payment_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.reply_text(_cancel_payment_text(lang))
         return ConversationHandler.END
 
-    plan = get_usdt_plan(query.data)
+    plan_key = _normalize_usdt_plan_key(query.data)
+    plan = get_usdt_plan(plan_key)
     if not plan:
         await query.message.reply_text(_unknown_plan_text(lang))
         return ConversationHandler.END
 
-    if not promo_available and plan.get("is_promo"):
+    if plan.get("first_payment_only") and not is_eligible_for_first_payment_promo(user_id):
         await query.message.reply_text(_promo_already_used_text(lang))
         await query.message.reply_text(
             _usdt_menu_text(lang),
@@ -230,7 +245,7 @@ async def payment_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     create_payment(
         user_id=user_id,
-        plan_key=query.data,
+        plan_key=plan_key,
         plan_name=plan_name,
         plan_type=plan["plan_type"],
         duration_days=plan["duration_days"],
@@ -240,7 +255,12 @@ async def payment_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     promo_hint = ""
     if plan.get("is_promo") and plan["full_amount_usd"] > plan["amount_usd"]:
-        promo_hint = _promo_hint_text(lang, plan["full_amount_usd"], plan["amount_usd"])
+        promo_hint = _promo_hint_text(
+            lang,
+            plan["full_amount_usd"],
+            plan["amount_usd"],
+            plan.get("discount_percent"),
+        )
 
     await query.message.reply_text(
         _payment_card_text(lang, plan_name, plan["amount_usd"], plan["wallet_address"], promo_hint),
@@ -348,9 +368,11 @@ async def admin_payment_reply_handler(update: Update, context: ContextTypes.DEFA
 
     mark_payment_promo_sent(payment_id, update.message.text)
 
-    if payment.get("plan_key") == "usdt_vip_month_promo":
+    payment_plan = USDT_PLANS.get(payment.get("plan_key") or "")
+    if payment_plan and payment_plan.get("first_payment_only"):
         mark_promo_offer_used(payment["user_id"])
-    elif payment.get("plan_key") == "usdt_vip_bet_day_month":
+
+    if payment.get("plan_key") == "usdt_vip_bet_day_month":
         activate_vip_bet_day_access(payment["user_id"], days=30)
         target_user = get_user(payment["user_id"])
         target_lang = _normalize_lang(target_user["lang"] if target_user and target_user.get("lang") else "en")
@@ -391,10 +413,14 @@ async def cryptobot_payment_handler(update: Update, context: ContextTypes.DEFAUL
     user = get_user(user_id) or {}
     lang = _normalize_lang(user.get("lang") or "ua")
 
-    plan_key = query.data.replace("cb_pay_", "")
+    plan_key = _normalize_usdt_plan_key(query.data.replace("cb_pay_", ""))
     plan = USDT_PLANS.get(plan_key)
     if not plan:
         await query.message.reply_text("Помилка: план не знайдено")
+        return
+
+    if plan.get("first_payment_only") and not is_eligible_for_first_payment_promo(user_id):
+        await query.message.reply_text(_promo_already_used_text(lang))
         return
 
     plan_name = _plan_name(plan, lang)
@@ -503,6 +529,14 @@ async def check_payment_status_handler(update: Update, context: ContextTypes.DEF
                 "en": "✅ Payment found, but the plan could not be resolved automatically.",
             }
             await query.message.reply_text(fallback_texts.get(lang, fallback_texts["en"]))
+            return
+
+        if (
+            plan.get("first_payment_only")
+            and not is_eligible_for_first_payment_promo(user_id)
+            and not user_has_access(user_id)
+        ):
+            await query.message.reply_text(_promo_already_used_text(lang))
             return
 
         should_activate = bool(plan and (plan["plan_type"] == "vip_signals" or not user_has_access(user_id)))

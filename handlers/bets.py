@@ -281,7 +281,7 @@ def _trial_pitch_after_5(lang: str, stats: dict, days_left: int) -> str:
                 f"Аналіз 15 ставок на день\n"
                 f"Повна статистика і аналітика\n"
                 f"Контроль емоцій і тілту\n\n"
-                f"💡 $5 на місяць - менше ніж одна\n"
+                f"💡 $7 на місяць - менше ніж одна\n"
                 f"програшна ставка через емоції.\n\n"
                 f"👇 Зафіксуй результат - купи доступ"
             )
@@ -322,7 +322,7 @@ def _trial_pitch_after_5(lang: str, stats: dict, days_left: int) -> str:
                 f"Анализ 15 ставок в день\n"
                 f"Полная статистика и аналитика\n"
                 f"Контроль эмоций и тилта\n\n"
-                f"💡 $5 в месяц - меньше чем одна\n"
+                f"💡 $7 в месяц - меньше чем одна\n"
                 f"проигрышная ставка на эмоциях.\n\n"
                 f"👇 Зафиксируй результат - купи доступ"
             )
@@ -361,7 +361,7 @@ def _trial_pitch_after_5(lang: str, stats: dict, days_left: int) -> str:
             f"15 screenshots per day\n"
             f"Full stats and analytics\n"
             f"Emotion and tilt control\n\n"
-            f"💡 $5/month - less than one emotional loss.\n\n"
+            f"💡 $7/month - less than one emotional loss.\n\n"
             f"👇 Lock in your result - get access"
         )
     return (

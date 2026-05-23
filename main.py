@@ -87,6 +87,7 @@ from handlers.admin import (
     users_list,
     promo_stats,
     delete_user,
+    cleanup,
     stars_revenue,
     gen_ref,
     list_refs,
@@ -1630,6 +1631,7 @@ def main():
     app.add_handler(CommandHandler("users", users_list))
     app.add_handler(CommandHandler("statspromo", promo_stats))
     app.add_handler(CommandHandler("deluser", delete_user))
+    app.add_handler(CommandHandler("cleanup", cleanup))
     app.add_handler(CommandHandler("stars", stars_revenue))
     app.add_handler(CommandHandler("genref", gen_ref))
     app.add_handler(CommandHandler("refs", list_refs))

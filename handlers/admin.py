@@ -224,6 +224,62 @@ async def delete_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Не знайдено")
 
 
+async def cleanup(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /cleanup deletes only empty inactive users:
+    no trial, no paid records, no screenshots, no parsed bets.
+    """
+    if not is_admin(update.effective_user.id):
+        await update.message.reply_text("⛔ Немає доступу.")
+        return
+
+    conn = get_conn()
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            SELECT u.user_id, u.username, u.first_name
+            FROM users u
+            WHERE COALESCE(u.is_active, 0) = 0
+              AND u.trial_started_at IS NULL
+              AND u.activated_at IS NULL
+              AND u.activated_by IS NULL
+              AND u.access_until IS NULL
+              AND NOT EXISTS (
+                  SELECT 1 FROM photo_logs pl WHERE pl.user_id = u.user_id
+              )
+              AND NOT EXISTS (
+                  SELECT 1 FROM bets b WHERE b.user_id = u.user_id
+              )
+              AND NOT EXISTS (
+                  SELECT 1 FROM payments p WHERE p.user_id = u.user_id
+              )
+              AND NOT EXISTS (
+                  SELECT 1 FROM star_payments sp WHERE sp.user_id = u.user_id
+              )
+            ORDER BY u.created_at ASC
+        """)
+        candidates = cur.fetchall()
+    finally:
+        conn.close()
+
+    deleted = 0
+    errors = 0
+    for user in candidates:
+        try:
+            deleted += 1 if delete_user_by_id(user["user_id"]) else 0
+        except Exception as exc:
+            errors += 1
+            print(f"cleanup delete error for {user['user_id']}: {exc}")
+
+    await update.message.reply_text(
+        "✅ Cleanup завершено\n\n"
+        f"Знайдено кандидатів: {len(candidates)}\n"
+        f"Видалено: {deleted}\n"
+        f"Помилок: {errors}\n\n"
+        "Умова: без trial, без оплат, без скрінів, без ставок."
+    )
+
+
 async def stars_revenue(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update.effective_user.id):
         return

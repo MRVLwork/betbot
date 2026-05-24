@@ -518,15 +518,17 @@ async def ref_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def _parse_broadcast_command(text: str):
     """
-    Parse broadcast command.
-    Format: /sendvip /ua message text
+    Parse broadcast command with one or more language tags.
+    Formats:
+    /sendvip /ua message text
+    /sendvip /ua /ru message text
+    /sendvip /ua /ru /en message text
     Returns (lang, message_text) or (None, None) on error.
     """
-    parts = (text or "").strip().split(maxsplit=2)
-    if len(parts) < 3:
+    parts = (text or "").strip().split()
+    if len(parts) < 2:
         return None, None
 
-    lang_tag = parts[1].lower().lstrip("/")
     lang_map = {
         "ua": "ua",
         "uk": "ua",
@@ -536,32 +538,48 @@ def _parse_broadcast_command(text: str):
         "en": "en",
         "eng": "en",
     }
-    lang = lang_map.get(lang_tag)
-    if not lang:
+
+    langs = []
+    text_start_idx = 1
+    for index in range(1, len(parts)):
+        token = parts[index].lower().lstrip("/")
+        if parts[index].startswith("/") and token in lang_map:
+            mapped = lang_map[token]
+            if mapped not in langs:
+                langs.append(mapped)
+            text_start_idx = index + 1
+        else:
+            break
+
+    if not langs:
         return None, None
 
-    message_text = parts[2].strip()
+    message_text = " ".join(parts[text_start_idx:]).strip()
     if not message_text:
         return None, None
 
-    return lang, message_text
+    return langs, message_text
 
 
 async def _do_broadcast(
     context,
     sub_filter: str,
-    lang: str,
+    langs: list,
     message_text: str,
     photo_file_id: str = None,
 ) -> tuple:
-    """Send broadcast and return (success, errors)."""
+    """Send broadcast for multiple languages and return (success, errors, total_users)."""
     from db import get_users_by_subscription_and_lang
 
-    user_ids = get_users_by_subscription_and_lang(sub_filter, lang)
+    all_user_ids = set()
+    for lang in langs:
+        user_ids = get_users_by_subscription_and_lang(sub_filter, lang)
+        all_user_ids.update(user_ids)
+
     success = 0
     errors = 0
 
-    for user_id in user_ids:
+    for user_id in all_user_ids:
         try:
             if photo_file_id:
                 await context.bot.send_photo(
@@ -580,7 +598,7 @@ async def _do_broadcast(
             errors += 1
             print(f"Broadcast error to {user_id}: {e}")
 
-    return success, errors
+    return success, errors, len(all_user_ids)
 
 
 async def _handle_broadcast(update, context, sub_filter: str):
@@ -595,16 +613,18 @@ async def _handle_broadcast(update, context, sub_filter: str):
     raw_text = message.text or message.caption or ""
     photo_file_id = message.photo[-1].file_id if message.photo else None
 
-    lang, message_text = _parse_broadcast_command(raw_text)
-    if not lang or not message_text:
+    langs, message_text = _parse_broadcast_command(raw_text)
+    if not langs or not message_text:
         await message.reply_text(
             "Format:\n"
             "/sendvip /ua <text>\n\n"
+            "/sendvip /ua /ru <text>\n"
+            "/sendvip /ua /ru /en <text>\n\n"
             "Language tags: /ua /ru /en\n\n"
+            "You can specify several tags separated by spaces.\n\n"
             "Examples:\n"
             "/sendvip /ua Hello VIP users!\n"
-            "/sendbasic /ru Text for Basic\n"
-            "/sendall /en Message for everyone\n\n"
+            "/sendall /ua /ru Message for two languages\n\n"
             "For photo broadcasts, attach an image and put the command in the caption."
         )
         return
@@ -616,23 +636,25 @@ async def _handle_broadcast(update, context, sub_filter: str):
         "all": "All",
     }
     audience = audience_names.get(sub_filter, sub_filter)
+    langs_str = "/".join(lang.upper() for lang in langs)
 
     status_msg = await message.reply_text(
-        f"Broadcast {audience} ({lang.upper()})...\n"
+        f"Broadcast {audience} ({langs_str})...\n"
         f"{'With photo' if photo_file_id else 'Text only'}"
     )
 
-    success, errors = await _do_broadcast(
+    success, errors, total = await _do_broadcast(
         context,
         sub_filter,
-        lang,
+        langs,
         message_text,
         photo_file_id,
     )
 
     await status_msg.edit_text(
         f"Broadcast completed\n\n"
-        f"Audience: {audience} ({lang.upper()})\n"
+        f"Audience: {audience} ({langs_str})\n"
+        f"Total recipients: {total}\n"
         f"Delivered: {success}\n"
         f"Errors: {errors}"
     )

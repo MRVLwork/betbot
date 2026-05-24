@@ -800,7 +800,19 @@ def resolve_stats_period(query_data: str, lang: str):
             now,
             get_text(lang, "period_current_week"),
         )
+    if query_data.endswith("_week"):
+        return (
+            (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0),
+            now,
+            get_text(lang, "period_current_week"),
+        )
     if query_data.endswith("_current_month"):
+        return (
+            now.replace(day=1, hour=0, minute=0, second=0, microsecond=0),
+            now,
+            get_text(lang, "period_current_month"),
+        )
+    if query_data.endswith("_month"):
         return (
             now.replace(day=1, hour=0, minute=0, second=0, microsecond=0),
             now,
@@ -1213,6 +1225,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "👤 Профіль", "👤 Профиль", "👤 Profile",
         "📊 Статистика", "📊 Statistics",
         "📊 Моя статистика", "📊 My stats",
+        "📊 Скорочена статистика", "📊 Краткая статистика", "📊 Quick stats",
         "📈 Повна статистика", "📈 Полная статистика", "📈 Full stats",
         "🔒 Повна статистика  тільки Basic/VIP",
         "🔒 Полная статистика  только Basic/VIP",
@@ -1274,21 +1287,17 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         show_lock = is_trial_user and not has_access
 
         await update.message.reply_text(
-            get_text(lang, "choose_stats_type")
-            if not show_lock
-            else (
-                "\U0001F4CA \u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430  \u043e\u0431\u0435\u0440\u0456\u0442\u044c \u0440\u043e\u0437\u0434\u0456\u043b:"
-                if lang == "ua"
-                else "\U0001F4CA \u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430  \u0432\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0440\u0430\u0437\u0434\u0435\u043b:"
-                if lang == "ru"
-                else "\U0001F4CA Statistics  choose section:"
-            ),
+            get_text(lang, "choose_stats_type"),
             reply_markup=stats_submenu_keyboard(lang, is_trial=show_lock)
         )
-    elif text in ("📊 Моя статистика", "📊 My stats"):
+    elif text in (
+        "📊 Скорочена статистика",
+        "📊 Краткая статистика",
+        "📊 Quick stats",
+    ):
         if not can_view_basic_stats(user_id):
             await update.message.reply_text(get_text(lang, "no_active_access_start"))
-            return ConversationHandler.END
+            return
 
         is_vip = is_user_vip(user_id)
         await update.message.reply_text(
@@ -1297,6 +1306,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     elif text in (
         "📈 Повна статистика",
+        "📈 Полная статистика",
         "📈 Full stats",
         "🔒 Повна статистика  тільки Basic/VIP",
         "🔒 Полная статистика  только Basic/VIP",

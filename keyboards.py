@@ -60,39 +60,39 @@ def stats_submenu_keyboard(lang: str, is_trial: bool = False):
     if lang == "ru":
         if is_trial:
             keyboard = [
-                ["📊 Моя статистика"],
+                ["📊 Краткая статистика"],
                 ["🔒 Полная статистика  только Basic/VIP"],
                 [" Назад"],
             ]
         else:
             keyboard = [
-                ["📊 Моя статистика"],
-                ["📈 Повна статистика"],
+                ["📊 Краткая статистика"],
+                ["📈 Полная статистика"],
                 [" Назад"],
             ]
     elif lang == "en":
         if is_trial:
             keyboard = [
-                ["📊 My stats"],
+                ["📊 Quick stats"],
                 ["🔒 Full stats  Basic/VIP only"],
                 [" Back"],
             ]
         else:
             keyboard = [
-                ["📊 My stats"],
+                ["📊 Quick stats"],
                 ["📈 Full stats"],
                 [" Back"],
             ]
     else:
         if is_trial:
             keyboard = [
-                ["📊 Моя статистика"],
+                ["📊 Скорочена статистика"],
                 ["🔒 Повна статистика  тільки Basic/VIP"],
                 [" Назад"],
             ]
         else:
             keyboard = [
-                ["📊 Моя статистика"],
+                ["📊 Скорочена статистика"],
                 ["📈 Повна статистика"],
                 [" Назад"],
             ]

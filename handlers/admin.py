@@ -22,6 +22,65 @@ def is_admin(user_id: int) -> bool:
     return user_id == ADMIN_ID
 
 
+async def commands_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /commands shows the current admin command list.
+    Admin only.
+    """
+    if not is_admin(update.effective_user.id):
+        return
+
+    text = (
+        "📋 *АДМІН КОМАНДИ*\n\n"
+        "📣 *РОЗСИЛКА ПОВІДОМЛЕНЬ*\n"
+        "_Фото можна надсилати як зображення з підписом-командою._\n\n"
+        "`/sendbasic /ua <текст>`\n"
+        "Розсилка активним Basic юзерам обраної мови.\n\n"
+        "`/sendvip /ua <текст>`\n"
+        "Розсилка активним VIP юзерам обраної мови.\n\n"
+        "`/sendtrial /ua <текст>`\n"
+        "Розсилка активним Trial юзерам обраної мови.\n\n"
+        "`/sendall /ua <текст>`\n"
+        "Розсилка всім юзерам обраної мови, включно без підписки.\n\n"
+        "_Мовні теги: /ua /ru /en. Також приймаються /uk, /ukr, /rus, /eng._\n\n"
+        "👥 *КОРИСТУВАЧІ*\n\n"
+        "`/users`\n"
+        "Повний список юзерів: TG ID, нік, підписка, trial статус, витрати, реферал, активність.\n\n"
+        "`/deluser <user_id або @username>`\n"
+        "Видалити конкретного юзера з БД.\n\n"
+        "`/cleanup`\n"
+        "Видалити порожніх неактивних юзерів: без trial, оплат, скрінів і ставок.\n\n"
+        "🎟 *ПРОМОКОДИ*\n\n"
+        "`/addpromo <код> <дні> <кількість> <basic|vip>`\n"
+        "Створити промокод. Приклад: `/addpromo BASIC30 30 1 basic`.\n\n"
+        "`/promos`\n"
+        "Список усіх промокодів.\n\n"
+        "`/statspromo <код>`\n"
+        "Статистика використання конкретного промокоду.\n\n"
+        "`/genbasicweek` `/genbasicmonth`\n"
+        "Згенерувати Basic промокод на тиждень або місяць.\n\n"
+        "`/genvipweek` `/genvipmonth`\n"
+        "Згенерувати VIP промокод на тиждень або місяць.\n\n"
+        "🔗 *РЕФЕРАЛЬНІ ПОСИЛАННЯ*\n\n"
+        "`/genref <ключ> [опис]`\n"
+        "Створити реферальне посилання. Приклад: `/genref tiktok TikTok трафік`.\n\n"
+        "`/refs`\n"
+        "Список усіх реферальних джерел з кліками.\n\n"
+        "`/refstats <ключ>`\n"
+        "Детальна статистика по джерелу: юзери, конверсія, дохід.\n\n"
+        "💰 *ФІНАНСИ*\n\n"
+        "`/stars`\n"
+        "Дохід від Telegram Stars.\n\n"
+        "⚙️ *СИСТЕМА*\n\n"
+        "`/updatemenu`\n"
+        "Оновити меню у всіх юзерів.\n\n"
+        "`/commands`\n"
+        "Показати цей список команд."
+    )
+
+    await update.message.reply_text(text, parse_mode="Markdown")
+
+
 async def update_menu_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Надсилає оновлену клавіатуру всім активним юзерам.

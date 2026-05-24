@@ -78,6 +78,7 @@ from handlers.stars_payment import (
     successful_payment_handler,
 )
 from handlers.admin import (
+    commands_list,
     addpromo,
     genbasicweek,
     genbasicmonth,
@@ -1669,6 +1670,7 @@ def main():
     )
     app.add_handler(onboarding_conv)
 
+    app.add_handler(CommandHandler("commands", commands_list))
     app.add_handler(CommandHandler("addpromo", addpromo))
     app.add_handler(CommandHandler("genbasicweek", genbasicweek))
     app.add_handler(CommandHandler("genbasicmonth", genbasicmonth))

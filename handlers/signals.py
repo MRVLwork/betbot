@@ -63,19 +63,19 @@ async def open_signals_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if lang == "ru":
         title = (
             " *AI Сигналы дня*\n\n"
-            "Получай готовые ставки от наших AI-аналитиков "
+            "Получай готовые ставки от AI-агента "
             "прямо в Telegram. Выбери уровень сигналов:\n"
         )
     elif lang == "en":
         title = (
             " *AI Signals of the day*\n\n"
-            "Get ready-to-bet picks from our AI analysts "
+            "Get ready-to-bet picks from our AI agent "
             "straight to Telegram. Choose your level:\n"
         )
     else:
         title = (
             " *AI Сигнали дня*\n\n"
-            "Отримуй готові ставки від наших AI-аналітиків "
+            "Отримуй готові ставки від AI-агента "
             "прямо в Telegram. Обери рівень сигналів:\n"
         )
 
@@ -167,9 +167,9 @@ async def signals_callback_handler(update: Update, context: ContextTypes.DEFAULT
 
     if data in ("signals_trial_info", "signals_basic_info", "signals_vip_info"):
         info = {
-            "ua": " Підписка активна. Очікуй сигнали від адміна  вони приходитимуть автоматично коли є цінні події.",
-            "ru": " Подписка активна. Ожидай сигналы от админа  они будут приходить автоматически когда есть ценные события.",
-            "en": " Subscription active. Wait for admin signals  they will arrive automatically when valuable events appear.",
+            "ua": " Підписка активна. Очікуй сигнали від AI-агента  вони приходитимуть автоматично коли є цінні події.",
+            "ru": " Подписка активна. Ожидай сигналы от AI-агента  они будут приходить автоматически когда есть ценные события.",
+            "en": " Subscription active. Wait for AI agent signals  they will arrive automatically when valuable events appear.",
         }
         await query.message.reply_text(info.get(lang, info["ua"]))
         return
@@ -273,7 +273,7 @@ async def signals_callback_handler(update: Update, context: ContextTypes.DEFAULT
                 "Окрема підписка на VIP сигнали\n"
                 "без апгрейду на повний VIP план.\n\n"
                 "Отримуй найточніші сигнали від\n"
-                "наших аналітиків 10 днів.\n\n"
+                "AI-агента 10 днів.\n\n"
                 " 399⭐ або $5\n\n"
                 " Обери спосіб оплати:"
             ),
@@ -282,7 +282,7 @@ async def signals_callback_handler(update: Update, context: ContextTypes.DEFAULT
                 "Отдельная подписка на VIP сигналы\n"
                 "без апгрейда на полный VIP план.\n\n"
                 "Получай самые точные сигналы от\n"
-                "наших аналитиков 10 дней.\n\n"
+                "AI-агента 10 дней.\n\n"
                 " 399⭐ или $5\n\n"
                 " Выбери способ оплаты:"
             ),
@@ -291,7 +291,7 @@ async def signals_callback_handler(update: Update, context: ContextTypes.DEFAULT
                 "Separate VIP signals subscription\n"
                 "without full VIP upgrade.\n\n"
                 "Get most accurate signals from\n"
-                "our analysts for 10 days.\n\n"
+                "our AI agent for 10 days.\n\n"
                 " 399⭐ or $5\n\n"
                 " Choose payment:"
             ),

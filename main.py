@@ -1620,31 +1620,6 @@ async def settings_callback_handler(update: Update, context: ContextTypes.DEFAUL
     elif query.data == "settings_promo":
         await query.message.reply_text(get_text(lang, "enter_promo_hint"))
         context.user_data["awaiting_settings_promo"] = True
-    elif query.data == "settings_coach":
-        from db import is_eligible_for_first_payment_promo
-
-        texts = {
-            "ua": "AI Тренер доступний у VIP підписці.",
-            "ru": "AI Тренер доступен в VIP подписке.",
-            "en": "AI Coach is available with VIP subscription.",
-        }
-        await query.message.reply_text(
-            texts.get(lang, texts["ua"]),
-            reply_markup=vip_subscription_keyboard(
-                lang,
-                show_promo=is_eligible_for_first_payment_promo(update.effective_user.id),
-            ),
-        )
-    elif query.data == "settings_streak":
-        from db import get_streak
-
-        streak = get_streak(update.effective_user.id)
-        texts = {
-            "ua": f"🔥 Серія дисципліни: {streak['current_streak']} днів\n\n🏆 Рекорд: {streak['best_streak']} днів",
-            "ru": f"🔥 Серия дисциплины: {streak['current_streak']} дней\n\n🏆 Рекорд: {streak['best_streak']} дней",
-            "en": f"🔥 Discipline streak: {streak['current_streak']} days\n\n🏆 Best: {streak['best_streak']} days",
-        }
-        await query.message.reply_text(texts.get(lang, texts["ua"]))
     else:
         texts = {
             "ua": "Реферальний розділ буде доступний у профілі.",

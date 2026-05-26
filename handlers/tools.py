@@ -391,6 +391,82 @@ async def tools_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
         )
         return
 
+    if query.data == "tool_coach":
+        from db import get_subscription_type, is_eligible_for_first_payment_promo
+        from keyboards import vip_subscription_keyboard
+
+        sub_type = get_subscription_type(user_id)
+        if sub_type == "vip":
+            texts = {
+                "ua": (
+                    "🧠 *AI Тренер*\n\n"
+                    "Запитай мене про свою статистику\n"
+                    "або стратегію ставок.\n\n"
+                    "Наприклад:\n"
+                    " Чому я зливаю на форі?\n"
+                    " Як покращити мій ROI?\n"
+                    " На чому я найкраще заробляю?"
+                ),
+                "ru": (
+                    "🧠 *AI Тренер*\n\n"
+                    "Спроси меня о своей статистике\n"
+                    "или стратегии ставок.\n\n"
+                    "Например:\n"
+                    " Почему я сливаю на форе?\n"
+                    " Как улучшить мой ROI?\n"
+                    " На чём я лучше всего зарабатываю?"
+                ),
+                "en": (
+                    "🧠 *AI Coach*\n\n"
+                    "Ask me about your stats\n"
+                    "or betting strategy.\n\n"
+                    "For example:\n"
+                    " Why do I lose on handicaps?\n"
+                    " How to improve my ROI?\n"
+                    " What's my most profitable market?"
+                ),
+            }
+            context.user_data["awaiting_coach_reply"] = True
+            await query.message.reply_text(
+                texts.get(lang, texts["ua"]),
+                parse_mode="Markdown",
+            )
+        else:
+            texts = {
+                "ua": "🧠 AI Тренер доступний у VIP підписці.",
+                "ru": "🧠 AI Тренер доступен в VIP подписке.",
+                "en": "🧠 AI Coach is available with VIP subscription.",
+            }
+            await query.message.reply_text(
+                texts.get(lang, texts["ua"]),
+                reply_markup=vip_subscription_keyboard(
+                    lang,
+                    show_promo=is_eligible_for_first_payment_promo(user_id),
+                ),
+            )
+        return
+
+    if query.data == "tool_streak":
+        from db import get_streak
+
+        streak = get_streak(user_id)
+        texts = {
+            "ua": (
+                f"🔥 Серія дисципліни: {streak['current_streak']} днів\n\n"
+                f"🏆 Рекорд: {streak['best_streak']} днів"
+            ),
+            "ru": (
+                f"🔥 Серия дисциплины: {streak['current_streak']} дней\n\n"
+                f"🏆 Рекорд: {streak['best_streak']} дней"
+            ),
+            "en": (
+                f"🔥 Discipline streak: {streak['current_streak']} days\n\n"
+                f"🏆 Best: {streak['best_streak']} days"
+            ),
+        }
+        await query.message.reply_text(texts.get(lang, texts["ua"]))
+        return
+
 
 async def handle_kelly_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обробляє ввід для калькулятора Келлі"""

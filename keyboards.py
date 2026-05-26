@@ -330,24 +330,18 @@ def settings_keyboard(lang: str = "ua"):
             [InlineKeyboardButton("🌐 Язык", callback_data="settings_lang")],
             [InlineKeyboardButton("🎟️ Промокод", callback_data="settings_promo")],
             [InlineKeyboardButton("👥 Рефералы", callback_data="settings_referrals")],
-            [InlineKeyboardButton("🧠 AI Тренер VIP", callback_data="settings_coach")],
-            [InlineKeyboardButton("🔥 Streak дисциплины", callback_data="settings_streak")],
         ]
     elif lang == "en":
         keyboard = [
             [InlineKeyboardButton("🌐 Language", callback_data="settings_lang")],
             [InlineKeyboardButton("🎟️ Promo code", callback_data="settings_promo")],
             [InlineKeyboardButton("👥 Referrals", callback_data="settings_referrals")],
-            [InlineKeyboardButton("🧠 AI Coach VIP", callback_data="settings_coach")],
-            [InlineKeyboardButton("🔥 Discipline streak", callback_data="settings_streak")],
         ]
     else:
         keyboard = [
             [InlineKeyboardButton("🌐 Мова", callback_data="settings_lang")],
             [InlineKeyboardButton("🎟️ Промокод", callback_data="settings_promo")],
             [InlineKeyboardButton("👥 Реферали", callback_data="settings_referrals")],
-            [InlineKeyboardButton("🧠 AI Тренер VIP", callback_data="settings_coach")],
-            [InlineKeyboardButton("🔥 Streak дисципліни", callback_data="settings_streak")],
         ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -455,6 +449,8 @@ def tools_keyboard(lang: str):
             [InlineKeyboardButton("🤖 AI-анализ матча", callback_data="tool_ai")],
             [InlineKeyboardButton("🧮 Калькулятор Келли", callback_data="tool_kelly")],
             [InlineKeyboardButton("📊 Лимит банка", callback_data="tool_bank_limit")],
+            [InlineKeyboardButton("🧠 AI Тренер VIP", callback_data="tool_coach")],
+            [InlineKeyboardButton("🔥 Streak дисциплины", callback_data="tool_streak")],
         ]
     elif lang == "en":
         keyboard = [
@@ -462,16 +458,19 @@ def tools_keyboard(lang: str):
             [InlineKeyboardButton("🤖 AI match analysis", callback_data="tool_ai")],
             [InlineKeyboardButton("🧮 Kelly Calculator", callback_data="tool_kelly")],
             [InlineKeyboardButton("📊 Bank limit", callback_data="tool_bank_limit")],
+            [InlineKeyboardButton("🧠 AI Coach VIP", callback_data="tool_coach")],
+            [InlineKeyboardButton("🔥 Discipline streak", callback_data="tool_streak")],
         ]
-    else:  # ua
+    else:
         keyboard = [
             [InlineKeyboardButton("🎯 Ставка дня", callback_data="tool_bet_day")],
             [InlineKeyboardButton("🤖 AI-аналіз матчу", callback_data="tool_ai")],
             [InlineKeyboardButton("🧮 Калькулятор Келлі", callback_data="tool_kelly")],
             [InlineKeyboardButton("📊 Ліміт банку", callback_data="tool_bank_limit")],
+            [InlineKeyboardButton("🧠 AI Тренер VIP", callback_data="tool_coach")],
+            [InlineKeyboardButton("🔥 Streak дисципліни", callback_data="tool_streak")],
         ]
     return InlineKeyboardMarkup(keyboard)
-
 
 def bet_day_menu_keyboard(lang: str):
     if lang == "ru":

@@ -249,29 +249,29 @@ def vip_subscription_keyboard(lang: str = "ua", show_promo: bool = False):
     if show_promo:
         if lang == "ru":
             keyboard = [
-                [InlineKeyboardButton("⭐ VIP 1 месяц  $19.99 / 1500⭐", callback_data="vip_buy_1m")],
-                [InlineKeyboardButton("⭐ VIP 3 месяца  $50 (-17%)", callback_data="vip_buy_3m_promo")],
-                [InlineKeyboardButton("⭐ VIP 6 месяцев  $89.99 (-25%)", callback_data="vip_buy_6m_promo")],
+                [InlineKeyboardButton("💎 1 месяц  $19.99 / 1500⭐", callback_data="vip_buy_1m")],
+                [InlineKeyboardButton("💎 3 месяца  $50 / 3750⭐ · -17%", callback_data="vip_buy_3m_promo")],
+                [InlineKeyboardButton("💎 6 месяцев  $89.99 / 6750⭐ · -25%", callback_data="vip_buy_6m_promo")],
             ]
         elif lang == "en":
             keyboard = [
-                [InlineKeyboardButton("⭐ VIP 1 month  $19.99 / 1500⭐", callback_data="vip_buy_1m")],
-                [InlineKeyboardButton("⭐ VIP 3 months  $50 (-17%)", callback_data="vip_buy_3m_promo")],
-                [InlineKeyboardButton("⭐ VIP 6 months  $89.99 (-25%)", callback_data="vip_buy_6m_promo")],
+                [InlineKeyboardButton("💎 1 month  $19.99 / 1500⭐", callback_data="vip_buy_1m")],
+                [InlineKeyboardButton("💎 3 months  $50 / 3750⭐ · -17%", callback_data="vip_buy_3m_promo")],
+                [InlineKeyboardButton("💎 6 months  $89.99 / 6750⭐ · -25%", callback_data="vip_buy_6m_promo")],
             ]
         else:
             keyboard = [
-                [InlineKeyboardButton("⭐ VIP 1 місяць  $19.99 / 1500⭐", callback_data="vip_buy_1m")],
-                [InlineKeyboardButton("⭐ VIP 3 місяці  $50 (-17%)", callback_data="vip_buy_3m_promo")],
-                [InlineKeyboardButton("⭐ VIP 6 місяців  $89.99 (-25%)", callback_data="vip_buy_6m_promo")],
+                [InlineKeyboardButton("💎 1 місяць  $19.99 / 1500⭐", callback_data="vip_buy_1m")],
+                [InlineKeyboardButton("💎 3 місяці  $50 / 3750⭐ · -17%", callback_data="vip_buy_3m_promo")],
+                [InlineKeyboardButton("💎 6 місяців  $89.99 / 6750⭐ · -25%", callback_data="vip_buy_6m_promo")],
             ]
     else:
         if lang == "ru":
-            keyboard = [[InlineKeyboardButton("⭐ VIP 1 месяц  $19.99 / 1500⭐", callback_data="vip_buy_1m")]]
+            keyboard = [[InlineKeyboardButton("💎 VIP 1 месяц  $19.99 / 1500⭐", callback_data="vip_buy_1m")]]
         elif lang == "en":
-            keyboard = [[InlineKeyboardButton("⭐ VIP 1 month  $19.99 / 1500⭐", callback_data="vip_buy_1m")]]
+            keyboard = [[InlineKeyboardButton("💎 VIP 1 month  $19.99 / 1500⭐", callback_data="vip_buy_1m")]]
         else:
-            keyboard = [[InlineKeyboardButton("⭐ VIP 1 місяць  $19.99 / 1500⭐", callback_data="vip_buy_1m")]]
+            keyboard = [[InlineKeyboardButton("💎 VIP 1 місяць  $19.99 / 1500⭐", callback_data="vip_buy_1m")]]
     return InlineKeyboardMarkup(keyboard)
 
 

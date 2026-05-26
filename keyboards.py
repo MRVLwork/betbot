@@ -29,7 +29,7 @@ def main_menu_keyboard(lang: str = "ua", plan: str = "basic"):
             [KeyboardButton("📊 Моя статистика"), KeyboardButton("🧠 AI-разбор")],
             [KeyboardButton("🎯 Мой профиль"), KeyboardButton("📅 Итоги недели")],
             [KeyboardButton("💎 Подписка VIP")],
-            [KeyboardButton(" Настройки"), KeyboardButton("🛠 Инструменты")],
+            [KeyboardButton("⚙️ Настройки"), KeyboardButton("🛠 Инструменты")],
         ]
     elif lang == "en":
         keyboard = [
@@ -38,7 +38,7 @@ def main_menu_keyboard(lang: str = "ua", plan: str = "basic"):
             [KeyboardButton("📊 My stats"), KeyboardButton("🧠 AI analysis")],
             [KeyboardButton("🎯 My profile"), KeyboardButton("📅 Weekly recap")],
             [KeyboardButton("💎 VIP subscription")],
-            [KeyboardButton(" Settings"), KeyboardButton("🛠 Tools")],
+            [KeyboardButton("⚙️ Settings"), KeyboardButton("🛠 Tools")],
         ]
     else:
         keyboard = [
@@ -47,7 +47,7 @@ def main_menu_keyboard(lang: str = "ua", plan: str = "basic"):
             [KeyboardButton("📊 Моя статистика"), KeyboardButton("🧠 AI-розбір")],
             [KeyboardButton("🎯 Мій профіль"), KeyboardButton("📅 Підсумки тижня")],
             [KeyboardButton("💎 Підписка VIP")],
-            [KeyboardButton(" Налаштування"), KeyboardButton("🛠 Інструменти")],
+            [KeyboardButton("⚙️ Налаштування"), KeyboardButton("🛠 Інструменти")],
         ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
 
@@ -327,27 +327,27 @@ def settings_keyboard(lang: str = "ua"):
     """Settings menu."""
     if lang == "ru":
         keyboard = [
-            [InlineKeyboardButton(" Язык", callback_data="settings_lang")],
-            [InlineKeyboardButton(" Промокод", callback_data="settings_promo")],
-            [InlineKeyboardButton(" Рефералы", callback_data="settings_referrals")],
-            [InlineKeyboardButton(" AI Тренер VIP", callback_data="settings_coach")],
-            [InlineKeyboardButton(" Streak дисциплины", callback_data="settings_streak")],
+            [InlineKeyboardButton("🌐 Язык", callback_data="settings_lang")],
+            [InlineKeyboardButton("🎟️ Промокод", callback_data="settings_promo")],
+            [InlineKeyboardButton("👥 Рефералы", callback_data="settings_referrals")],
+            [InlineKeyboardButton("🧠 AI Тренер VIP", callback_data="settings_coach")],
+            [InlineKeyboardButton("🔥 Streak дисциплины", callback_data="settings_streak")],
         ]
     elif lang == "en":
         keyboard = [
-            [InlineKeyboardButton(" Language", callback_data="settings_lang")],
-            [InlineKeyboardButton(" Promo code", callback_data="settings_promo")],
-            [InlineKeyboardButton(" Referrals", callback_data="settings_referrals")],
-            [InlineKeyboardButton(" AI Coach VIP", callback_data="settings_coach")],
-            [InlineKeyboardButton(" Discipline streak", callback_data="settings_streak")],
+            [InlineKeyboardButton("🌐 Language", callback_data="settings_lang")],
+            [InlineKeyboardButton("🎟️ Promo code", callback_data="settings_promo")],
+            [InlineKeyboardButton("👥 Referrals", callback_data="settings_referrals")],
+            [InlineKeyboardButton("🧠 AI Coach VIP", callback_data="settings_coach")],
+            [InlineKeyboardButton("🔥 Discipline streak", callback_data="settings_streak")],
         ]
     else:
         keyboard = [
-            [InlineKeyboardButton(" Мова", callback_data="settings_lang")],
-            [InlineKeyboardButton(" Промокод", callback_data="settings_promo")],
-            [InlineKeyboardButton(" Реферали", callback_data="settings_referrals")],
-            [InlineKeyboardButton(" AI Тренер VIP", callback_data="settings_coach")],
-            [InlineKeyboardButton(" Streak дисципліни", callback_data="settings_streak")],
+            [InlineKeyboardButton("🌐 Мова", callback_data="settings_lang")],
+            [InlineKeyboardButton("🎟️ Промокод", callback_data="settings_promo")],
+            [InlineKeyboardButton("👥 Реферали", callback_data="settings_referrals")],
+            [InlineKeyboardButton("🧠 AI Тренер VIP", callback_data="settings_coach")],
+            [InlineKeyboardButton("🔥 Streak дисципліни", callback_data="settings_streak")],
         ]
     return InlineKeyboardMarkup(keyboard)
 

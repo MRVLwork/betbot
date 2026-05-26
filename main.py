@@ -1245,7 +1245,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🎯 Мій профіль", "🎯 Мой профиль", "🎯 My profile",
         "📅 Підсумки тижня", "📅 Итоги недели", "📅 Weekly recap",
         "💎 Підписка VIP", "💎 Подписка VIP", "💎 VIP subscription",
-        " Налаштування", " Настройки", " Settings",
+        "⚙️ Налаштування", "⚙️ Настройки", "⚙️ Settings",
         "🛠 Інструменти", "🛠 Инструменты", "🛠 Tools",
         " \u041d\u0430\u0437\u0430\u0434", " Back",
     }
@@ -1436,11 +1436,11 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             get_text(lang, "choose_access_option"),
             reply_markup=access_keyboard(lang),
         )
-    elif text in (" Налаштування", " Настройки", " Settings"):
+    elif text in ("⚙️ Налаштування", "⚙️ Настройки", "⚙️ Settings"):
         settings_texts = {
-            "ua": " Налаштування",
-            "ru": " Настройки",
-            "en": " Settings",
+            "ua": "⚙️ Налаштування",
+            "ru": "⚙️ Настройки",
+            "en": "⚙️ Settings",
         }
         await update.message.reply_text(
             settings_texts.get(lang, settings_texts["en"]),
@@ -1595,9 +1595,9 @@ async def open_settings(update, context):
     if lang.startswith("uk"):
         lang = "ua"
     titles = {
-        "ua": " *Налаштування*",
-        "ru": " *Настройки*",
-        "en": " *Settings*",
+        "ua": "⚙️ *Налаштування*",
+        "ru": "⚙️ *Настройки*",
+        "en": "⚙️ *Settings*",
     }
     await update.message.reply_text(
         titles.get(lang, titles["ua"]),
@@ -1731,7 +1731,7 @@ def main():
         open_vip_subscription,
     ))
     app.add_handler(MessageHandler(
-        filters.Regex(r"^ (Налаштування|Настройки|Settings)$"),
+        filters.Regex(r"^⚙️ (Налаштування|Настройки|Settings)$"),
         open_settings,
     ))
 

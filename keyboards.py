@@ -448,8 +448,6 @@ def cryptobot_plans_keyboard(lang: str, promo_available: bool = True):
 def tools_keyboard(lang: str):
     if lang == "ru":
         keyboard = [
-            [InlineKeyboardButton("🎯 Ставка дня", callback_data="tool_bet_day")],
-            [InlineKeyboardButton("🤖 AI-анализ матча", callback_data="tool_ai")],
             [InlineKeyboardButton("🧮 Калькулятор Келли", callback_data="tool_kelly")],
             [InlineKeyboardButton("📊 Лимит банка", callback_data="tool_bank_limit")],
             [InlineKeyboardButton("🧠 AI Тренер VIP", callback_data="tool_coach")],
@@ -457,8 +455,6 @@ def tools_keyboard(lang: str):
         ]
     elif lang == "en":
         keyboard = [
-            [InlineKeyboardButton("🎯 Bet of the day", callback_data="tool_bet_day")],
-            [InlineKeyboardButton("🤖 AI match analysis", callback_data="tool_ai")],
             [InlineKeyboardButton("🧮 Kelly Calculator", callback_data="tool_kelly")],
             [InlineKeyboardButton("📊 Bank limit", callback_data="tool_bank_limit")],
             [InlineKeyboardButton("🧠 AI Coach VIP", callback_data="tool_coach")],
@@ -466,8 +462,6 @@ def tools_keyboard(lang: str):
         ]
     else:
         keyboard = [
-            [InlineKeyboardButton("🎯 Ставка дня", callback_data="tool_bet_day")],
-            [InlineKeyboardButton("🤖 AI-аналіз матчу", callback_data="tool_ai")],
             [InlineKeyboardButton("🧮 Калькулятор Келлі", callback_data="tool_kelly")],
             [InlineKeyboardButton("📊 Ліміт банку", callback_data="tool_bank_limit")],
             [InlineKeyboardButton("🧠 AI Тренер VIP", callback_data="tool_coach")],

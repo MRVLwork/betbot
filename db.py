@@ -2453,6 +2453,7 @@ def get_users_with_full_info() -> list[dict]:
                 u.trial_started_at,
                 u.trial_completed,
                 u.access_until AS plan_expires_at,
+                u.trial_expires_at,
                 u.ref_source,
                 COALESCE((
                     SELECT SUM(amount_usd)

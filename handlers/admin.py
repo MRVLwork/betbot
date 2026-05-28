@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import asyncio
+from datetime import datetime, timedelta
 
 from telegram import Update
 from telegram.ext import ContextTypes
@@ -704,6 +705,7 @@ async def users_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     total_bets = 0
 
     lines = []
+    now = datetime.now()
 
     for user_row in users:
         uid = user_row["user_id"]
@@ -712,6 +714,7 @@ async def users_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
         plan = (user_row.get("plan") or "").lower()
         is_active = int(user_row.get("is_active") or 0) == 1
         trial_started = user_row.get("trial_started_at")
+        trial_expires_at = user_row.get("trial_expires_at")
         trial_completed = int(user_row.get("trial_completed") or 0) == 1
         ref_source = user_row.get("ref_source") or ""
         usdt_total = float(user_row.get("usdt_total") or 0)
@@ -719,13 +722,32 @@ async def users_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
         photos_total = int(user_row.get("photos_total") or 0)
         bets_total = int(user_row.get("bets_total") or 0)
 
-        if is_active and plan == "vip":
+        access_until = user_row.get("access_until") or user_row.get("plan_expires_at")
+        has_access = False
+        if is_active and access_until:
+            try:
+                has_access = datetime.fromisoformat(access_until) > now
+            except Exception:
+                has_access = False
+
+        trial_active = False
+        if trial_started and not trial_completed:
+            try:
+                if trial_expires_at:
+                    trial_expires = datetime.fromisoformat(trial_expires_at)
+                else:
+                    trial_expires = datetime.fromisoformat(trial_started) + timedelta(days=3)
+                trial_active = trial_expires > now
+            except Exception:
+                trial_active = False
+
+        if has_access and plan == "vip":
             subscription = "VIP"
             cnt_vip += 1
-        elif is_active:
+        elif has_access:
             subscription = "Basic"
             cnt_basic += 1
-        elif trial_started and not trial_completed:
+        elif trial_active:
             subscription = "Trial"
             cnt_trial += 1
         else:

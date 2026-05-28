@@ -77,6 +77,7 @@ from handlers.stars_payment import (
     precheckout_handler,
     successful_payment_handler,
 )
+from handlers.vip_purchase import plan_payment_choice
 from handlers.admin import (
     commands_list,
     addpromo,
@@ -1688,7 +1689,11 @@ def main():
         open_settings,
     ))
 
-    app.add_handler(CallbackQueryHandler(open_stars_menu, pattern="^(buy_stars|stars_.*|vip_buy_.*|basic_buy_.*)$"))
+    app.add_handler(CallbackQueryHandler(
+        plan_payment_choice,
+        pattern="^(vip_buy_1m|vip_buy_3m_promo|vip_buy_6m_promo|basic_buy_1m|basic_buy_6m_promo)$",
+    ))
+    app.add_handler(CallbackQueryHandler(open_stars_menu, pattern="^(buy_stars|stars_.*)$"))
     app.add_handler(CallbackQueryHandler(signals_callback_handler, pattern=r"^signals_"))
     app.add_handler(CallbackQueryHandler(cryptobot_payment_handler, pattern="^cb_pay_"))
     app.add_handler(CallbackQueryHandler(check_payment_status_handler, pattern="^check_payment_"))

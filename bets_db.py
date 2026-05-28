@@ -1203,7 +1203,7 @@ def get_daily_insight_data(user_id: int, lang: str) -> dict | None:
         end_dt,
         include_trial=include_trial,
     )
-    if int(week_stats.get("settled_bets") or 0) < 3:
+    if int(week_stats.get("settled_bets") or 0) < 1:
         return None
 
     yesterday_stats = get_full_stats_between(

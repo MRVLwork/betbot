@@ -157,18 +157,20 @@ def _trial_stats_upsell_text(lang: str) -> str:
 
     texts = {
         "ua": (
-            "\U0001F512 \u041f\u043e\u0432\u043d\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u0430 \u0432 \u043f\u043b\u0430\u0442\u043d\u0438\u0445 \u043f\u043b\u0430\u043d\u0430\u0445\n\n"
+            "💰 Заробляй на ставках розумніше\n\n"
             "\u0429\u043e \u0442\u0438 \u0431\u0430\u0447\u0438\u0448 \u0417\u0410\u0420\u0410\u0417 (Trial):\n"
             "\u2022 \u0411\u0430\u0437\u043e\u0432\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 (ROI, winrate)\n"
-            "\u2022 5 \u0441\u043a\u0440\u0456\u043d\u0456\u0432 \u043d\u0430 \u0434\u0435\u043d\u044c  7 \u0434\u043d\u0456\u0432\n"
+            "\u2022 5 \u0441\u043a\u0440\u0456\u043d\u0456\u0432 \u043d\u0430 \u0434\u0435\u043d\u044c  3 \u0434\u043d\u0456\n"
             "\u2022 \u0415\u043c\u043e\u0446\u0456\u0439\u043d\u0438\u0439 \u0442\u0440\u0435\u043a\u0435\u0440\n\n"
-            "\u0429\u043e \u043e\u0442\u0440\u0438\u043c\u0430\u0454\u0448 \u0432 Basic - $7/\u043c\u0456\u0441:\n"
+            "Що отримаєш у Basic - $7/міс:\n"
+            "🔥 AI Прогнози дня - готові ставки\n"
             "\U0001F4CA \u041f\u043e\u0432\u043d\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 \u043f\u043e \u0442\u0438\u043f\u0430\u0445 \u0441\u0442\u0430\u0432\u043e\u043a\n"
             "\U0001F4CA \u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 \u043f\u043e \u043a\u043e\u0435\u0444\u0456\u0446\u0456\u0454\u043d\u0442\u0430\u0445 (\u0434\u043e 2.0 / 2.0-2.5 / 2.5+)\n"
             "\U0001F4CA \u0410\u043d\u0430\u043b\u0456\u0442\u0438\u043a\u0430 \u0442\u0440\u0435\u043d\u0434\u0456\u0432 \u0456 \u0441\u043b\u0430\u0431\u043a\u0438\u0445 \u043c\u0456\u0441\u0446\u044c\n"
             "\U0001F4CA 15 \u0441\u043a\u0440\u0456\u043d\u0456\u0432 \u043d\u0430 \u0434\u0435\u043d\u044c\n"
             "\U0001F4C8 \u041f\u0440\u043e\u0444\u0456\u043b\u044c \u0431\u0435\u0442\u0442\u0435\u0440\u0430\n\n"
-            "\u0429\u043e \u043e\u0442\u0440\u0438\u043c\u0430\u0454\u0448 \u0443 VIP - $19.99/\u043c\u0456\u0441:\n"
+            "Що отримаєш у VIP - $19.99/міс:\n"
+            "🔥 AI Прогнози Basic + VIP\n"
             "\U0001F9E0 AI \u0422\u0440\u0435\u043d\u0435\u0440 (\u043f\u0435\u0440\u0441\u043e\u043d\u0430\u043b\u044c\u043d\u0438\u0439 \u0440\u043e\u0437\u0431\u0456\u0440)\n"
             "\U0001F4CA \u041f\u043e\u0433\u043b\u0438\u0431\u043b\u0435\u043d\u0430 \u0430\u043d\u0430\u043b\u0456\u0442\u0438\u043a\u0430 \u043f\u043e \u0440\u0438\u043d\u043a\u0430\u0445\n"
             "\U0001F4CA 30 \u0441\u043a\u0440\u0456\u043d\u0456\u0432 \u043d\u0430 \u0434\u0435\u043d\u044c\n"
@@ -177,18 +179,20 @@ def _trial_stats_upsell_text(lang: str) -> str:
             "\u0442\u0438 \u0443\u043d\u0438\u043a\u043d\u0435\u0448 \u0445\u043e\u0447\u0430 \u0431 1 \u0437\u0431\u0438\u0442\u043a\u043e\u0432\u043e\u0457 \u0441\u0442\u0430\u0432\u043a\u0438 \u043d\u0430 \u043c\u0456\u0441\u044f\u0446\u044c"
         ),
         "ru": (
-            "\U0001F512 \u041f\u043e\u043b\u043d\u0430\u044f \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u0430 \u0432 \u043f\u043b\u0430\u0442\u043d\u044b\u0445 \u043f\u043b\u0430\u043d\u0430\u0445\n\n"
+            "💰 Зарабатывай на ставках умнее\n\n"
             "\u0427\u0442\u043e \u0442\u044b \u0432\u0438\u0434\u0438\u0448\u044c \u0421\u0415\u0419\u0427\u0410\u0421 (Trial):\n"
             "\u2022 \u0411\u0430\u0437\u043e\u0432\u0430\u044f \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 (ROI, winrate)\n"
-            "\u2022 5 \u0441\u043a\u0440\u0438\u043d\u043e\u0432 \u0432 \u0434\u0435\u043d\u044c  7 \u0434\u043d\u0435\u0439\n"
+            "\u2022 5 \u0441\u043a\u0440\u0438\u043d\u043e\u0432 \u0432 \u0434\u0435\u043d\u044c  3 \u0434\u043d\u044f\n"
             "\u2022 \u042d\u043c\u043e\u0446\u0438\u043e\u043d\u0430\u043b\u044c\u043d\u044b\u0439 \u0442\u0440\u0435\u043a\u0435\u0440\n\n"
-            "\u0427\u0442\u043e \u043f\u043e\u043b\u0443\u0447\u0438\u0448\u044c \u0432 Basic - $7/\u043c\u0435\u0441:\n"
+            "Что получишь в Basic - $7/мес:\n"
+            "🔥 AI Прогнозы дня - готовые ставки\n"
             "\U0001F4CA \u041f\u043e\u043b\u043d\u0430\u044f \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 \u043f\u043e \u0442\u0438\u043f\u0430\u043c \u0441\u0442\u0430\u0432\u043e\u043a\n"
             "\U0001F4CA \u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 \u043f\u043e \u043a\u043e\u044d\u0444\u0444\u0438\u0446\u0438\u0435\u043d\u0442\u0430\u043c\n"
             "\U0001F4CA \u0410\u043d\u0430\u043b\u0438\u0442\u0438\u043a\u0430 \u0442\u0440\u0435\u043d\u0434\u043e\u0432 \u0438 \u0441\u043b\u0430\u0431\u044b\u0445 \u043c\u0435\u0441\u0442\n"
             "\U0001F4CA 15 \u0441\u043a\u0440\u0438\u043d\u043e\u0432 \u0432 \u0434\u0435\u043d\u044c\n"
             "\U0001F4C8 \u041f\u0440\u043e\u0444\u0438\u043b\u044c \u0431\u0435\u0442\u0442\u0435\u0440\u0430\n\n"
-            "\u0427\u0442\u043e \u043f\u043e\u043b\u0443\u0447\u0438\u0448\u044c \u0432 VIP - $19.99/\u043c\u0435\u0441:\n"
+            "Что получишь в VIP - $19.99/мес:\n"
+            "🔥 AI Прогнозы Basic + VIP\n"
             "\U0001F9E0 AI \u0422\u0440\u0435\u043d\u0435\u0440 (\u043f\u0435\u0440\u0441\u043e\u043d\u0430\u043b\u044c\u043d\u044b\u0439 \u0440\u0430\u0437\u0431\u043e\u0440)\n"
             "\U0001F4CA \u0423\u0433\u043b\u0443\u0431\u043b\u0451\u043d\u043d\u0430\u044f \u0430\u043d\u0430\u043b\u0438\u0442\u0438\u043a\u0430 \u043f\u043e \u0440\u044b\u043d\u043a\u0430\u043c\n"
             "\U0001F4CA 30 \u0441\u043a\u0440\u0438\u043d\u043e\u0432 \u0432 \u0434\u0435\u043d\u044c\n"
@@ -197,18 +201,20 @@ def _trial_stats_upsell_text(lang: str) -> str:
             "\u0442\u044b \u0438\u0437\u0431\u0435\u0436\u0438\u0448\u044c \u0445\u043e\u0442\u044f \u0431\u044b 1 \u0443\u0431\u044b\u0442\u043e\u0447\u043d\u043e\u0439 \u0441\u0442\u0430\u0432\u043a\u0438 \u0432 \u043c\u0435\u0441\u044f\u0446"
         ),
         "en": (
-            "\U0001F512 Full stats available in paid plans\n\n"
+            "💰 Bet smarter, earn more\n\n"
             "What you see NOW (Trial):\n"
             "\u2022 Basic stats (ROI, winrate)\n"
-            "\u2022 5 screenshots per day  7 days\n"
+            "\u2022 5 screenshots per day  3 days\n"
             "\u2022 Emotion tracker\n\n"
             "What you get in Basic - $7/mo:\n"
+            "🔥 AI Predictions of the day - ready picks\n"
             "\U0001F4CA Full stats by bet type\n"
             "\U0001F4CA Stats by odds range\n"
             "\U0001F4CA Trend & weak spot analytics\n"
             "\U0001F4CA 15 screenshots per day\n"
             "\U0001F4C8 Bettor profile\n\n"
             "What you get in VIP - $19.99/mo:\n"
+            "🔥 Basic + VIP AI Predictions\n"
             "\U0001F9E0 AI Coach (personal analysis)\n"
             "\U0001F4CA Deep market analytics\n"
             "\U0001F4CA 30 screenshots per day\n"
@@ -220,7 +226,7 @@ def _trial_stats_upsell_text(lang: str) -> str:
     return texts.get(lang, texts["en"])
 
 
-def _trial_day3_text(lang: str, stats: dict) -> str:
+def _trial_day2_text(lang: str, stats: dict) -> str:
     roi = round(float(stats.get("roi", 0) or 0), 1)
     winrate = round(float(stats.get("win_rate", 0) or 0), 1)
     total = int(stats.get("total_bets") or 0)
@@ -229,102 +235,74 @@ def _trial_day3_text(lang: str, stats: dict) -> str:
     trend = "🔥" if roi > 0 else "📉"
 
     if lang == "ru":
-        stats_line = (
-            f"ROI: {roi_str} {trend} | Winrate: {winrate}%"
-            if total > 0
-            else "Ставок пока нет  отправь первый скрин!"
-        )
+        insight = f"ROI: {roi_str} {trend} | Winrate: {winrate}%" if total > 0 else "Отправь первый скрин, чтобы увидеть первые выводы."
         return (
-            f"📊 3 дня прошло. Вот твоя картина:\n\n"
-            f"{stats_line}\n"
-            f"Ставок: {total}\n\n"
-            f"Но есть то, что ты ещё не видишь:\n"
-            f"🔒 Какие ставки сливают твой банкролл\n"
-            f"🔒 Когда ты ставишь хуже чем думаешь\n"
-            f"🔒 Твои реальные паттерны проигрышей\n\n"
-            f"Осталось 4 дня trial.\n\n"
-            f"🔹 Basic $7  меньше одной проигрышной ставки\n"
-            f"👇 Открой полную картину"
+            f"💰 Ты уже зарабатываешь умнее!\n\n"
+            f"За trial ты добавил {total} ставок.\n"
+            f"{insight}\n\n"
+            f"🔥 Не забывай смотреть AI Прогнозы дня -\n"
+            f"готовые ставки от AI-агента.\n\n"
+            f"⏳ Trial заканчивается завтра.\n"
+            f"Активируй подписку, чтобы не потерять доступ 👇"
         )
     if lang == "en":
-        stats_line = (
-            f"ROI: {roi_str} {trend} | Winrate: {winrate}%"
-            if total > 0
-            else "No bets yet  send your first screenshot!"
-        )
+        insight = f"ROI: {roi_str} {trend} | Winrate: {winrate}%" if total > 0 else "Send your first screenshot to see the first insights."
         return (
-            f"📊 3 days in. Here's your picture:\n\n"
-            f"{stats_line}\n"
-            f"Bets: {total}\n\n"
-            f"But there's what you're not seeing yet:\n"
-            f"🔒 Which bets drain your bankroll\n"
-            f"🔒 When you bet worse than you think\n"
-            f"🔒 Your real losing patterns\n\n"
-            f"4 days of trial left.\n\n"
-            f"🔹 Basic $7  less than one losing bet\n"
-            f"👇 See the full picture"
+            f"💰 You're already betting smarter!\n\n"
+            f"During trial, you've added {total} bets.\n"
+            f"{insight}\n\n"
+            f"🔥 Don't forget AI Predictions of the day -\n"
+            f"ready picks from the AI agent.\n\n"
+            f"⏳ Trial ends tomorrow.\n"
+            f"Activate a subscription so you don't lose access 👇"
         )
-    stats_line = (
-        f"ROI: {roi_str} {trend} | Winrate: {winrate}%"
-        if total > 0
-        else "Ставок поки немає  надішли перший скрін!"
-    )
+    insight = f"ROI: {roi_str} {trend} | Winrate: {winrate}%" if total > 0 else "Надішли перший скрін, щоб побачити перші висновки."
     return (
-        f"📊 3 дні минуло. Ось твоя картина:\n\n"
-        f"{stats_line}\n"
-        f"Ставок: {total}\n\n"
-        f"Але є те що ти ще не бачиш:\n"
-        f"🔒 Які ставки зливають твій банкрол\n"
-        f"🔒 Коли ти ставиш гірше ніж думаєш\n"
-        f"🔒 Твої реальні патерни програшів\n\n"
-        f"Залишилось 4 дні trial.\n\n"
-        f"🔹 Basic $7  менше однієї програшної ставки\n"
-        f"👇 Відкрий повну картину"
+        f"💰 Ти вже заробляєш розумніше!\n\n"
+        f"За trial ти додав {total} ставок.\n"
+        f"{insight}\n\n"
+        f"🔥 Не забувай дивитись AI Прогнози дня -\n"
+        f"готові ставки від AI-агента.\n\n"
+        f"⏳ Trial закінчується завтра.\n"
+        f"Активуй підписку, щоб не втратити доступ 👇"
     )
 
 
-def _trial_day6_text(lang: str, stats: dict) -> str:
+def _trial_day3_text(lang: str, stats: dict) -> str:
     total = int(stats.get("total_bets") or 0)
     roi = round(float(stats.get("roi", 0) or 0), 1)
+    winrate = round(float(stats.get("win_rate", 0) or 0), 1)
     roi_str = f"+{roi}%" if roi > 0 else f"{roi}%"
+    stats_line = f"Ставок: {total} | ROI: {roi_str} | Winrate: {winrate}%"
 
     if lang == "ru":
         return (
-            f" Завтра твой trial заканчивается.\n\n"
-            f"За 6 дней: {total} ставок | ROI: {roi_str}\n\n"
-            f"Твоя статистика будет заблокирована.\n"
-            f"Паттерны  потеряны.\n"
-            f"Прогресс  обнулится.\n\n"
-            f"Но главное  ты так и не увидишь\n"
-            f"где именно теряешь деньги.\n\n"
-            f"🔹 Basic $7/мес  сохрани всё\n"
-            f" VIP $19.99/мес  плюс AI Тренер\n\n"
-            f"👇 Не теряй прогресс"
+            f"🚨 Последний день бесплатного доступа!\n\n"
+            f"Завтра ты потеряешь:\n"
+            f"🔥 AI Прогнозы дня (готовые ставки)\n"
+            f"📊 Полную статистику и ROI\n"
+            f"🧠 AI Тренера\n\n"
+            f"💰 Продолжай зарабатывать умнее -\n"
+            f"активируй подписку 👇"
         )
     if lang == "en":
         return (
-            f" Your trial ends tomorrow.\n\n"
-            f"6 days in: {total} bets | ROI: {roi_str}\n\n"
-            f"Your stats will be locked.\n"
-            f"Patterns  lost.\n"
-            f"Progress  gone.\n\n"
-            f"And you still won't know\n"
-            f"exactly where you're losing money.\n\n"
-            f"🔹 Basic $7/mo  keep everything\n"
-            f" VIP $19.99/mo  plus AI Coach\n\n"
-            f"👇 Don't lose your progress"
+            f"🚨 Last day of free access!\n\n"
+            f"Tomorrow you'll lose:\n"
+            f"🔥 AI Predictions of the day (ready picks)\n"
+            f"📊 Full stats and ROI\n"
+            f"🧠 AI Coach\n\n"
+            f"💰 Keep betting smarter -\n"
+            f"activate a subscription 👇"
         )
     return (
-        f" Завтра твій trial закінчується.\n\n"
-        f"За 6 днів: {total} ставок | ROI: {roi_str}\n\n"
-        f"Твоя статистика буде заблокована.\n"
-        f"Патерни  втрачені.\n"
-        f"Прогрес  обнулиться.\n\n"
-        f"Але головне  ти так і не побачиш\n"
-        f"де саме втрачаєш гроші.\n\n"
-        f"🔹 Basic $7/міс  збережи все\n"
-        f" VIP $19.99/міс  плюс AI Тренер\n\n"
-        f"👇 Не втрать прогрес"
+        f"🚨 Останній день безкоштовного доступу!\n\n"
+        f"Завтра ти втратиш:\n"
+        f"🔥 AI Прогнози дня (готові ставки)\n"
+        f"📊 Повну статистику і ROI\n"
+        f"🧠 AI Тренера\n\n"
+        f"💰 Продовжуй заробляти розумніше -\n"
+        f"активуй підписку 👇"
     )
 
 
@@ -333,32 +311,32 @@ def _trial_expired_text(lang: str, stats: dict) -> str:
 
     if lang == "ru":
         return (
-            f" Твой пробный доступ завершён.\n\n"
-            f"За 7 дней ты добавил {total} ставок.\n"
-            f"Вся статистика сохранена и ждёт тебя.\n\n"
-            f"Одно из двух:\n"
-            f" Купи Basic $7  и увидишь полную картину\n"
-            f" Продолжай ставить вслепую\n\n"
-            f"👇 Открой доступ"
+            f"🚨 Бесплатный доступ завершён.\n\n"
+            f"Теперь ты потерял:\n"
+            f"🔥 AI Прогнозы дня (готовые ставки)\n"
+            f"📊 Полную статистику и ROI\n"
+            f"🧠 AI Тренера\n\n"
+            f"💰 Продолжай зарабатывать умнее -\n"
+            f"активируй подписку 👇"
         )
     if lang == "en":
         return (
-            f" Your trial has ended.\n\n"
-            f"You tracked {total} bets over 7 days.\n"
-            f"All your stats are saved and waiting.\n\n"
-            f"Two options:\n"
-            f" Get Basic $7  see the full picture\n"
-            f" Keep betting blind\n\n"
-            f"👇 Get access"
+            f"🚨 Free access has ended.\n\n"
+            f"You've now lost:\n"
+            f"🔥 AI Predictions of the day (ready picks)\n"
+            f"📊 Full stats and ROI\n"
+            f"🧠 AI Coach\n\n"
+            f"💰 Keep betting smarter -\n"
+            f"activate a subscription 👇"
         )
     return (
-        f" Твій пробний доступ завершено.\n\n"
-        f"За 7 днів ти додав {total} ставок.\n"
-        f"Вся статистика збережена і чекає тебе.\n\n"
-        f"Два варіанти:\n"
-        f" Купи Basic $7  побач повну картину\n"
-        f" Продовжуй ставити наосліп\n\n"
-        f"👇 Відкрий доступ"
+        f"🚨 Безкоштовний доступ завершено.\n\n"
+        f"Тепер ти втратив:\n"
+        f"🔥 AI Прогнози дня (готові ставки)\n"
+        f"📊 Повну статистику і ROI\n"
+        f"🧠 AI Тренера\n\n"
+        f"💰 Продовжуй заробляти розумніше -\n"
+        f"активуй підписку 👇"
     )
 
 def is_user_vip(user_id: int) -> bool:
@@ -369,8 +347,38 @@ async def run_weekly_wrap_broadcast(application):
     await send_weekly_wrap_broadcast(application.bot)
 
 
+async def send_trial_day2_notifications(application):
+    """Send notifications to users on trial day 2."""
+    from db import get_trial_users_for_notification
+    from bets_db import get_basic_stats_between
+
+    users = get_trial_users_for_notification(day=2)
+
+    for user_data in users:
+        user_id = user_data["user_id"]
+        lang = (user_data.get("lang") or "ua").lower()
+        if lang.startswith("uk"):
+            lang = "ua"
+
+        try:
+            end_dt = datetime.now()
+            start_dt = end_dt - timedelta(days=3)
+            stats = get_basic_stats_between(
+                user_id, start_dt, end_dt,
+                include_trial=True
+            )
+            text = _trial_day2_text(lang, stats)
+            await application.bot.send_message(
+                chat_id=user_id,
+                text=text,
+                reply_markup=access_keyboard(lang),
+            )
+        except Exception as e:
+            print(f"trial_day2 error for {user_id}: {e}")
+
+
 async def send_trial_day3_notifications(application):
-    """Send notifications to users on trial day 3."""
+    """Send notifications on the last trial day."""
     from db import get_trial_users_for_notification
     from bets_db import get_basic_stats_between
 
@@ -384,7 +392,7 @@ async def send_trial_day3_notifications(application):
 
         try:
             end_dt = datetime.now()
-            start_dt = end_dt - timedelta(days=7)
+            start_dt = end_dt - timedelta(days=3)
             stats = get_basic_stats_between(
                 user_id, start_dt, end_dt,
                 include_trial=True
@@ -397,36 +405,6 @@ async def send_trial_day3_notifications(application):
             )
         except Exception as e:
             print(f"trial_day3 error for {user_id}: {e}")
-
-
-async def send_trial_day6_notifications(application):
-    """Send notifications 24 hours before trial end."""
-    from db import get_trial_users_for_notification
-    from bets_db import get_basic_stats_between
-
-    users = get_trial_users_for_notification(day=6)
-
-    for user_data in users:
-        user_id = user_data["user_id"]
-        lang = (user_data.get("lang") or "ua").lower()
-        if lang.startswith("uk"):
-            lang = "ua"
-
-        try:
-            end_dt = datetime.now()
-            start_dt = end_dt - timedelta(days=7)
-            stats = get_basic_stats_between(
-                user_id, start_dt, end_dt,
-                include_trial=True
-            )
-            text = _trial_day6_text(lang, stats)
-            await application.bot.send_message(
-                chat_id=user_id,
-                text=text,
-                reply_markup=access_keyboard(lang),
-            )
-        except Exception as e:
-            print(f"trial_day6 error for {user_id}: {e}")
 
 
 async def send_trial_expired_notifications(application):
@@ -444,7 +422,7 @@ async def send_trial_expired_notifications(application):
 
         try:
             end_dt = datetime.now()
-            start_dt = end_dt - timedelta(days=10)
+            start_dt = end_dt - timedelta(days=3)
             stats = get_basic_stats_between(
                 user_id, start_dt, end_dt,
                 include_trial=True
@@ -620,12 +598,12 @@ async def post_init(application):
         replace_existing=True,
     )
     scheduler.add_job(
-        send_trial_day3_notifications,
+        send_trial_day2_notifications,
         trigger="cron",
         hour=10,
         minute=0,
         timezone="Europe/Kiev",
-        id="trial_day3",
+        id="trial_day2",
         args=[application],
         replace_existing=True,
     )
@@ -640,12 +618,12 @@ async def post_init(application):
         replace_existing=True,
     )
     scheduler.add_job(
-        send_trial_day6_notifications,
+        send_trial_day3_notifications,
         trigger="cron",
         hour=10,
         minute=30,
         timezone="Europe/Kiev",
-        id="trial_day6",
+        id="trial_day3",
         args=[application],
         replace_existing=True,
     )
@@ -1238,7 +1216,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🌐 Мова", "🌐 Язык", "🌐 Language",
         "🔑 Ввести промокод", "🔑 Enter promo code",
         "🔥 Streak",
-        "🔥 AI Сигнали дня", "🔥 AI Сигналы дня", "🔥 AI Signals",
+        "🔥 AI Прогнози дня", "🔥 AI Прогнозы дня", "🔥 AI Predictions",
         "📸 Додати ставку", "📸 Добавить ставку", "📸 Add bet",
         "📊 Моя статистика", "📊 My stats",
         "🧠 AI-розбір", "🧠 AI-разбор", "🧠 AI analysis",
@@ -1270,7 +1248,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await handle_coach_message(update, context)
         return ConversationHandler.END
 
-    if text in ("🔥 AI Сигнали дня", "🔥 AI Сигналы дня", "🔥 AI Signals"):
+    if text in ("🔥 AI Прогнози дня", "🔥 AI Прогнозы дня", "🔥 AI Predictions"):
         await open_ai_signals_menu(update, context)
     elif text in ("📸 Додати ставку", "📸 Добавить ставку", "📸 Add bet"):
         info = {
@@ -1423,9 +1401,9 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         show_promo = is_eligible_for_first_payment_promo(user_id)
         vip_texts = {
-            "ua": " VIP підписка\n\nОбери тривалість VIP або окремий доступ до VIP сигналів:",
-            "ru": " VIP подписка\n\nВыбери срок VIP или отдельный доступ к VIP сигналам:",
-            "en": " VIP subscription\n\nChoose VIP duration or separate VIP signals access:",
+            "ua": "💎 VIP підписка\n\nОбери тривалість VIP або окремий доступ до VIP прогнозів:",
+            "ru": "💎 VIP подписка\n\nВыбери срок VIP или отдельный доступ к VIP прогнозам:",
+            "en": "💎 VIP subscription\n\nChoose VIP duration or separate VIP predictions access:",
         }
         await update.message.reply_text(
             vip_texts.get(lang, vip_texts["en"]),
@@ -1514,10 +1492,10 @@ async def open_vip_subscription(update, context):
                 "🎁 Спеціальна пропозиція\n"
                 "_діє тільки при першій оплаті_\n\n"
                 "Що ти отримаєш:\n"
+                " ✅ AI Прогнози Basic + VIP (готові ставки)\n"
                 " ✅ 30 скрінів на день\n"
                 " ✅ AI Тренер з персональним аналізом\n"
                 " ✅ Повна статистика з емоціями\n"
-                " ✅ AI Сигнали Basic + VIP\n"
                 " ✅ Калькулятор Келлі + Ліміт банку\n\n"
                 "💰 Знижки на 3 і 6 місяців\n"
                 "діють тільки зараз - обери план нижче:"
@@ -1527,10 +1505,10 @@ async def open_vip_subscription(update, context):
                 "🎁 Специальное предложение\n"
                 "_действует только при первой оплате_\n\n"
                 "Что ты получишь:\n"
+                " ✅ AI Прогнозы Basic + VIP (готовые ставки)\n"
                 " ✅ 30 скринов в день\n"
                 " ✅ AI Тренер с персональным анализом\n"
                 " ✅ Полная статистика с эмоциями\n"
-                " ✅ AI Сигналы Basic + VIP\n"
                 " ✅ Калькулятор Келли + Лимит банка\n\n"
                 "💰 Скидки на 3 и 6 месяцев\n"
                 "действуют только сейчас - выбери план ниже:"
@@ -1540,10 +1518,10 @@ async def open_vip_subscription(update, context):
                 "🎁 Special offer\n"
                 "_first payment only_\n\n"
                 "What you get:\n"
+                " ✅ Basic + VIP AI Predictions (ready picks)\n"
                 " ✅ 30 screens per day\n"
                 " ✅ AI Coach with personal analysis\n"
                 " ✅ Full stats with emotions\n"
-                " ✅ Basic + VIP AI Signals\n"
                 " ✅ Kelly Calculator + Bank Limit\n\n"
                 "💰 Discounts on 3 and 6 months\n"
                 "only now - choose your plan below:"
@@ -1554,30 +1532,30 @@ async def open_vip_subscription(update, context):
             "ua": (
                 "💎 *VIP підписка*\n\n"
                 "Що ти отримаєш:\n"
+                " ✅ AI Прогнози Basic + VIP (готові ставки)\n"
                 " ✅ 30 скрінів на день\n"
                 " ✅ AI Тренер з персональним аналізом\n"
                 " ✅ Повна статистика з емоціями\n"
-                " ✅ AI Сигнали Basic + VIP\n"
                 " ✅ Калькулятор Келлі + Ліміт банку\n\n"
                 "Обери план нижче:"
             ),
             "ru": (
                 "💎 *VIP подписка*\n\n"
                 "Что ты получишь:\n"
+                " ✅ AI Прогнозы Basic + VIP (готовые ставки)\n"
                 " ✅ 30 скринов в день\n"
                 " ✅ AI Тренер с персональным анализом\n"
                 " ✅ Полная статистика с эмоциями\n"
-                " ✅ AI Сигналы Basic + VIP\n"
                 " ✅ Калькулятор Келли + Лимит банка\n\n"
                 "Выбери план ниже:"
             ),
             "en": (
                 "💎 *VIP subscription*\n\n"
                 "What you get:\n"
+                " ✅ Basic + VIP AI Predictions (ready picks)\n"
                 " ✅ 30 screens per day\n"
                 " ✅ AI Coach with personal analysis\n"
                 " ✅ Full stats with emotions\n"
-                " ✅ Basic + VIP AI Signals\n"
                 " ✅ Kelly Calculator + Bank Limit\n\n"
                 "Choose your plan below:"
             ),
@@ -1694,7 +1672,7 @@ def main():
 
     app.add_handler(CallbackQueryHandler(start_offer_buttons, pattern="^(try_trial|pay_now)$"))
     app.add_handler(MessageHandler(
-        filters.Regex(r"^🔥 (AI Сигнали дня|AI Сигналы дня|AI Signals)$"),
+        filters.Regex(r"^🔥 (AI Прогнози дня|AI Прогнозы дня|AI Predictions)$"),
         open_signals_menu,
     ))
     app.add_handler(MessageHandler(

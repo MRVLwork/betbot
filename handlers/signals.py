@@ -62,21 +62,24 @@ async def open_signals_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if lang == "ru":
         title = (
-            " *AI Сигналы дня*\n\n"
-            "Получай готовые ставки от AI-агента "
-            "прямо в Telegram. Выбери уровень сигналов:\n"
+            "🔥 *AI Прогнозы дня*\n\n"
+            "Готовые ставки от AI-агента -\n"
+            "бери и зарабатывай умнее.\n\n"
+            "Выбери уровень прогнозов:"
         )
     elif lang == "en":
         title = (
-            " *AI Signals of the day*\n\n"
-            "Get ready-to-bet picks from our AI agent "
-            "straight to Telegram. Choose your level:\n"
+            "🔥 *AI Predictions of the day*\n\n"
+            "Ready-to-bet picks from AI agent -\n"
+            "take and earn smarter.\n\n"
+            "Choose prediction level:"
         )
     else:
         title = (
-            " *AI Сигнали дня*\n\n"
-            "Отримуй готові ставки від AI-агента "
-            "прямо в Telegram. Обери рівень сигналів:\n"
+            "🔥 *AI Прогнози дня*\n\n"
+            "Готові ставки від AI-агента -\n"
+            "бери і заробляй розумніше.\n\n"
+            "Обери рівень прогнозів:"
         )
 
     vip_signals_active = _get_vip_signals_active(user_id)
@@ -84,19 +87,19 @@ async def open_signals_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if sub_type == "trial":
         labels = {
             "ua": [
-                " Trial Сигнали (активні)",
-                " Basic Сигнали  купити підписку",
-                " VIP Сигнали  купити підписку",
+                "🔥 Trial Прогнози (активні)",
+                "🔥 Basic Прогнози - купити підписку",
+                "💎 VIP Прогнози - купити підписку",
             ],
             "ru": [
-                " Trial Сигналы (активны)",
-                " Basic Сигналы  купить подписку",
-                " VIP Сигналы  купить подписку",
+                "🔥 Trial Прогнозы (активны)",
+                "🔥 Basic Прогнозы - купить подписку",
+                "💎 VIP Прогнозы - купить подписку",
             ],
             "en": [
-                " Trial Signals (active)",
-                " Basic Signals  buy subscription",
-                " VIP Signals  buy subscription",
+                "🔥 Trial Predictions (active)",
+                "🔥 Basic Predictions - buy subscription",
+                "💎 VIP Predictions - buy subscription",
             ],
         }
         label = labels.get(lang, labels["ua"])
@@ -107,19 +110,19 @@ async def open_signals_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
     elif sub_type == "basic":
         vip_label_active = {
-            "ua": " VIP Сигнали (активні)",
-            "ru": " VIP Сигналы (активны)",
-            "en": " VIP Signals (active)",
+            "ua": "💎 VIP Прогнози (активні)",
+            "ru": "💎 VIP Прогнозы (активны)",
+            "en": "💎 VIP Predictions (active)",
         }
         vip_label_buy = {
-            "ua": " VIP Сигнали  $5 / 10 днів",
-            "ru": " VIP Сигналы  $5 / 10 дней",
-            "en": " VIP Signals  $5 / 10 days",
+            "ua": "💎 VIP Прогнози  $5 / 10 днів",
+            "ru": "💎 VIP Прогнозы  $5 / 10 дней",
+            "en": "💎 VIP Predictions  $5 / 10 days",
         }
         basic_label = {
-            "ua": " Basic Сигнали (активні)",
-            "ru": " Basic Сигналы (активны)",
-            "en": " Basic Signals (active)",
+            "ua": "🔥 Basic Прогнози (активні)",
+            "ru": "🔥 Basic Прогнозы (активны)",
+            "en": "🔥 Basic Predictions (active)",
         }
         buttons = [
             [InlineKeyboardButton(basic_label.get(lang, basic_label["ua"]), callback_data="signals_basic_info")],
@@ -130,9 +133,9 @@ async def open_signals_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
             buttons.append([InlineKeyboardButton(vip_label_buy.get(lang, vip_label_buy["ua"]), callback_data="signals_buy_vip_for_basic")])
     elif sub_type == "vip":
         labels = {
-            "ua": [" Basic Сигнали (активні)", " VIP Сигнали (активні)"],
-            "ru": [" Basic Сигналы (активны)", " VIP Сигналы (активны)"],
-            "en": [" Basic Signals (active)", " VIP Signals (active)"],
+            "ua": ["🔥 Basic Прогнози (активні)", "💎 VIP Прогнози (активні)"],
+            "ru": ["🔥 Basic Прогнозы (активны)", "💎 VIP Прогнозы (активны)"],
+            "en": ["🔥 Basic Predictions (active)", "💎 VIP Predictions (active)"],
         }
         label = labels.get(lang, labels["ua"])
         buttons = [
@@ -141,9 +144,9 @@ async def open_signals_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
     else:
         no_access = {
-            "ua": "Для AI Сигналів потрібна активна підписка.",
-            "ru": "Для AI Сигналов нужна активная подписка.",
-            "en": "Active subscription required for AI Signals.",
+            "ua": "Для AI Прогнозів потрібна активна підписка.",
+            "ru": "Для AI Прогнозов нужна активная подписка.",
+            "en": "Active subscription required for AI Predictions.",
         }
         await update.message.reply_text(no_access.get(lang, no_access["ua"]))
         return
@@ -167,9 +170,9 @@ async def signals_callback_handler(update: Update, context: ContextTypes.DEFAULT
 
     if data in ("signals_trial_info", "signals_basic_info", "signals_vip_info"):
         info = {
-            "ua": " Підписка активна. Очікуй сигнали від AI-агента  вони приходитимуть автоматично коли є цінні події.",
-            "ru": " Подписка активна. Ожидай сигналы от AI-агента  они будут приходить автоматически когда есть ценные события.",
-            "en": " Subscription active. Wait for AI agent signals  they will arrive automatically when valuable events appear.",
+            "ua": "✅ Підписка активна. Очікуй AI Прогнози від AI-агента - вони приходитимуть автоматично, коли є цінні події.",
+            "ru": "✅ Подписка активна. Ожидай AI Прогнозы от AI-агента - они будут приходить автоматически, когда есть ценные события.",
+            "en": "✅ Subscription active. Wait for AI Predictions from the AI agent - they will arrive automatically when valuable events appear.",
         }
         await query.message.reply_text(info.get(lang, info["ua"]))
         return
@@ -179,31 +182,34 @@ async def signals_callback_handler(update: Update, context: ContextTypes.DEFAULT
 
         promo = {
             "ua": (
-                " *Basic підписка  $7/міс*\n\n"
+                "💰 *Basic підписка  $7/міс*\n\n"
+                "Заробляй на ставках розумніше:\n\n"
                 "Що отримуєш:\n"
+                " 🔥 AI Прогнози Basic щодня\n"
                 " 15 скрінів/день\n"
                 " Повна статистика з інсайтами\n"
-                " AI Сигнали Basic щодня\n"
                 " Калькулятор Келлі\n"
                 " Ліміт банку\n\n"
                 " Обери спосіб оплати:"
             ),
             "ru": (
-                " *Basic подписка  $7/мес*\n\n"
+                "💰 *Basic подписка  $7/мес*\n\n"
+                "Зарабатывай на ставках умнее:\n\n"
                 "Что получаешь:\n"
+                " 🔥 AI Прогнозы Basic каждый день\n"
                 " 15 скринов/день\n"
                 " Полная статистика с инсайтами\n"
-                " AI Сигналы Basic каждый день\n"
                 " Калькулятор Келли\n"
                 " Лимит банка\n\n"
                 " Выбери способ оплаты:"
             ),
             "en": (
-                " *Basic  $7/mo*\n\n"
+                "💰 *Basic  $7/mo*\n\n"
+                "Bet smarter, earn more:\n\n"
                 "Includes:\n"
+                " 🔥 Basic AI Predictions daily\n"
                 " 15 screens/day\n"
                 " Full stats with insights\n"
-                " Basic AI Signals daily\n"
                 " Kelly Calculator\n"
                 " Bank limit\n\n"
                 " Choose payment:"
@@ -221,35 +227,38 @@ async def signals_callback_handler(update: Update, context: ContextTypes.DEFAULT
 
         promo = {
             "ua": (
-                " *VIP підписка*\n\n"
+                "💎 *VIP підписка*\n\n"
+                "Заробляй на ставках розумніше:\n\n"
                 "Що отримуєш:\n"
+                " 🔥 AI Прогнози Basic + VIP\n"
                 " 30 скрінів/день\n"
                 " AI Тренер з персональним аналізом\n"
                 " Повна статистика з емоціями\n"
                 " Бенчмарк серед топ беттерів\n"
-                " AI Сигнали Basic + VIP\n"
                 " Калькулятор Келлі + Ліміт банку\n\n"
                 " Обери план:"
             ),
             "ru": (
-                " *VIP подписка*\n\n"
+                "💎 *VIP подписка*\n\n"
+                "Зарабатывай на ставках умнее:\n\n"
                 "Что получаешь:\n"
+                " 🔥 AI Прогнозы Basic + VIP\n"
                 " 30 скринов/день\n"
                 " AI Тренер с персональным анализом\n"
                 " Полная статистика с эмоциями\n"
                 " Бенчмарк среди топ беттеров\n"
-                " AI Сигналы Basic + VIP\n"
                 " Калькулятор Келли + Лимит банка\n\n"
                 " Выбери план:"
             ),
             "en": (
-                " *VIP*\n\n"
+                "💎 *VIP*\n\n"
+                "Bet smarter, earn more:\n\n"
                 "Includes:\n"
+                " 🔥 Basic + VIP AI Predictions\n"
                 " 30 screens/day\n"
                 " AI Coach with personal analysis\n"
                 " Full emotional stats\n"
                 " Ranking among top bettors\n"
-                " Basic + VIP AI Signals\n"
                 " Kelly Calculator + Bank Limit\n\n"
                 " Choose plan:"
             ),
@@ -269,29 +278,29 @@ async def signals_callback_handler(update: Update, context: ContextTypes.DEFAULT
 
         promo = {
             "ua": (
-                " *VIP Сигнали  $5 / 10 днів*\n\n"
-                "Окрема підписка на VIP сигнали\n"
+                "💎 *VIP Прогнози  $5 / 10 днів*\n\n"
+                "Окрема підписка на VIP прогнози\n"
                 "без апгрейду на повний VIP план.\n\n"
-                "Отримуй найточніші сигнали від\n"
-                "AI-агента 10 днів.\n\n"
+                "Отримуй готові ставки від AI-агента\n"
+                "і заробляй розумніше 10 днів.\n\n"
                 " 399⭐ або $5\n\n"
                 " Обери спосіб оплати:"
             ),
             "ru": (
-                " *VIP Сигналы  $5 / 10 дней*\n\n"
-                "Отдельная подписка на VIP сигналы\n"
+                "💎 *VIP Прогнозы  $5 / 10 дней*\n\n"
+                "Отдельная подписка на VIP прогнозы\n"
                 "без апгрейда на полный VIP план.\n\n"
-                "Получай самые точные сигналы от\n"
-                "AI-агента 10 дней.\n\n"
+                "Получай готовые ставки от AI-агента\n"
+                "и зарабатывай умнее 10 дней.\n\n"
                 " 399⭐ или $5\n\n"
                 " Выбери способ оплаты:"
             ),
             "en": (
-                " *VIP Signals  $5 / 10 days*\n\n"
-                "Separate VIP signals subscription\n"
+                "💎 *VIP Predictions  $5 / 10 days*\n\n"
+                "Separate VIP predictions subscription\n"
                 "without full VIP upgrade.\n\n"
-                "Get most accurate signals from\n"
-                "our AI agent for 10 days.\n\n"
+                "Get ready picks from the AI agent\n"
+                "and earn smarter for 10 days.\n\n"
                 " 399⭐ or $5\n\n"
                 " Choose payment:"
             ),

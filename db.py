@@ -1804,7 +1804,7 @@ def start_trial_mode(user_id: int):
     conn = get_conn()
     cur = conn.cursor()
     trial_start = datetime.now().isoformat()
-    trial_expires = (datetime.now() + timedelta(days=7)).isoformat()
+    trial_expires = (datetime.now() + timedelta(days=3)).isoformat()
 
     cur.execute("""
         UPDATE users
@@ -1836,7 +1836,7 @@ def is_trial_available(user_id: int) -> bool:
         if not trial_started:
             return False
         try:
-            expires = datetime.fromisoformat(trial_started) + timedelta(days=7)
+            expires = datetime.fromisoformat(trial_started) + timedelta(days=3)
             return datetime.now() < expires
         except Exception:
             return False
@@ -1888,7 +1888,7 @@ def get_trial_remaining(user_id: int) -> int:
         if not trial_started:
             return 0
         try:
-            expires = datetime.fromisoformat(trial_started) + timedelta(days=7)
+            expires = datetime.fromisoformat(trial_started) + timedelta(days=3)
         except Exception:
             return 0
     else:
@@ -1897,8 +1897,10 @@ def get_trial_remaining(user_id: int) -> int:
         except Exception:
             return 0
 
-    remaining = (expires - datetime.now()).days
-    return max(remaining, 0)
+    from math import ceil
+
+    remaining_seconds = (expires - datetime.now()).total_seconds()
+    return max(ceil(remaining_seconds / 86400), 0)
 
 
 def get_trial_start(user_id: int):
@@ -1918,7 +1920,7 @@ def get_trial_start(user_id: int):
 
 def get_trial_day(user_id: int) -> int:
     """
-    Returns the current trial day (1-7).
+    Returns the current trial day (1-3).
     Day 1 is the first day after activation.
     Returns 0 when trial is not activated.
     """
@@ -1931,7 +1933,7 @@ def get_trial_day(user_id: int) -> int:
     try:
         start = datetime.fromisoformat(trial_started)
         delta = (datetime.now() - start).days + 1
-        return min(delta, 7)
+        return min(delta, 3)
     except Exception:
         return 0
 
@@ -1939,9 +1941,8 @@ def get_trial_day(user_id: int) -> int:
 def get_trial_users_for_notification(day: int) -> list[dict]:
     """
     Returns active trial users for a specific trial day.
-    day=3 users on day 3
-    day=6 users 24h before trial end
-    day=7 users on the last trial day
+    day=2 users on day 2
+    day=3 users on the last trial day
     """
     conn = get_conn()
     cur = conn.cursor()
@@ -2024,7 +2025,7 @@ def increment_trial_usage(user_id: int):
         return
 
     now_iso = datetime.now().isoformat()
-    trial_expires = (datetime.now() + timedelta(days=7)).isoformat()
+    trial_expires = (datetime.now() + timedelta(days=3)).isoformat()
 
     if not user.get("trial_started_at"):
         cur.execute("""
@@ -2293,7 +2294,7 @@ def get_referral_source_stats(source_key: str) -> dict:
                     if user_row.get("trial_expires_at"):
                         trial_expires = datetime.fromisoformat(user_row["trial_expires_at"])
                     else:
-                        trial_expires = datetime.fromisoformat(user_row["trial_started_at"]) + timedelta(days=7)
+                        trial_expires = datetime.fromisoformat(user_row["trial_started_at"]) + timedelta(days=3)
                     trial_active = trial_expires > datetime.now()
                 except Exception:
                     trial_active = False

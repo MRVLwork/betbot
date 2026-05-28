@@ -28,45 +28,48 @@ def _normalize_lang(lang: str) -> str:
 def _welcome_text(lang: str, promo_available: bool) -> str:
     lang = _normalize_lang(lang)
 
-    if lang == "ua":
-        return (
-            "😤 Ти зараз в мінусі чи в плюсі?\n\n"
-            "Більшість беттерів думають що в плюсі.\n"
-            "Реальна статистика показує інше.\n\n"
-            "Bet Tracker Bot аналізує твої ставки і показує:\n"
-            " Коли ти ставиш на тілті  і скільки це коштує\n"
-            " Які типи ставок реально дають плюс\n"
-            " Твій чесний ROI без самообману\n\n"
-            "Надішли перший скрін \n"
-            "і за 30 секунд побачиш реальну картину.\n\n"
-            "🎁 7 днів безкоштовно 👇"
-        )
-
     if lang == "ru":
         return (
-            "😤 Ты сейчас в минусе или в плюсе?\n\n"
-            "Большинство беттеров думают что в плюсе.\n"
-            "Реальная статистика показывает другое.\n\n"
-            "Bet Tracker Bot анализирует твои ставки и показывает:\n"
-            " Когда ты ставишь на тилте  и сколько это стоит\n"
-            " Какие типы ставок реально дают плюс\n"
-            " Твой честный ROI без самообмана\n\n"
-            "Отправь первый скрин \n"
-            "и за 30 секунд увидишь реальную картину.\n\n"
-            "🎁 7 дней бесплатно 👇"
+            "💰 *Зарабатывай на ставках умнее*\n\n"
+            "Bet Tracker - твой AI-агент:\n\n"
+            "🔥 *AI Прогнозы дня*\n"
+            "Готовые ставки от AI-агента -\n"
+            "бери и зарабатывай.\n\n"
+            "📊 *Твоя статистика*\n"
+            "AI считает реальный ROI и показывает\n"
+            "где ты теряешь деньги.\n\n"
+            "💡 Прогнозы + контроль = шанс на плюс,\n"
+            "а не слив на эмоциях.\n\n"
+            "🎁 *3 дня бесплатно* - начни сейчас 👇"
+        )
+
+    if lang == "en":
+        return (
+            "💰 *Bet smarter, earn more*\n\n"
+            "Bet Tracker is your AI agent:\n\n"
+            "🔥 *AI Predictions of the day*\n"
+            "Ready-to-bet picks from AI agent -\n"
+            "take and earn smarter.\n\n"
+            "📊 *Your stats*\n"
+            "AI calculates real ROI and shows\n"
+            "where you lose money.\n\n"
+            "💡 Predictions + control = a better shot at profit,\n"
+            "not emotional losses.\n\n"
+            "🎁 *3 days free* - start now 👇"
         )
 
     return (
-        "😤 Are you currently in profit or loss?\n\n"
-        "Most bettors think they're in profit.\n"
-        "Real stats show something different.\n\n"
-        "Bet Tracker Bot analyzes your bets and shows:\n"
-        " When you bet on tilt  and what it costs you\n"
-        " Which bet types actually make profit\n"
-        " Your honest ROI without self-deception\n\n"
-        "Send your first screenshot \n"
-        "and see the real picture in 30 seconds.\n\n"
-        "🎁 7 days free 👇"
+        "💰 *Заробляй на ставках розумніше*\n\n"
+        "Bet Tracker - твій AI-агент:\n\n"
+        "🔥 *AI Прогнози дня*\n"
+        "Готові ставки від AI-агента -\n"
+        "бери і заробляй.\n\n"
+        "📊 *Твоя статистика*\n"
+        "AI рахує реальний ROI і показує\n"
+        "де ти втрачаєш гроші.\n\n"
+        "💡 Прогнози + контроль = шанс на плюс,\n"
+        "а не злив на емоціях.\n\n"
+        "🎁 *3 дні безкоштовно* - почни зараз 👇"
     )
 
 
@@ -116,7 +119,8 @@ async def send_standard_start(update: Update, lang: str):
 
     await update.message.reply_text(
         _welcome_text(lang, promo_available),
-        reply_markup=welcome_offer_keyboard(lang)
+        reply_markup=welcome_offer_keyboard(lang),
+        parse_mode="Markdown",
     )
 
 
@@ -149,25 +153,32 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
 
             trial_text = {
                 "ua": (
-                    "🚀 Пробний доступ активовано!\n\n"
-                    "У тебе є 7 днів і аналіз 5 ставок на день.\n"
-                    "Надішли перший скрін ставки 👇"
+                    "🚀 *Пробний доступ активовано!*\n\n"
+                    "Заробляй на ставках розумніше:\n"
+                    "🔥 глянь AI Прогнози дня\n"
+                    "📊 або надішли скрін ставки для статистики.\n\n"
+                    "У тебе є 3 дні і аналіз 5 ставок на день."
                 ),
                 "ru": (
-                    "🚀 Пробный доступ активирован!\n\n"
-                    "У тебя есть 7 дней и анализ 5 ставок в день.\n"
-                    "Отправь первый скрин ставки 👇"
+                    "🚀 *Пробный доступ активирован!*\n\n"
+                    "Зарабатывай на ставках умнее:\n"
+                    "🔥 глянь AI Прогнозы дня\n"
+                    "📊 или отправь скрин ставки для статистики.\n\n"
+                    "У тебя есть 3 дня и анализ 5 ставок в день."
                 ),
                 "en": (
-                    "🚀 Trial access activated!\n\n"
-                    "You have 7 days and 5 screenshots per day.\n"
-                    "Send your first bet screenshot 👇"
+                    "🚀 *Trial access activated!*\n\n"
+                    "Bet smarter, earn more:\n"
+                    "🔥 check AI Predictions\n"
+                    "📊 or send a bet screenshot for stats.\n\n"
+                    "You have 3 days and 5 screenshots per day."
                 ),
             }[lang]
 
             await query.message.reply_text(
                 trial_text,
-                reply_markup=main_menu_keyboard(lang, (user or {}).get("plan", "basic"))
+                reply_markup=main_menu_keyboard(lang, (user or {}).get("plan", "basic")),
+                parse_mode="Markdown",
             )
         else:
             remaining = get_trial_remaining(tg_user.id)
@@ -183,31 +194,40 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
     elif query.data == "pay_now":
         buy_text = {
             "ua": (
-                "💳 Обери тариф:\n\n"
+                "💰 Заробляй на ставках розумніше\n\n"
+                "Обери тариф:\n\n"
                 "🔹 Basic 1 місяць  $7\n"
+                "🔥 AI Прогнози дня\n"
                 "Аналіз 15 ставок на день\n"
                 " Повна статистика і аналітика\n\n"
                 " VIP 1 місяць  $19.99\n"
+                "🔥 AI Прогнози Basic + VIP\n"
                 " 30 скрінів на день\n"
                 " AI Тренер\n"
                 " Всі функції без обмежень"
             ),
             "ru": (
-                "💳 Выбери тариф:\n\n"
+                "💰 Зарабатывай на ставках умнее\n\n"
+                "Выбери тариф:\n\n"
                 "🔹 Basic 1 месяц  $7\n"
+                "🔥 AI Прогнозы дня\n"
                 "Анализ 15 ставок в день\n"
                 " Полная статистика и аналитика\n\n"
                 " VIP 1 месяц  $19.99\n"
+                "🔥 AI Прогнозы Basic + VIP\n"
                 " 30 скринов в день\n"
                 " AI Тренер\n"
                 " Все функции без ограничений"
             ),
             "en": (
-                "💳 Choose your plan:\n\n"
+                "💰 Bet smarter, earn more\n\n"
+                "Choose your plan:\n\n"
                 "🔹 Basic 1 month  $7\n"
+                "🔥 AI Predictions of the day\n"
                 " 15 screenshots per day\n"
                 " Full statistics and analytics\n\n"
                 " VIP 1 month  $19.99\n"
+                "🔥 Basic + VIP AI Predictions\n"
                 " 30 screenshots per day\n"
                 " AI Coach\n"
                 " All features unlimited"

@@ -24,7 +24,7 @@ def welcome_offer_keyboard(lang: str):
 def main_menu_keyboard(lang: str = "ua", plan: str = "basic"):
     if lang == "ru":
         keyboard = [
-            [KeyboardButton("🔥 AI Сигналы дня")],
+            [KeyboardButton("🔥 AI Прогнозы дня")],
             [KeyboardButton("📸 Добавить ставку")],
             [KeyboardButton("📊 Моя статистика"), KeyboardButton("🧠 AI-разбор")],
             [KeyboardButton("🎯 Мой профиль"), KeyboardButton("📅 Итоги недели")],
@@ -33,7 +33,7 @@ def main_menu_keyboard(lang: str = "ua", plan: str = "basic"):
         ]
     elif lang == "en":
         keyboard = [
-            [KeyboardButton("🔥 AI Signals")],
+            [KeyboardButton("🔥 AI Predictions")],
             [KeyboardButton("📸 Add bet")],
             [KeyboardButton("📊 My stats"), KeyboardButton("🧠 AI analysis")],
             [KeyboardButton("🎯 My profile"), KeyboardButton("📅 Weekly recap")],
@@ -42,7 +42,7 @@ def main_menu_keyboard(lang: str = "ua", plan: str = "basic"):
         ]
     else:
         keyboard = [
-            [KeyboardButton("🔥 AI Сигнали дня")],
+            [KeyboardButton("🔥 AI Прогнози дня")],
             [KeyboardButton("📸 Додати ставку")],
             [KeyboardButton("📊 Моя статистика"), KeyboardButton("🧠 AI-розбір")],
             [KeyboardButton("🎯 Мій профіль"), KeyboardButton("📅 Підсумки тижня")],
@@ -104,48 +104,51 @@ def _stats_trial_upsell_text(lang: str) -> str:
     """Текст який спонукає trial юзера купити підписку"""
     if lang == "ru":
         return (
-            "🔒 Полная статистика доступна в Basic и VIP\n\n"
-            "Что ты увидишь в полной статистике:\n"
+            "💰 Зарабатывай на ставках умнее\n\n"
+            "В Basic и VIP ты получишь:\n"
+            "🔥 AI Прогнозы дня - готовые ставки\n"
             "📊 Разбивка по типам ставок\n"
             "📊 Статистика по коэффициентам\n"
             "📊 Твои слабые места\n"
             "📊 Сравнение периодов\n"
             "📈 Профиль беттера\n\n"
-            "💡 Именно здесь большинство беттеров\n"
-            "понимают где они теряют деньги.\n\n"
+            "💡 AI прогнозы + твоя статистика\n"
+            "показывают, где есть шанс на плюс.\n\n"
             "🔹 Basic  $7/мес\n"
             " VIP  $19.99/мес\n\n"
-            "👇 Открой полную картину"
+            "👇 Открой доступ"
         )
     elif lang == "en":
         return (
-            "🔒 Full stats available in Basic and VIP\n\n"
-            "What you'll see in full stats:\n"
+            "💰 Bet smarter, earn more\n\n"
+            "With Basic and VIP you get:\n"
+            "🔥 AI Predictions - ready picks\n"
             "📊 Breakdown by bet type\n"
             "📊 Stats by odds range\n"
             "📊 Your weak spots\n"
             "📊 Period comparison\n"
             "📈 Bettor profile\n\n"
-            "💡 This is where most bettors discover\n"
-            "exactly where they're losing money.\n\n"
+            "💡 AI predictions + your stats\n"
+            "show where you have a better shot at profit.\n\n"
             "🔹 Basic  $7/mo\n"
             " VIP  $19.99/mo\n\n"
-            "👇 See the full picture"
+            "👇 Unlock access"
         )
     else:
         return (
-            "🔒 Повна статистика доступна в Basic і VIP\n\n"
-            "Що ти побачиш у повній статистиці:\n"
+            "💰 Заробляй на ставках розумніше\n\n"
+            "У Basic і VIP ти отримаєш:\n"
+            "🔥 AI Прогнози дня - готові ставки\n"
             "📊 Розбивка по типах ставок\n"
             "📊 Статистика по коефіцієнтах\n"
             "📊 Твої слабкі місця\n"
             "📊 Порівняння періодів\n"
             "📈 Профіль беттера\n\n"
-            "💡 Саме тут більшість беттерів розуміють\n"
-            "де вони втрачають гроші.\n\n"
+            "💡 AI прогнози + твоя статистика\n"
+            "показують, де є шанс на плюс.\n\n"
             "🔹 Basic  $7/міс\n"
             " VIP  $19.99/міс\n\n"
-            "👇 Відкрий повну картину"
+            "👇 Відкрий доступ"
         )
 
 
@@ -176,7 +179,7 @@ def stars_plans_keyboard(lang: str, promo_available: bool = True):
         keyboard = [
             [InlineKeyboardButton("Basic 1 месяц  525⭐", callback_data="stars_basic_month")],
             [InlineKeyboardButton("VIP 1 месяц  1500⭐", callback_data="stars_vip_1m")],
-            [InlineKeyboardButton("VIP Сигналы 10 дней  399⭐", callback_data="stars_vip_signals_10d")],
+            [InlineKeyboardButton("VIP Прогнозы 10 дней  399⭐", callback_data="stars_vip_signals_10d")],
             [InlineKeyboardButton(" Назад", callback_data="back_to_access")],
         ]
         if promo_available:
@@ -187,7 +190,7 @@ def stars_plans_keyboard(lang: str, promo_available: bool = True):
         keyboard = [
             [InlineKeyboardButton("Basic 1 month  525⭐", callback_data="stars_basic_month")],
             [InlineKeyboardButton("VIP 1 month  1500⭐", callback_data="stars_vip_1m")],
-            [InlineKeyboardButton("VIP Signals 10 days  399⭐", callback_data="stars_vip_signals_10d")],
+            [InlineKeyboardButton("VIP Predictions 10 days  399⭐", callback_data="stars_vip_signals_10d")],
             [InlineKeyboardButton(" Back", callback_data="back_to_access")],
         ]
         if promo_available:
@@ -198,7 +201,7 @@ def stars_plans_keyboard(lang: str, promo_available: bool = True):
         keyboard = [
             [InlineKeyboardButton("Basic 1 місяць  525⭐", callback_data="stars_basic_month")],
             [InlineKeyboardButton("VIP 1 місяць  1500⭐", callback_data="stars_vip_1m")],
-            [InlineKeyboardButton("VIP Сигнали 10 днів  399⭐", callback_data="stars_vip_signals_10d")],
+            [InlineKeyboardButton("VIP Прогнози 10 днів  399⭐", callback_data="stars_vip_signals_10d")],
             [InlineKeyboardButton(" Назад", callback_data="back_to_access")],
         ]
         if promo_available:
@@ -211,33 +214,33 @@ def stars_plans_keyboard(lang: str, promo_available: bool = True):
 def ai_signals_keyboard(lang: str, vip_access: bool = False):
     if lang == "ru":
         rows = [
-            [InlineKeyboardButton(" Trial сигналы", callback_data="signal_trial")],
-            [InlineKeyboardButton(" Basic сигналы", callback_data="signal_basic")],
+            [InlineKeyboardButton("🔥 Trial прогнозы", callback_data="signal_trial")],
+            [InlineKeyboardButton("🔥 Basic прогнозы", callback_data="signal_basic")],
         ]
         if vip_access:
-            rows.append([InlineKeyboardButton(" VIP сигналы", callback_data="signal_vip")])
+            rows.append([InlineKeyboardButton("💎 VIP прогнозы", callback_data="signal_vip")])
         else:
-            rows.append([InlineKeyboardButton(" Купить VIP сигналы 399⭐ / 10 дней", callback_data="stars_vip_signals_10d")])
+            rows.append([InlineKeyboardButton("💎 Купить VIP прогнозы 399⭐ / 10 дней", callback_data="stars_vip_signals_10d")])
         return InlineKeyboardMarkup(rows)
     if lang == "en":
         rows = [
-            [InlineKeyboardButton(" Trial signals", callback_data="signal_trial")],
-            [InlineKeyboardButton(" Basic signals", callback_data="signal_basic")],
+            [InlineKeyboardButton("🔥 Trial predictions", callback_data="signal_trial")],
+            [InlineKeyboardButton("🔥 Basic predictions", callback_data="signal_basic")],
         ]
         if vip_access:
-            rows.append([InlineKeyboardButton(" VIP signals", callback_data="signal_vip")])
+            rows.append([InlineKeyboardButton("💎 VIP predictions", callback_data="signal_vip")])
         else:
-            rows.append([InlineKeyboardButton(" Buy VIP signals 399⭐ / 10 days", callback_data="stars_vip_signals_10d")])
+            rows.append([InlineKeyboardButton("💎 Buy VIP predictions 399⭐ / 10 days", callback_data="stars_vip_signals_10d")])
         return InlineKeyboardMarkup(rows)
 
     rows = [
-        [InlineKeyboardButton(" Trial сигнали", callback_data="signal_trial")],
-        [InlineKeyboardButton(" Basic сигнали", callback_data="signal_basic")],
+        [InlineKeyboardButton("🔥 Trial прогнози", callback_data="signal_trial")],
+        [InlineKeyboardButton("🔥 Basic прогнози", callback_data="signal_basic")],
     ]
     if vip_access:
-        rows.append([InlineKeyboardButton(" VIP сигнали", callback_data="signal_vip")])
+        rows.append([InlineKeyboardButton("💎 VIP прогнози", callback_data="signal_vip")])
     else:
-        rows.append([InlineKeyboardButton(" Купити VIP сигнали 399⭐ / 10 днів", callback_data="stars_vip_signals_10d")])
+        rows.append([InlineKeyboardButton("💎 Купити VIP прогнози 399⭐ / 10 днів", callback_data="stars_vip_signals_10d")])
     return InlineKeyboardMarkup(rows)
 
 

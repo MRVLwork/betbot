@@ -120,21 +120,24 @@ def _no_data_text(lang):
             "За останні 7 днів ще недостатньо ставок\n"
             "для підсумку.\n\n"
             "Додай кілька ставок цього тижня\n"
-            "і отримаєш красиву картку статистики! 📊"
+            "і отримаєш красиву картку статистики! 📊\n\n"
+            "🔥 Поки немає даних - глянь AI Прогнози дня!"
         ),
         "ru": (
             "🏁 *Итоги недели*\n\n"
             "За последние 7 дней ещё недостаточно\n"
             "ставок для итога.\n\n"
             "Добавь несколько ставок на этой неделе\n"
-            "и получишь красивую карточку статистики! 📊"
+            "и получишь красивую карточку статистики! 📊\n\n"
+            "🔥 Пока нет данных - глянь AI Прогнозы дня!"
         ),
         "en": (
             "🏁 *Weekly Recap*\n\n"
             "Not enough bets in the last 7 days\n"
             "for a recap yet.\n\n"
             "Add a few bets this week\n"
-            "and get a beautiful stats card! 📊"
+            "and get a beautiful stats card! 📊\n\n"
+            "🔥 No data yet - check AI Predictions!"
         ),
     }
     return texts.get(lang, texts["ua"])

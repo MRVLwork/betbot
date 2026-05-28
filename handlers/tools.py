@@ -56,30 +56,28 @@ async def open_ai_signals_menu(update: Update, context: ContextTypes.DEFAULT_TYP
 
     texts = {
         "ua": (
-            " AI Сигнали дня\n\n"
-            "Обери потік сигналів:\n"
-            "Trial - безкоштовні сигнали для пробного доступу\n"
-            "Basic - сигнали для активної підписки\n"
-            "VIP - преміум сигнали для VIP або окремої підписки"
+            "🔥 *AI Прогнози дня*\n\n"
+            "Готові ставки від AI-агента -\n"
+            "бери і заробляй розумніше.\n\n"
+            "Обери рівень прогнозів:"
         ),
         "ru": (
-            " AI Сигналы дня\n\n"
-            "Выбери поток сигналов:\n"
-            "Trial - бесплатные сигналы для пробного доступа\n"
-            "Basic - сигналы для активной подписки\n"
-            "VIP - премиум сигналы для VIP или отдельной подписки"
+            "🔥 *AI Прогнозы дня*\n\n"
+            "Готовые ставки от AI-агента -\n"
+            "бери и зарабатывай умнее.\n\n"
+            "Выбери уровень прогнозов:"
         ),
         "en": (
-            " AI Signals\n\n"
-            "Choose a signal stream:\n"
-            "Trial - free signals for trial access\n"
-            "Basic - signals for active subscribers\n"
-            "VIP - premium signals for VIP or separate subscription"
+            "🔥 *AI Predictions of the day*\n\n"
+            "Ready-to-bet picks from AI agent -\n"
+            "take and earn smarter.\n\n"
+            "Choose prediction level:"
         ),
     }
     await update.message.reply_text(
         texts.get(lang, texts["en"]),
         reply_markup=ai_signals_keyboard(lang, vip_access=vip_access),
+        parse_mode="Markdown",
     )
 
 
@@ -100,9 +98,9 @@ async def tools_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
 
     if query.data in ("tool_ai_signals", "signal_back"):
         texts = {
-            "ua": " AI Сигнали дня\n\nОбери тип сигналів:",
-            "ru": " AI Сигналы дня\n\nВыбери тип сигналов:",
-            "en": " AI Signals\n\nChoose signal type:",
+            "ua": "🔥 AI Прогнози дня\n\nОбери тип прогнозів:",
+            "ru": "🔥 AI Прогнозы дня\n\nВыбери тип прогнозов:",
+            "en": "🔥 AI Predictions\n\nChoose prediction type:",
         }
         await query.message.reply_text(
             texts.get(lang, texts["en"]),
@@ -115,18 +113,18 @@ async def tools_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
 
         if signal_type == "basic" and not has_access:
             no_access = {
-                "ua": " Basic сигнали доступні після активації підписки.",
-                "ru": " Basic сигналы доступны после активации подписки.",
-                "en": " Basic signals are available after activating a subscription.",
+                "ua": "🔥 Basic прогнози доступні після активації підписки.",
+                "ru": "🔥 Basic прогнозы доступны после активации подписки.",
+                "en": "🔥 Basic predictions are available after activating a subscription.",
             }
             await query.message.reply_text(no_access.get(lang, no_access["en"]), reply_markup=access_keyboard(lang))
             return
 
         if signal_type == "vip" and not has_vip_signals_access(user_id):
             no_vip = {
-                "ua": " VIP сигнали доступні у повному VIP або окремо на 10 днів за 399⭐.",
-                "ru": " VIP сигналы доступны в полном VIP или отдельно на 10 дней за 399⭐.",
-                "en": " VIP signals are included in VIP or available separately for 10 days at 399⭐.",
+                "ua": "💎 VIP прогнози доступні у повному VIP або окремо на 10 днів за 399⭐.",
+                "ru": "💎 VIP прогнозы доступны в полном VIP или отдельно на 10 дней за 399⭐.",
+                "en": "💎 VIP predictions are included in VIP or available separately for 10 days at 399⭐.",
             }
             await query.message.reply_text(
                 no_vip.get(lang, no_vip["en"]),
@@ -136,9 +134,9 @@ async def tools_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
 
         if is_subscribed_to_signal(user_id, signal_type):
             already = {
-                "ua": f" Ти вже підписаний на {signal_type.upper()} сигнали.",
-                "ru": f" Ты уже подписан на {signal_type.upper()} сигналы.",
-                "en": f" You are already subscribed to {signal_type.upper()} signals.",
+                "ua": f"✅ Ти вже підписаний на {signal_type.upper()} прогнози.",
+                "ru": f"✅ Ты уже подписан на {signal_type.upper()} прогнозы.",
+                "en": f"✅ You are already subscribed to {signal_type.upper()} predictions.",
             }
             await query.message.reply_text(already.get(lang, already["en"]))
             return
@@ -159,9 +157,9 @@ async def tools_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
 
         subscribe_to_signal(user_id, signal_type, duration_days=duration_days)
         success = {
-            "ua": f" Підписку на {signal_type.upper()} сигнали активовано.",
-            "ru": f" Подписка на {signal_type.upper()} сигналы активирована.",
-            "en": f" {signal_type.upper()} signals subscription activated.",
+            "ua": f"✅ Підписку на {signal_type.upper()} прогнози активовано.",
+            "ru": f"✅ Подписка на {signal_type.upper()} прогнозы активирована.",
+            "en": f"✅ {signal_type.upper()} predictions subscription activated.",
         }
         await query.message.reply_text(success.get(lang, success["en"]))
         return

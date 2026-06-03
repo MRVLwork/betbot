@@ -5,17 +5,17 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton,
 def welcome_offer_keyboard(lang: str):
     if lang == "ru":
         keyboard = [[
-            InlineKeyboardButton("🎁 Попробовать 7 дней", callback_data="try_trial"),
+            InlineKeyboardButton("🎁 Попробовать 3 дня", callback_data="try_trial"),
             InlineKeyboardButton("💳 Купить подписку", callback_data="pay_now"),
         ]]
     elif lang == "en":
         keyboard = [[
-            InlineKeyboardButton("🎁 Try 7 days free", callback_data="try_trial"),
+            InlineKeyboardButton("🎁 Try 3 days free", callback_data="try_trial"),
             InlineKeyboardButton("💳 Buy subscription", callback_data="pay_now"),
         ]]
     else:
         keyboard = [[
-            InlineKeyboardButton("🎁 Спробувати 7 днів", callback_data="try_trial"),
+            InlineKeyboardButton("🎁 Спробувати 3 дні", callback_data="try_trial"),
             InlineKeyboardButton("💳 Купити підписку", callback_data="pay_now"),
         ]]
     return InlineKeyboardMarkup(keyboard)

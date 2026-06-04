@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
+from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import ContextTypes, ConversationHandler
 
-from db import complete_onboarding, get_user, is_eligible_for_first_payment_promo, save_onboarding_data, user_has_access
-from keyboards import main_menu_keyboard, welcome_offer_keyboard
+from db import complete_onboarding, get_user, is_trial_available, save_onboarding_data, start_trial_mode
+from keyboards import main_menu_keyboard
 from states import ONBOARDING_GOAL, ONBOARDING_SPORT
 
 
@@ -66,26 +66,49 @@ def _invalid_choice_text(lang: str) -> str:
     return "Обері варіант з кнопок."
 
 
-async def _send_standard_welcome(update: Update, lang: str):
+def _trial_activated_text(lang: str) -> str:
+    if lang == "ru":
+        return (
+            "🎁 *Пробный доступ активирован!*\n\n"
+            "💰 Зарабатывай на ставках умнее:\n"
+            "🔥 Глянь AI Прогнозы дня - готовые ставки\n"
+            "📊 Или кинь скрин ставки для статистики\n\n"
+            "🎁 У тебя 3 дня и 5 ставок в день"
+        )
+    if lang == "en":
+        return (
+            "🎁 *Trial activated!*\n\n"
+            "💰 Bet smarter, earn more:\n"
+            "🔥 Check AI Predictions - ready picks\n"
+            "📊 Or send a bet screenshot for stats\n\n"
+            "🎁 You have 3 days and 5 bets per day"
+        )
+    return (
+        "🎁 *Пробний доступ активовано!*\n\n"
+        "💰 Заробляй на ставках розумніше:\n"
+        "🔥 Глянь AI Прогнози дня - готові ставки\n"
+        "📊 Або кинь скрін ставки для статистики\n\n"
+        "🎁 У тебе 3 дні і 5 ставок на день"
+    )
+
+
+async def activate_trial_after_onboarding(update: Update, lang: str, remove_reply_keyboard: bool = False):
     user_id = update.effective_user.id
 
-    if user_has_access(user_id):
-        active_text = {
-            "ua": "✔ Доступ активний.",
-            "ru": "✔ Доступ активен.",
-            "en": "✔ Access is active.",
-        }[lang]
-        await update.message.reply_text(active_text, reply_markup=main_menu_keyboard(lang, (get_user(user_id) or {}).get("plan", "basic")))
-        return
+    if is_trial_available(user_id):
+        start_trial_mode(user_id)
 
-    promo_available = is_eligible_for_first_payment_promo(user_id)
-    from handlers.start import _welcome_text  # local import to avoid circular import at module load
+    message = update.effective_message
+    if remove_reply_keyboard:
+        await message.reply_text("✓", reply_markup=ReplyKeyboardRemove())
 
-    await update.message.reply_text(
-        _welcome_text(lang, promo_available),
-        reply_markup=welcome_offer_keyboard(lang),
+    user = get_user(user_id) or {}
+    await message.reply_text(
+        _trial_activated_text(lang),
         parse_mode="Markdown",
+        reply_markup=main_menu_keyboard(lang, user.get("plan", "basic")),
     )
+    return ConversationHandler.END
 
 
 async def start_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -94,7 +117,7 @@ async def start_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.pop("onboarding_sport", None)
     context.user_data.pop("onboarding_goal", None)
 
-    await update.message.reply_text(
+    await update.effective_message.reply_text(
         _sport_prompt(lang),
         reply_markup=_keyboard(_sport_options(lang)),
     )
@@ -130,20 +153,4 @@ async def onboarding_goal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     save_onboarding_data(user_id, sport, "", "", main_goal)
     complete_onboarding(user_id)
 
-    if lang == "ru":
-        final_text = "🎁 Готово! Активируй 3 дня бесплатно 🎁"
-        btn_text = "🎁 Активировать триал"
-    elif lang == "en":
-        final_text = "🎁 Done! Activate your 3 free days 🎁"
-        btn_text = "🎁 Activate trial"
-    else:
-        final_text = "🎁 Готово! Активуй 3 дні безкоштовно 🎁"
-        btn_text = "🎁 Активувати тріал"
-
-    keyboard = InlineKeyboardMarkup([[
-        InlineKeyboardButton(btn_text, callback_data="try_trial"),
-    ]])
-
-    await update.message.reply_text("✓", reply_markup=ReplyKeyboardRemove())
-    await update.message.reply_text(final_text, reply_markup=keyboard)
-    return ConversationHandler.END
+    return await activate_trial_after_onboarding(update, lang, remove_reply_keyboard=True)

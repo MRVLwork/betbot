@@ -10,10 +10,9 @@ from db import (
     user_has_access,
     is_trial_available,
     get_trial_remaining,
-    start_trial_mode,
     is_eligible_for_first_payment_promo,
 )
-from handlers.onboarding import start_onboarding
+from handlers.onboarding import activate_trial_after_onboarding, start_onboarding
 
 
 def _normalize_lang(lang: str) -> str:
@@ -91,9 +90,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     db_user = get_user(user.id)
     lang = _normalize_lang((db_user or {}).get("lang", "en"))
 
-    if not is_onboarding_completed(user.id):
-        return await start_onboarding(update, context)
-
     await send_standard_start(update, lang)
     return ConversationHandler.END
 
@@ -145,41 +141,13 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
             active_text,
             reply_markup=main_menu_keyboard(lang, (user or {}).get("plan", "basic"))
         )
-        return
+        return ConversationHandler.END
 
     if query.data == "try_trial":
         if is_trial_available(tg_user.id):
-            start_trial_mode(tg_user.id)
-
-            trial_text = {
-                "ua": (
-                    "🚀 *Пробний доступ активовано!*\n\n"
-                    "Заробляй на ставках розумніше:\n"
-                    "🔥 глянь AI Прогнози дня\n"
-                    "📊 або надішли скрін ставки для статистики.\n\n"
-                    "У тебе є 3 дні і аналіз 5 ставок на день."
-                ),
-                "ru": (
-                    "🚀 *Пробный доступ активирован!*\n\n"
-                    "Зарабатывай на ставках умнее:\n"
-                    "🔥 глянь AI Прогнозы дня\n"
-                    "📊 или отправь скрин ставки для статистики.\n\n"
-                    "У тебя есть 3 дня и анализ 5 ставок в день."
-                ),
-                "en": (
-                    "🚀 *Trial access activated!*\n\n"
-                    "Bet smarter, earn more:\n"
-                    "🔥 check AI Predictions\n"
-                    "📊 or send a bet screenshot for stats.\n\n"
-                    "You have 3 days and 5 screenshots per day."
-                ),
-            }[lang]
-
-            await query.message.reply_text(
-                trial_text,
-                reply_markup=main_menu_keyboard(lang, (user or {}).get("plan", "basic")),
-                parse_mode="Markdown",
-            )
+            if is_onboarding_completed(tg_user.id):
+                return await activate_trial_after_onboarding(update, lang)
+            return await start_onboarding(update, context)
         else:
             remaining = get_trial_remaining(tg_user.id)
 
@@ -190,6 +158,7 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
             }[lang]
 
             await query.message.reply_text(limit_text)
+            return ConversationHandler.END
 
     elif query.data == "pay_now":
         buy_text = {
@@ -238,3 +207,4 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
             buy_text,
             reply_markup=access_keyboard(lang)
         )
+        return ConversationHandler.END

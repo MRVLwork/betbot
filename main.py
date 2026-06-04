@@ -1618,7 +1618,10 @@ def main():
     )
 
     onboarding_conv = ConversationHandler(
-        entry_points=[CommandHandler("start", start)],
+        entry_points=[
+            CommandHandler("start", start),
+            CallbackQueryHandler(start_offer_buttons, pattern="^try_trial$"),
+        ],
         states={
             ONBOARDING_SPORT: [MessageHandler(filters.TEXT & ~filters.COMMAND, onboarding_sport)],
             ONBOARDING_GOAL: [MessageHandler(filters.TEXT & ~filters.COMMAND, onboarding_goal)],
@@ -1665,7 +1668,7 @@ def main():
     )
     app.add_handler(payment_conv)
 
-    app.add_handler(CallbackQueryHandler(start_offer_buttons, pattern="^(try_trial|pay_now)$"))
+    app.add_handler(CallbackQueryHandler(start_offer_buttons, pattern="^pay_now$"))
     app.add_handler(MessageHandler(
         filters.Regex(r"^🔥 (AI Прогнози дня|AI Прогнозы дня|AI Predictions)$"),
         open_signals_menu,

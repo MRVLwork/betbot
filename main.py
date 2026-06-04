@@ -58,8 +58,6 @@ from keyboards import (
 from languages import get_text
 from handlers.start import start, start_offer_buttons
 from handlers.onboarding import (
-    onboarding_deposit,
-    onboarding_experience,
     onboarding_goal,
     onboarding_sport,
 )
@@ -121,8 +119,6 @@ from handlers.signals import open_signals_menu, signals_callback_handler
 from handlers.weekly_wrap import send_weekly_wrap, send_weekly_wrap_broadcast
 from webhook_server import create_webhook_app, set_bot
 from states import (
-    ONBOARDING_DEPOSIT,
-    ONBOARDING_EXPERIENCE,
     ONBOARDING_GOAL,
     ONBOARDING_SPORT,
     WAITING_PAYMENT_SCREEN,
@@ -1625,8 +1621,6 @@ def main():
         entry_points=[CommandHandler("start", start)],
         states={
             ONBOARDING_SPORT: [MessageHandler(filters.TEXT & ~filters.COMMAND, onboarding_sport)],
-            ONBOARDING_EXPERIENCE: [MessageHandler(filters.TEXT & ~filters.COMMAND, onboarding_experience)],
-            ONBOARDING_DEPOSIT: [MessageHandler(filters.TEXT & ~filters.COMMAND, onboarding_deposit)],
             ONBOARDING_GOAL: [MessageHandler(filters.TEXT & ~filters.COMMAND, onboarding_goal)],
         },
         fallbacks=[CommandHandler("start", start)],

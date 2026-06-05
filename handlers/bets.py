@@ -7,6 +7,7 @@ from telegram.ext import ContextTypes
 from bets_db import (
     close_pending_bet,
     create_bet,
+    delete_last_bet,
     get_basic_stats_between,
     get_tilt_signal_context,
     update_bet_emotion,
@@ -1116,3 +1117,54 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=access_keyboard(lang)
         )
 
+
+
+async def del_last_bet_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /dellastbet видаляє останню ставку юзера зі статистики. Доступна всім.
+    """
+    user_id = update.effective_user.id
+    user = get_user(user_id) or {}
+    lang = _normalize_lang(user.get("lang", "ua"))
+
+    bet_info = delete_last_bet(user_id)
+    if not bet_info:
+        no_bets = {
+            "ua": "🗑 У тебе ще немає збережених ставок.",
+            "ru": "🗑 У тебя ещё нет сохранённых ставок.",
+            "en": "🗑 You don't have any saved bets yet.",
+        }
+        await update.message.reply_text(no_bets.get(lang, no_bets["ua"]))
+        return
+
+    stake = bet_info.get("stake_amount") or 0
+    odds = bet_info.get("odds") or 0
+    bet_type = bet_info.get("bet_market") or bet_info.get("bet_type") or "-"
+    result = bet_info.get("bet_result") or "pending"
+
+    if lang == "ru":
+        text = (
+            "🗑 Последняя ставка удалена\n\n"
+            f"📌 Тип: {bet_type}\n"
+            f"💵 Сумма: {stake}\n"
+            f"📈 Коэф: {odds}\n"
+            f"🎯 Результат: {result}"
+        )
+    elif lang == "en":
+        text = (
+            "🗑 Last bet deleted\n\n"
+            f"📌 Type: {bet_type}\n"
+            f"💵 Stake: {stake}\n"
+            f"📈 Odds: {odds}\n"
+            f"🎯 Result: {result}"
+        )
+    else:
+        text = (
+            "🗑 Останню ставку видалено\n\n"
+            f"📌 Тип: {bet_type}\n"
+            f"💵 Сума: {stake}\n"
+            f"📈 Коеф: {odds}\n"
+            f"🎯 Результат: {result}"
+        )
+
+    await update.message.reply_text(text)

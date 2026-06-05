@@ -100,6 +100,7 @@ from handlers.admin import (
 )
 from handlers.bets import (
     close_bet_callback,
+    del_last_bet_command,
     process_bet_photo,
     emotion_callback_handler,
     tilt_warning_callback_handler,
@@ -1632,6 +1633,7 @@ def main():
     app.add_handler(onboarding_conv)
 
     app.add_handler(CommandHandler("commands", commands_list))
+    app.add_handler(CommandHandler("dellastbet", del_last_bet_command))
     app.add_handler(CommandHandler("addpromo", addpromo))
     app.add_handler(CommandHandler("genbasicweek", genbasicweek))
     app.add_handler(CommandHandler("genbasicmonth", genbasicmonth))

@@ -135,6 +135,48 @@ def create_bet(
     conn.close()
     return row["id"] if row else None
 
+def delete_last_bet(user_id: int) -> dict | None:
+    """
+    Видаляє останню (найновішу) збережену ставку юзера.
+    Повертає інформацію про видалену ставку або None, якщо ставок немає.
+    """
+    conn = get_conn()
+    cur = conn.cursor()
+
+    try:
+        cur.execute(
+            """
+            SELECT id, stake_amount, odds, bet_result, bet_type, bet_market, created_at
+            FROM bets
+            WHERE user_id = ?
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (user_id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            return None
+
+        bet_id = row["id"]
+        bet_info = {
+            "id": bet_id,
+            "stake_amount": row.get("stake_amount"),
+            "odds": row.get("odds"),
+            "bet_result": row.get("bet_result") or "pending",
+            "bet_type": row.get("bet_type") or "",
+            "bet_market": row.get("bet_market") or "",
+            "created_at": row.get("created_at"),
+        }
+
+        cur.execute("DELETE FROM bets WHERE id = ?", (bet_id,))
+        conn.commit()
+        return bet_info
+    except Exception as e:
+        print(f"delete_last_bet error: {e}")
+        return None
+    finally:
+        conn.close()
 
 def update_bet_emotion(bet_id: int, emotion: str):
     """Зберігає емоцію до ставки"""

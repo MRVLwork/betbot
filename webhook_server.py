@@ -11,6 +11,8 @@ from db import (
     subscribe_to_signal,
 )
 from services.cryptobot_service import parse_webhook_payload, verify_webhook_signature
+from services.payment_service import USDT_PLANS
+from handlers.admin_notify import notify_admin_activation_with_bot
 
 
 logger = logging.getLogger(__name__)
@@ -81,6 +83,10 @@ async def handle_cryptobot_webhook(request: web.Request):
                 plan_type=plan_config["plan_type"],
                 source="cryptobot",
             )
+        plan = USDT_PLANS.get(plan_key) or {}
+        plan_label = plan.get("plan_name_ua") or plan.get("plan_name_en") or plan_key
+        await notify_admin_activation_with_bot(_bot, user_id, plan_label, "USDT")
+
         logger.info("Activated %s for user %s", plan_config["plan_type"], user_id)
 
         if _bot:

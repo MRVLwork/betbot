@@ -6,6 +6,7 @@ from db import validate_promo, activate_user_by_promo, get_user
 from keyboards import access_keyboard, main_menu_keyboard
 from languages import get_text
 from states import WAITING_PROMO
+from handlers.admin_notify import notify_admin_activation
 
 
 async def access_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -48,6 +49,9 @@ async def promo_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         days=promo["days"],
         plan_type=promo["plan_type"]
     )
+
+    plan_label = f"{str(promo['plan_type']).upper()} {promo['days']} днів"
+    await notify_admin_activation(context, user_id, plan_label, "Промокод")
 
     updated_user = get_user(user_id)
     updated_lang = updated_user["lang"] or lang

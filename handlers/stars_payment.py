@@ -14,6 +14,7 @@ from db import (
 )
 from keyboards import stars_plans_keyboard
 from services.stars_service import get_stars_plan
+from handlers.admin_notify import notify_admin_activation
 
 
 def _normalize_lang(lang: str) -> str:
@@ -174,6 +175,9 @@ async def successful_payment_handler(update: Update, context: ContextTypes.DEFAU
 
     if plan.get("first_payment_only"):
         mark_promo_offer_used(user_id)
+
+    plan_label = plan.get("title_ua") or plan.get("title_en") or plan_key
+    await notify_admin_activation(context, user_id, plan_label, "Stars")
 
     user = get_user(user_id)
     lang = _normalize_lang(user["lang"] if user and user.get("lang") else "en")

@@ -146,7 +146,7 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
     if query.data == "try_trial":
         if is_trial_available(tg_user.id):
             if is_onboarding_completed(tg_user.id):
-                return await activate_trial_after_onboarding(update, lang)
+                return await activate_trial_after_onboarding(update, context, lang)
             return await start_onboarding(update, context)
         else:
             remaining = get_trial_remaining(tg_user.id)

@@ -4,6 +4,7 @@ from telegram.ext import ContextTypes, ConversationHandler
 
 from db import complete_onboarding, get_user, is_trial_available, save_onboarding_data, start_trial_mode
 from keyboards import main_menu_keyboard
+from handlers.admin_notify import notify_admin_activation
 from states import ONBOARDING_GOAL, ONBOARDING_SPORT
 
 
@@ -92,11 +93,12 @@ def _trial_activated_text(lang: str) -> str:
     )
 
 
-async def activate_trial_after_onboarding(update: Update, lang: str, remove_reply_keyboard: bool = False):
+async def activate_trial_after_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE, lang: str, remove_reply_keyboard: bool = False):
     user_id = update.effective_user.id
 
     if is_trial_available(user_id):
         start_trial_mode(user_id)
+        await notify_admin_activation(context, user_id, "Trial 3 дні")
 
     message = update.effective_message
     if remove_reply_keyboard:
@@ -153,4 +155,4 @@ async def onboarding_goal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     save_onboarding_data(user_id, sport, "", "", main_goal)
     complete_onboarding(user_id)
 
-    return await activate_trial_after_onboarding(update, lang, remove_reply_keyboard=True)
+    return await activate_trial_after_onboarding(update, context, lang, remove_reply_keyboard=True)

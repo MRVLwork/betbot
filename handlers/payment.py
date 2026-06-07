@@ -24,6 +24,7 @@ from keyboards import cryptobot_plans_keyboard, main_menu_keyboard, payment_chec
 from services.cryptobot_service import create_invoice, get_invoice_status
 from services.payment_service import USDT_PLANS, get_usdt_plan
 from states import WAITING_PAYMENT_SCREEN
+from handlers.admin_notify import notify_admin_activation
 
 
 def _normalize_lang(lang: str) -> str:
@@ -368,6 +369,9 @@ async def admin_payment_reply_handler(update: Update, context: ContextTypes.DEFA
 
     mark_payment_promo_sent(payment_id, update.message.text)
 
+    plan_label = payment.get("plan_name") or payment.get("plan_key") or "USDT"
+    await notify_admin_activation(context, payment["user_id"], plan_label, "USDT")
+
     payment_plan = USDT_PLANS.get(payment.get("plan_key") or "")
     if payment_plan and payment_plan.get("first_payment_only"):
         mark_promo_offer_used(payment["user_id"])
@@ -552,6 +556,8 @@ async def check_payment_status_handler(update: Update, context: ContextTypes.DEF
                     plan_type=plan["plan_type"],
                     source="cryptobot_manual_check",
                 )
+            plan_label = plan.get("plan_name_ua") or plan.get("plan_name_en") or plan_key
+            await notify_admin_activation(context, user_id, plan_label, "USDT")
             success_texts = {
                 "ua": "✅ Оплата знайдена! Підписку активовано.",
                 "ru": "✅ Оплата найдена! Подписка активирована.",

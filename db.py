@@ -452,6 +452,20 @@ def get_user(user_id: int):
     return row
 
 
+def get_user_display_info(user_id: int) -> str:
+    """
+    Повертає рядок для ідентифікації юзера: @username або ім'я + ID.
+    """
+    user = get_user(user_id) or {}
+    username = user.get("username")
+    first_name = user.get("first_name") or ""
+
+    if username:
+        return f"@{username} (ID: {user_id})"
+    if first_name:
+        return f"{first_name} (ID: {user_id})"
+    return f"ID: {user_id}"
+
 def set_user_bank_limit(user_id: int, daily_limit: float):
     """Зберігає денний ліміт банку юзера"""
     conn = get_conn()

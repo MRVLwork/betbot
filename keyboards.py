@@ -334,6 +334,7 @@ def settings_keyboard(lang: str = "ua"):
             [InlineKeyboardButton("🎟️ Промокод", callback_data="settings_promo")],
             [InlineKeyboardButton("👥 Рефералы", callback_data="settings_referrals")],
             [InlineKeyboardButton("🆘 Поддержка", url="https://t.me/bettracker_support")],
+            [InlineKeyboardButton("􀀀􀀀 Инфо", callback_data="settings_info")],
         ]
     elif lang == "en":
         keyboard = [
@@ -341,6 +342,7 @@ def settings_keyboard(lang: str = "ua"):
             [InlineKeyboardButton("🎟️ Promo code", callback_data="settings_promo")],
             [InlineKeyboardButton("👥 Referrals", callback_data="settings_referrals")],
             [InlineKeyboardButton("🆘 Support", url="https://t.me/bettracker_support")],
+            [InlineKeyboardButton("􀀀􀀀 Info", callback_data="settings_info")],
         ]
     else:
         keyboard = [
@@ -348,6 +350,7 @@ def settings_keyboard(lang: str = "ua"):
             [InlineKeyboardButton("🎟️ Промокод", callback_data="settings_promo")],
             [InlineKeyboardButton("👥 Реферали", callback_data="settings_referrals")],
             [InlineKeyboardButton("🆘 Підтримка", url="https://t.me/bettracker_support")],
+            [InlineKeyboardButton("􀀀􀀀 Інфо", callback_data="settings_info")],
         ]
     return InlineKeyboardMarkup(keyboard)
 

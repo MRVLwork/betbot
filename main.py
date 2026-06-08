@@ -1596,6 +1596,16 @@ async def settings_callback_handler(update: Update, context: ContextTypes.DEFAUL
     elif query.data == "settings_promo":
         await query.message.reply_text(get_text(lang, "enter_promo_hint"))
         context.user_data["awaiting_settings_promo"] = True
+    elif query.data == "settings_info":
+        info_texts = {
+            "ua": "􀀀􀀀 *Інфо*\n\n/потім додамо текст",
+            "ru": "􀀀􀀀 *Инфо*\n\n/потім додамо текст",
+            "en": "􀀀􀀀 *Info*\n\n/потім додамо текст",
+        }
+        await query.message.reply_text(
+            info_texts.get(lang, info_texts["ua"]),
+            parse_mode="Markdown",
+        )
     else:
         texts = {
             "ua": "Реферальний розділ буде доступний у профілі.",

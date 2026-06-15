@@ -1680,7 +1680,7 @@ def main():
     )
     app.add_handler(payment_conv)
 
-    app.add_handler(CallbackQueryHandler(start_offer_buttons, pattern="^pay_now$"))
+    app.add_handler(CallbackQueryHandler(start_offer_buttons, pattern="^(pay_now|ai_signals_intro)$"))
     app.add_handler(MessageHandler(
         filters.Regex(r"^🔥 (AI Прогнози дня|AI Прогнозы дня|AI Predictions)$"),
         open_signals_menu,

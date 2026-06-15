@@ -25,50 +25,18 @@ def _normalize_lang(lang: str) -> str:
 
 
 def _welcome_text(lang: str, promo_available: bool) -> str:
-    lang = _normalize_lang(lang)
-
-    if lang == "ru":
-        return (
-            "💰 *Зарабатывай на ставках умнее*\n\n"
-            "Bet Tracker - твой AI-агент:\n\n"
-            "🔥 *AI Прогнозы дня*\n"
-            "Готовые ставки от AI-агента -\n"
-            "бери и зарабатывай.\n\n"
-            "📊 *Твоя статистика*\n"
-            "AI считает реальный ROI и показывает\n"
-            "где ты теряешь деньги.\n\n"
-            "💡 Прогнозы + контроль = шанс на плюс,\n"
-            "а не слив на эмоциях.\n\n"
-            "🎁 *3 дня бесплатно* - начни сейчас 👇"
-        )
-
-    if lang == "en":
-        return (
-            "💰 *Bet smarter, earn more*\n\n"
-            "Bet Tracker is your AI agent:\n\n"
-            "🔥 *AI Predictions of the day*\n"
-            "Ready-to-bet picks from AI agent -\n"
-            "take and earn smarter.\n\n"
-            "📊 *Your stats*\n"
-            "AI calculates real ROI and shows\n"
-            "where you lose money.\n\n"
-            "💡 Predictions + control = a better shot at profit,\n"
-            "not emotional losses.\n\n"
-            "🎁 *3 days free* - start now 👇"
-        )
-
     return (
-        "💰 *Заробляй на ставках розумніше*\n\n"
-        "Bet Tracker - твій AI-агент:\n\n"
-        "🔥 *AI Прогнози дня*\n"
-        "Готові ставки від AI-агента -\n"
-        "бери і заробляй.\n\n"
-        "📊 *Твоя статистика*\n"
-        "AI рахує реальний ROI і показує\n"
-        "де ти втрачаєш гроші.\n\n"
-        "💡 Прогнози + контроль = шанс на плюс,\n"
-        "а не злив на емоціях.\n\n"
-        "🎁 *3 дні безкоштовно* - почни зараз 👇"
+        "💰 Заробляй на ставках розумніше\n"
+        "Bet Tracker об'єднує AI-аналітику та професійний облік ставок в одному місці.\n\n"
+        "Що ти отримаєш:\n"
+        "🔥 AI-сигнали дня Перспективні ставки, відібрані AI.\n"
+        "📊 Повний контроль результатів ROI, Win Rate, прибуток та історія ставок.\n"
+        "🎯 Пошук помилок Дізнайся, які ставки зливають твій банк.\n"
+        "🤖 AI-аналітика Персональні висновки та рекомендації щодо твоєї гри.\n"
+        "🏆 Менше емоцій  більше дисципліни Приймай рішення на основі статистики, а не відчуттів.\n\n"
+        "🎁 Новим користувачам доступно:\n"
+        "3 дні безкоштовного доступу\n"
+        "👇 Обери дію:"
     )
 
 
@@ -129,6 +97,15 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     user = get_user(tg_user.id)
     lang = _normalize_lang((user or {}).get("lang", "en"))
+
+    if query.data == "ai_signals_intro":
+        ai_signals_text = (
+            "🔥 AI-сигнали дня\n\n"
+            "AI аналізує спортивні події та відбирає найперспективніші можливості.\n\n"
+            "Для отримання повного доступу до сигналів потрібна активна підписка."
+        )
+        await query.message.reply_text(ai_signals_text)
+        return ConversationHandler.END
 
     if user_has_access(tg_user.id):
         active_text = {

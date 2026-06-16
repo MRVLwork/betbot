@@ -14,9 +14,9 @@ def welcome_offer_keyboard(lang: str):
 def main_menu_keyboard(lang: str = "ua", plan: str = "basic"):
     keyboard = [
         [KeyboardButton("🔥 AI-сигнали")],
-        [KeyboardButton("📸 Додати ставку")],
         [KeyboardButton("💎 Отримати VIP")],
-        [KeyboardButton("📊 Моя статистика"), KeyboardButton(" Меню")],
+        [KeyboardButton("📸 Додати ставку")],
+        [KeyboardButton("📊 Моя статистика"), KeyboardButton(" Ще")],
     ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
 

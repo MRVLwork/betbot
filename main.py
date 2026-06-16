@@ -1193,9 +1193,9 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return ConversationHandler.END
 
-    if text in ("Меню", " Меню", "Menu", " Menu"):
+    if text in ("Ще", " Ще", "Меню", " Меню", "More", " More", "Menu", " Menu"):
         await update.message.reply_text(
-            "Додаткове меню.",
+            "Додаткові можливості\nОбери потрібний розділ:",
             reply_markup=extra_menu_keyboard(lang)
         )
         return ConversationHandler.END

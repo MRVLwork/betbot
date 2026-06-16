@@ -54,6 +54,7 @@ from keyboards import (
     access_keyboard,
     vip_subscription_keyboard,
     settings_keyboard,
+    extra_menu_keyboard,
 )
 from languages import get_text
 from handlers.start import start, start_offer_buttons
@@ -1186,14 +1187,16 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if text in ("Назад", " Назад", " Back", "Back"):
         plan = get_user_plan(user_id)
-        menu_text = (
-            "Головне меню:" if lang == "ua"
-            else "Главное меню:" if lang == "ru"
-            else "Main menu:"
-        )
         await update.message.reply_text(
-            menu_text,
+            "Головне меню.",
             reply_markup=main_menu_keyboard(lang, plan)
+        )
+        return ConversationHandler.END
+
+    if text in ("Меню", " Меню", "Menu", " Menu"):
+        await update.message.reply_text(
+            "Додаткове меню.",
+            reply_markup=extra_menu_keyboard(lang)
         )
         return ConversationHandler.END
 
@@ -1214,14 +1217,14 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🌐 Мова", "🌐 Язык", "🌐 Language",
         "🔑 Ввести промокод", "🔑 Enter promo code",
         "🔥 Streak",
-        "🔥 AI Прогнози дня", "🔥 AI Прогнозы дня", "🔥 AI Predictions",
+        "🔥 AI-сигнали", "🔥 AI-сигналы", "🔥 AI Signals", "🔥 AI Прогнози дня", "🔥 AI Прогнозы дня", "🔥 AI Predictions",
         "📸 Додати ставку", "📸 Добавить ставку", "📸 Add bet",
         "📊 Моя статистика", "📊 My stats",
         "🧠 AI-розбір", "🧠 AI-разбор", "🧠 AI analysis",
         "🎯 Мій профіль", "🎯 Мой профиль", "🎯 My profile",
         "📅 Підсумки тижня", "📅 Итоги недели", "📅 Weekly recap",
-        "💎 Підписка VIP", "💎 Подписка VIP", "💎 VIP subscription",
-        "⚙️ Налаштування", "⚙️ Настройки", "⚙️ Settings",
+        "💎 Отримати VIP", "💎 Получить VIP", "💎 Get VIP", "💎 Підписка VIP", "💎 Подписка VIP", "💎 VIP subscription",
+        " Налаштування", " Настройки", " Settings", "⚙️ Налаштування", "⚙️ Настройки", "⚙️ Settings",
         "🛠 Інструменти", "🛠 Инструменты", "🛠 Tools",
         " \u041d\u0430\u0437\u0430\u0434", " Back",
     }
@@ -1246,7 +1249,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await handle_coach_message(update, context)
         return ConversationHandler.END
 
-    if text in ("🔥 AI Прогнози дня", "🔥 AI Прогнозы дня", "🔥 AI Predictions"):
+    if text in ("🔥 AI-сигнали", "🔥 AI-сигналы", "🔥 AI Signals", "🔥 AI Прогнози дня", "🔥 AI Прогнозы дня", "🔥 AI Predictions"):
         await open_ai_signals_menu(update, context)
     elif text in ("📸 Додати ставку", "📸 Добавить ставку", "📸 Add bet"):
         info = {
@@ -1394,7 +1397,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🛠 All tools",
     ):
         await open_tools_menu(update, context)
-    elif text in ("💎 Підписка VIP", "💎 Подписка VIP", "💎 VIP subscription"):
+    elif text in ("💎 Отримати VIP", "💎 Получить VIP", "💎 Get VIP", "💎 Підписка VIP", "💎 Подписка VIP", "💎 VIP subscription"):
         from db import is_eligible_for_first_payment_promo
 
         show_promo = is_eligible_for_first_payment_promo(user_id)
@@ -1412,7 +1415,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             get_text(lang, "choose_access_option"),
             reply_markup=access_keyboard(lang),
         )
-    elif text in ("⚙️ Налаштування", "⚙️ Настройки", "⚙️ Settings"):
+    elif text in (" Налаштування", " Настройки", " Settings", "⚙️ Налаштування", "⚙️ Настройки", "⚙️ Settings"):
         settings_texts = {
             "ua": "⚙️ Налаштування",
             "ru": "⚙️ Настройки",
@@ -1682,7 +1685,7 @@ def main():
 
     app.add_handler(CallbackQueryHandler(start_offer_buttons, pattern="^(pay_now|ai_signals_intro)$"))
     app.add_handler(MessageHandler(
-        filters.Regex(r"^🔥 (AI Прогнози дня|AI Прогнозы дня|AI Predictions)$"),
+        filters.Regex(r"^🔥 (AI-сигнали|AI-сигналы|AI Signals|AI Прогнози дня|AI Прогнозы дня|AI Predictions)$"),
         open_signals_menu,
     ))
     app.add_handler(MessageHandler(
@@ -1690,11 +1693,11 @@ def main():
         add_bet_info,
     ))
     app.add_handler(MessageHandler(
-        filters.Regex(r"^💎 (Підписка VIP|Подписка VIP|VIP subscription)$"),
+        filters.Regex(r"^💎 (Отримати VIP|Получить VIP|Get VIP|Підписка VIP|Подписка VIP|VIP subscription)$"),
         open_vip_subscription,
     ))
     app.add_handler(MessageHandler(
-        filters.Regex(r"^⚙️ (Налаштування|Настройки|Settings)$"),
+        filters.Regex(r"^( Налаштування| Настройки| Settings|⚙️ Налаштування|⚙️ Настройки|⚙️ Settings)$"),
         open_settings,
     ))
 

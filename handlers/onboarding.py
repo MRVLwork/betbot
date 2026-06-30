@@ -77,46 +77,43 @@ def _clean_choice_text(value: str) -> str:
 
 
 def _demo_stats_text(lang: str, sport: str, goal: str) -> str:
-    sport = _clean_choice_text(sport) or "-"
-    goal = _clean_choice_text(goal) or "-"
+    sport = (_clean_choice_text(sport) or "-").lower()
+    goal = (_clean_choice_text(goal) or "-").lower()
 
     if lang == "ru":
         return (
-            f"Настроено под тебя: {sport}, цель - {goal}.\n"
-            "Вот как будет выглядеть ТВОЯ панель, когда добавишь свои ставки.\n"
-            "Ниже - *демонстрационный пример*, не реальные данные:\n\n"
-            "Моя статистика (пример)\n"
-            "Прибыль: 1240.00\n"
-            "ROI: +14.2%\n"
-            "Выигрышных ставок: 58%\n"
-            "Средний коэф: 1.74\n"
-            "Серия: 2\n\n"
-            "Добавь первую ставку - и тут появится твоя реальная картина."
+            f"Настроено под тебя: {sport}, цель  {goal}.\n"
+            "Вот как будет выглядеть твоя панель (пример на демо-данных):\n"
+            "--------------------------------------------------\n"
+            "📊 Моя статистика (Сегодня)\n\n"
+            "💰 Прибыль: 3071.41\n"
+            "📈 ROI: 21.76%\n"
+            "🎯 % выигрышных ставок: 66.67%\n"
+            "📊 Средний коэф: 1.64\n\n"
+            "🔥 Серия: 2"
         )
     if lang == "en":
         return (
-            f"Set up for you: {sport}, goal - {goal}.\n"
-            "This is how YOUR dashboard will look after you add your bets.\n"
-            "Below is a *demo example*, not your real stats:\n\n"
-            "My stats (example)\n"
-            "Profit: 1240.00\n"
-            "ROI: +14.2%\n"
-            "Winning bets: 58%\n"
-            "Average odds: 1.74\n"
-            "Streak: 2\n\n"
-            "Add your first bet - and your real picture will appear here."
+            f"Set up for you: {sport}, goal  {goal}.\n"
+            "Here's how your dashboard will look (demo data example):\n"
+            "--------------------------------------------------\n"
+            "📊 My stats (Today)\n\n"
+            "💰 Profit: 3071.41\n"
+            "📈 ROI: 21.76%\n"
+            "🎯 Win rate: 66.67%\n"
+            "📊 Avg odds: 1.64\n\n"
+            "🔥 Streak: 2"
         )
     return (
-        f"Налаштовано під тебе: {sport}, ціль - {goal}.\n"
-        "Ось як виглядатиме ТВОЯ панель, коли додаси свої ставки.\n"
-        "Нижче - *демонстраційний приклад*, не реальні дані:\n\n"
-        "Моя статистика (приклад)\n"
-        "Прибуток: 1240.00\n"
-        "ROI: +14.2%\n"
-        "Виграшних ставок: 58%\n"
-        "Середній коеф: 1.74\n"
-        "Серія: 2\n\n"
-        "Додай першу ставку - і тут з'явиться твоя реальна картина."
+        f"Налаштовано під тебе: {sport}, ціль  {goal}.\n"
+        "Ось як виглядатиме твоя панель (приклад на демо-даних):\n"
+        "--------------------------------------------------\n"
+        "📊 Моя статистика (Сьогодні)\n\n"
+        "💰 Прибуток: 3071.41\n"
+        "📈 ROI: 21.76%\n"
+        "🎯 % виграшних ставок: 66.67%\n"
+        "📊 Середній коеф: 1.64\n\n"
+        "🔥 Серія: 2"
     )
 
 

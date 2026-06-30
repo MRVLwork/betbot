@@ -67,6 +67,59 @@ def _invalid_choice_text(lang: str) -> str:
     return "Обері варіант з кнопок."
 
 
+def _clean_choice_text(value: str) -> str:
+    value = (value or "").strip()
+    if " " in value:
+        prefix, rest = value.split(" ", 1)
+        if len(prefix) <= 8 and not any(char.isalnum() for char in prefix):
+            return rest.strip()
+    return value
+
+
+def _demo_stats_text(lang: str, sport: str, goal: str) -> str:
+    sport = _clean_choice_text(sport) or "-"
+    goal = _clean_choice_text(goal) or "-"
+
+    if lang == "ru":
+        return (
+            f"Настроено под тебя: {sport}, цель - {goal}.\n"
+            "Вот как будет выглядеть ТВОЯ панель, когда добавишь свои ставки.\n"
+            "Ниже - *демонстрационный пример*, не реальные данные:\n\n"
+            "Моя статистика (пример)\n"
+            "Прибыль: 1240.00\n"
+            "ROI: +14.2%\n"
+            "Выигрышных ставок: 58%\n"
+            "Средний коэф: 1.74\n"
+            "Серия: 2\n\n"
+            "Добавь первую ставку - и тут появится твоя реальная картина."
+        )
+    if lang == "en":
+        return (
+            f"Set up for you: {sport}, goal - {goal}.\n"
+            "This is how YOUR dashboard will look after you add your bets.\n"
+            "Below is a *demo example*, not your real stats:\n\n"
+            "My stats (example)\n"
+            "Profit: 1240.00\n"
+            "ROI: +14.2%\n"
+            "Winning bets: 58%\n"
+            "Average odds: 1.74\n"
+            "Streak: 2\n\n"
+            "Add your first bet - and your real picture will appear here."
+        )
+    return (
+        f"Налаштовано під тебе: {sport}, ціль - {goal}.\n"
+        "Ось як виглядатиме ТВОЯ панель, коли додаси свої ставки.\n"
+        "Нижче - *демонстраційний приклад*, не реальні дані:\n\n"
+        "Моя статистика (приклад)\n"
+        "Прибуток: 1240.00\n"
+        "ROI: +14.2%\n"
+        "Виграшних ставок: 58%\n"
+        "Середній коеф: 1.74\n"
+        "Серія: 2\n\n"
+        "Додай першу ставку - і тут з'явиться твоя реальна картина."
+    )
+
+
 def _trial_activated_text(lang: str) -> str:
     return (
         "🎉 *Пробний доступ активовано!*\n"
@@ -80,14 +133,23 @@ def _trial_activated_text(lang: str) -> str:
 
 async def activate_trial_after_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE, lang: str, remove_reply_keyboard: bool = False):
     user_id = update.effective_user.id
+    message = update.effective_message
+
+    if remove_reply_keyboard:
+        await message.reply_text("✓", reply_markup=ReplyKeyboardRemove())
+
+    await message.reply_text(
+        _demo_stats_text(
+            lang,
+            context.user_data.get("onboarding_sport", ""),
+            context.user_data.get("onboarding_goal", ""),
+        ),
+        parse_mode="Markdown",
+    )
 
     if is_trial_available(user_id):
         start_trial_mode(user_id)
         await notify_admin_activation(context, user_id, "Trial 3 дні")
-
-    message = update.effective_message
-    if remove_reply_keyboard:
-        await message.reply_text("✓", reply_markup=ReplyKeyboardRemove())
 
     user = get_user(user_id) or {}
     await message.reply_text(
@@ -136,6 +198,7 @@ async def onboarding_goal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     sport = context.user_data.get("onboarding_sport", "")
     main_goal = text
+    context.user_data["onboarding_goal"] = main_goal
 
     save_onboarding_data(user_id, sport, "", "", main_goal)
     complete_onboarding(user_id)

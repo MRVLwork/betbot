@@ -28,6 +28,8 @@ from db import (
     get_trial_used_count,
     increment_trial_usage,
     get_trial_start,
+    mark_first_bet_saved,
+    mark_first_screenshot_sent,
     should_include_trial,
 )
 from keyboards import access_keyboard, welcome_offer_keyboard
@@ -883,6 +885,7 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = get_user(user_id)
     lang = _normalize_lang(user["lang"] if user and user.get("lang") else "en")
     context.user_data["bet_lang"] = lang
+    mark_first_screenshot_sent(user_id)
     plan = ((user.get("plan") if user else None) or "basic").lower()
 
     sub_type = get_subscription_type(user_id)
@@ -964,6 +967,7 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             bet_market=result.get("bet_market"),
             is_trial=not has_access,
         )
+        mark_first_bet_saved(user_id)
 
         xp_result = add_xp(user_id, XP_TABLE["add_bet"])
         level_up_result = xp_result

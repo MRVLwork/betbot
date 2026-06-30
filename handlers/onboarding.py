@@ -128,6 +128,38 @@ def _trial_activated_text(lang: str) -> str:
     )
 
 
+def _first_bet_cta_text(lang: str) -> str:
+    if lang == "ru":
+        return (
+            "🎯 Остался один шаг до твоей реальной статистики.\n\n"
+            "Добавь первую ставку - это займет 20 секунд:\n"
+            "📸 Пришли скрин своей ставки из БК\n"
+            "   (купон со ставкой, коэфом и суммой)\n\n"
+            "AI сам распознает ставку, коэф и сумму\n"
+            "и твоя панель начнет заполняться.\n"
+            "👇 Нажми Добавить ставку или просто пришли фото купона."
+        )
+    if lang == "en":
+        return (
+            "🎯 One step left to your real stats.\n\n"
+            "Add your first bet - it takes 20 seconds:\n"
+            "📸 Send a screenshot of your bet from the bookmaker\n"
+            "   (bet slip with the pick, odds, and stake)\n\n"
+            "AI will detect the bet, odds, and stake\n"
+            "and your dashboard will start filling up.\n"
+            "👇 Tap Add bet or just send a photo of the slip."
+        )
+    return (
+        "🎯 Залишився один крок до твоєї реальної статистики.\n\n"
+        "Додай першу ставку - це займе 20 секунд:\n"
+        "📸 Надішли скрін своєї ставки з букмекера\n"
+        "   (купон зі ставкою, коефом і сумою)\n\n"
+        "AI сам розпізнає ставку, коеф і суму\n"
+        "і твоя панель почне заповнюватися.\n"
+        "👇 Натисни Додати ставку або просто надішли фото купона."
+    )
+
+
 async def activate_trial_after_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE, lang: str, remove_reply_keyboard: bool = False):
     user_id = update.effective_user.id
     message = update.effective_message
@@ -150,8 +182,7 @@ async def activate_trial_after_onboarding(update: Update, context: ContextTypes.
 
     user = get_user(user_id) or {}
     await message.reply_text(
-        _trial_activated_text(lang),
-        parse_mode="Markdown",
+        _first_bet_cta_text(lang),
         reply_markup=main_menu_keyboard(lang, user.get("plan", "basic")),
     )
     return ConversationHandler.END

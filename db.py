@@ -368,6 +368,8 @@ def init_db():
     add_column_if_not_exists("users", "ref_joined_at", "TEXT")
     add_column_if_not_exists("users", "daily_bank_limit", "DOUBLE PRECISION DEFAULT 0")
     add_column_if_not_exists("users", "vip_signals_expires_at", "TEXT")
+    add_column_if_not_exists("users", "first_screenshot_sent_at", "TEXT")
+    add_column_if_not_exists("users", "first_bet_saved_at", "TEXT")
 
     add_column_if_not_exists("promo_codes", "plan_type", "TEXT DEFAULT 'basic'")
 
@@ -771,6 +773,32 @@ def save_onboarding_data(user_id: int, sport: str, experience: str, monthly_depo
         SET onboarding_data = ?
         WHERE user_id = ?
     """, (payload, user_id))
+    conn.commit()
+    conn.close()
+
+
+def mark_first_screenshot_sent(user_id: int):
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("""
+        UPDATE users
+        SET first_screenshot_sent_at = ?
+        WHERE user_id = ?
+          AND first_screenshot_sent_at IS NULL
+    """, (datetime.now().isoformat(), user_id))
+    conn.commit()
+    conn.close()
+
+
+def mark_first_bet_saved(user_id: int):
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("""
+        UPDATE users
+        SET first_bet_saved_at = ?
+        WHERE user_id = ?
+          AND first_bet_saved_at IS NULL
+    """, (datetime.now().isoformat(), user_id))
     conn.commit()
     conn.close()
 
@@ -2468,6 +2496,8 @@ def get_users_with_full_info() -> list[dict]:
                 u.trial_completed,
                 u.access_until AS plan_expires_at,
                 u.trial_expires_at,
+                u.first_screenshot_sent_at,
+                u.first_bet_saved_at,
                 u.ref_source,
                 COALESCE((
                     SELECT SUM(amount_usd)

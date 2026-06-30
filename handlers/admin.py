@@ -721,6 +721,8 @@ async def users_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
         stars_total = int(user_row.get("stars_total") or 0)
         photos_total = int(user_row.get("photos_total") or 0)
         bets_total = int(user_row.get("bets_total") or 0)
+        screenshot_status = "✅" if user_row.get("first_screenshot_sent_at") else "—"
+        first_bet_status = "✅" if user_row.get("first_bet_saved_at") else "—"
 
         access_until = user_row.get("access_until") or user_row.get("plan_expires_at")
         has_access = False
@@ -786,7 +788,8 @@ async def users_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         line = (
             f"{uid} | {user_name} | {subscription} | "
-            f"{trial_status} | 📸 {photos_total}/{bets_total} | "
+            f"{trial_status} | Скрін {screenshot_status} | Ставка {first_bet_status} | "
+            f"📸 {photos_total}/{bets_total} | "
             f"{spent_str} | {ref_str}"
         )
         lines.append(line)

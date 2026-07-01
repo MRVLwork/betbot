@@ -683,6 +683,28 @@ def is_eligible_for_first_payment_promo(user_id: int) -> bool:
     return not has_user_ever_paid(user_id)
 
 
+def is_basic_week_99_offer_available(user_id: int) -> bool:
+    user = get_user(user_id)
+    if not user:
+        return False
+    if get_subscription_type(user_id) != "trial":
+        return False
+    if has_user_ever_paid(user_id):
+        return False
+
+    created_at = user.get("created_at")
+    if not created_at:
+        return False
+
+    try:
+        created_dt = datetime.fromisoformat(str(created_at))
+    except Exception:
+        return False
+
+    now = datetime.now(created_dt.tzinfo) if created_dt.tzinfo else datetime.now()
+    return now - created_dt < timedelta(hours=24)
+
+
 def get_users_by_subscription_and_lang(sub_filter: str, lang: str) -> list:
     """
     Return user ids by subscription filter and saved language.

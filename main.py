@@ -104,6 +104,7 @@ from handlers.bets import (
     del_last_bet_command,
     process_bet_photo,
     emotion_callback_handler,
+    first_bet_offer_later_callback,
     tilt_warning_callback_handler,
 )
 from handlers.coach import coach_end_callback, handle_coach_message, open_coach
@@ -1717,6 +1718,7 @@ def main():
         pattern=r"^close_bet_\d+_(win|lose|refund|return|later)$",
     ))
     app.add_handler(CallbackQueryHandler(payment_sent, pattern="^payment_sent$"))
+    app.add_handler(CallbackQueryHandler(first_bet_offer_later_callback, pattern="^first_bet_offer_later$"))
     app.add_handler(CallbackQueryHandler(stats_callback_handler, pattern="^stats_"))
     app.add_handler(CallbackQueryHandler(full_stats_callback_handler, pattern="^fullstats_"))
     app.add_handler(CallbackQueryHandler(analytics_callback_handler, pattern="^analytics_"))

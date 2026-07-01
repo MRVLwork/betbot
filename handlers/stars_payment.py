@@ -10,6 +10,7 @@ from db import (
     is_eligible_for_first_payment_promo,
     activate_vip_bet_day_access,
     activate_vip_signals_access,
+    is_basic_week_99_offer_available,
     subscribe_to_signal,
 )
 from keyboards import stars_plans_keyboard
@@ -52,10 +53,10 @@ def _promo_used_text(lang: str) -> str:
 
 def _plan_title(plan: dict, lang: str) -> str:
     if lang == "ua":
-        return plan["title_ua"]
+        return plan.get("title_ua") or plan.get("title")
     if lang == "ru":
-        return plan["title_ru"]
-    return plan.get("title_en") or plan["title_ru"]
+        return plan.get("title_ru") or plan.get("title")
+    return plan.get("title_en") or plan.get("title_ru") or plan.get("title")
 
 
 def _normalize_plan_key(plan_key: str) -> str:
@@ -111,6 +112,17 @@ async def open_stars_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not plan:
         await query.message.reply_text(_unknown_plan_text(lang))
         return
+
+    if plan_key == "stars_basic_week_99" and not is_basic_week_99_offer_available(user_id):
+        await query.message.reply_text(
+            {
+                "ua": "⏳ Спец-ціна 99⭐ вже недоступна. Показую стандартний Basic.",
+                "ru": "⏳ Спеццена 99⭐ уже недоступна. Показываю стандартный Basic.",
+                "en": "⏳ The 99⭐ special price is no longer available. Showing standard Basic.",
+            }.get(lang, "⏳ The 99⭐ special price is no longer available. Showing standard Basic.")
+        )
+        plan_key = "stars_basic_month"
+        plan = get_stars_plan(plan_key)
 
     if plan.get("first_payment_only") and not is_eligible_for_first_payment_promo(user_id):
         await query.message.reply_text(_promo_used_text(lang))

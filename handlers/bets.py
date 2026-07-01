@@ -534,11 +534,42 @@ def _pending_result_prompt(lang: str, is_reminder: bool = False, is_final: bool 
         }
         return texts.get(lang, texts["en"])
     texts = {
-        "ua": "⏳ Ставку збережено як нерозраховану.\n\nМатч уже завершився? Вкажи результат:",
-        "ru": "⏳ Ставка сохранена как нерассчитанная.\n\nМатч уже завершился? Укажи результат:",
-        "en": "⏳ Bet saved as pending.\n\nMatch finished? Select the result:",
+        "ua": "Матч уже завершився? Вкажи результат:",
+        "ru": "Матч уже завершился? Укажи результат:",
+        "en": "Match finished? Select the result:",
     }
     return texts.get(lang, texts["en"])
+
+
+def _first_saved_stats_cta_text(lang: str) -> str:
+    if lang == "ru":
+        return (
+            "📊 Готово! Твоя первая ставка уже в статистике.\n\n"
+            "Хочешь увидеть, как изменилась твоя панель?\n"
+            "👇 Нажми Моя статистика."
+        )
+    if lang == "en":
+        return (
+            "📊 Done! Your first bet is already in your stats.\n\n"
+            "Want to see how your dashboard changed?\n"
+            "👇 Tap My stats."
+        )
+    return (
+        "📊 Готово! Твоя перша ставка вже в статистиці.\n\n"
+        "Хочеш побачити, як змінилася твоя панель?\n"
+        "👇 Тисни Моя статистика."
+    )
+
+
+def _first_saved_stats_cta_keyboard(lang: str) -> InlineKeyboardMarkup:
+    labels = {
+        "ua": "📊 Моя статистика (сьогодні)",
+        "ru": "📊 Моя статистика (сегодня)",
+        "en": "📊 My stats (today)",
+    }
+    return InlineKeyboardMarkup([[
+        InlineKeyboardButton(labels.get(_normalize_lang(lang), labels["en"]), callback_data="stats_today")
+    ]])
 
 
 def _bet_saved_confirmation_text(lang: str, result: dict, remaining: int, daily_limit: int) -> str:
@@ -624,6 +655,7 @@ async def emotion_callback_handler(update: Update, context: ContextTypes.DEFAULT
     result = context.user_data.get("last_bet_result")
     daily_limit = context.user_data.get("last_bet_daily_limit")
     just_reached_limit = context.user_data.get("last_bet_just_reached_limit", False)
+    first_bet_saved_now = context.user_data.get("last_bet_first_saved_now", False)
 
     if not bet_id or not result or daily_limit is None:
         await query.message.reply_text(get_text(lang, "bet_parse_failed"))
@@ -637,6 +669,7 @@ async def emotion_callback_handler(update: Update, context: ContextTypes.DEFAULT
     context.user_data.pop("last_bet_result", None)
     context.user_data.pop("last_bet_daily_limit", None)
     context.user_data.pop("last_bet_just_reached_limit", None)
+    context.user_data.pop("last_bet_first_saved_now", None)
     context.user_data.pop("bet_lang", None)
 
     remaining = get_user_remaining_photos_today(user_id)
@@ -650,6 +683,11 @@ async def emotion_callback_handler(update: Update, context: ContextTypes.DEFAULT
             await query.message.reply_text(
                 _pending_result_prompt(lang),
                 reply_markup=_pending_result_keyboard(lang, bet_id),
+            )
+        elif first_bet_saved_now:
+            await query.message.reply_text(
+                _first_saved_stats_cta_text(lang),
+                reply_markup=_first_saved_stats_cta_keyboard(lang),
             )
         return
 
@@ -665,6 +703,11 @@ async def emotion_callback_handler(update: Update, context: ContextTypes.DEFAULT
         await query.message.reply_text(
             _pending_result_prompt(lang),
             reply_markup=_pending_result_keyboard(lang, bet_id),
+        )
+    elif first_bet_saved_now:
+        await query.message.reply_text(
+            _first_saved_stats_cta_text(lang),
+            reply_markup=_first_saved_stats_cta_keyboard(lang),
         )
 
     if just_reached_limit or used_today >= daily_limit:
@@ -766,6 +809,12 @@ async def close_bet_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
             name=result_names.get(lang, result_names["en"]).get(result_key, result_key),
         )
     )
+    first_bet_saved_now = mark_first_bet_saved(user_id)
+    if first_bet_saved_now:
+        await query.message.reply_text(
+            _first_saved_stats_cta_text(lang),
+            reply_markup=_first_saved_stats_cta_keyboard(lang),
+        )
 
     if result_key == "win":
         add_xp(user_id, XP_TABLE.get("win_bet", 15))
@@ -967,7 +1016,9 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             bet_market=result.get("bet_market"),
             is_trial=not has_access,
         )
-        mark_first_bet_saved(user_id)
+        first_bet_saved_now = False
+        if result.get("bet_result") != "pending":
+            first_bet_saved_now = mark_first_bet_saved(user_id)
 
         xp_result = add_xp(user_id, XP_TABLE["add_bet"])
         level_up_result = xp_result
@@ -1000,6 +1051,7 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.user_data["last_bet_result"] = result
             context.user_data["last_bet_daily_limit"] = daily_limit
             context.user_data["last_bet_just_reached_limit"] = just_reached_limit
+            context.user_data["last_bet_first_saved_now"] = first_bet_saved_now
 
             for signal_code in signals:
                 await update.message.reply_text(

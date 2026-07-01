@@ -777,7 +777,7 @@ def save_onboarding_data(user_id: int, sport: str, experience: str, monthly_depo
     conn.close()
 
 
-def mark_first_screenshot_sent(user_id: int):
+def mark_first_screenshot_sent(user_id: int) -> bool:
     conn = get_conn()
     cur = conn.cursor()
     cur.execute("""
@@ -786,11 +786,13 @@ def mark_first_screenshot_sent(user_id: int):
         WHERE user_id = ?
           AND first_screenshot_sent_at IS NULL
     """, (datetime.now().isoformat(), user_id))
+    updated = cur.rowcount > 0
     conn.commit()
     conn.close()
+    return updated
 
 
-def mark_first_bet_saved(user_id: int):
+def mark_first_bet_saved(user_id: int) -> bool:
     conn = get_conn()
     cur = conn.cursor()
     cur.execute("""
@@ -799,8 +801,10 @@ def mark_first_bet_saved(user_id: int):
         WHERE user_id = ?
           AND first_bet_saved_at IS NULL
     """, (datetime.now().isoformat(), user_id))
+    updated = cur.rowcount > 0
     conn.commit()
     conn.close()
+    return updated
 
 
 def get_streak(user_id: int) -> dict:

@@ -370,6 +370,7 @@ def init_db():
     add_column_if_not_exists("users", "vip_signals_expires_at", "TEXT")
     add_column_if_not_exists("users", "first_screenshot_sent_at", "TEXT")
     add_column_if_not_exists("users", "first_bet_saved_at", "TEXT")
+    add_column_if_not_exists("users", "special_offer_shown_at", "TEXT")
 
     add_column_if_not_exists("promo_codes", "plan_type", "TEXT DEFAULT 'basic'")
 
@@ -703,6 +704,59 @@ def is_basic_week_99_offer_available(user_id: int) -> bool:
 
     now = datetime.now(created_dt.tzinfo) if created_dt.tzinfo else datetime.now()
     return now - created_dt < timedelta(hours=24)
+
+
+def mark_special_offer_shown(user_id: int) -> bool:
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("""
+        UPDATE users
+        SET special_offer_shown_at = ?
+        WHERE user_id = ?
+          AND special_offer_shown_at IS NULL
+    """, (datetime.now().isoformat(), user_id))
+    updated = cur.rowcount > 0
+    conn.commit()
+    conn.close()
+    return updated
+
+
+def is_special_offer_shown(user_id: int) -> bool:
+    user = get_user(user_id)
+    return bool(user and user.get("special_offer_shown_at"))
+
+
+def get_users_for_delayed_offer() -> list[dict]:
+    conn = get_conn()
+    cur = conn.cursor()
+    cutoff = (datetime.now() - timedelta(hours=1)).isoformat()
+    now_iso = datetime.now().isoformat()
+
+    cur.execute("""
+        SELECT user_id, lang
+        FROM users
+        WHERE trial_started_at IS NOT NULL
+          AND special_offer_shown_at IS NULL
+          AND trial_started_at <= ?
+          AND COALESCE(trial_completed, 0) = 0
+          AND (trial_expires_at IS NULL OR trial_expires_at > ?)
+          AND NOT (COALESCE(is_active, 0) = 1 AND access_until IS NOT NULL AND access_until > ?)
+          AND NOT EXISTS (
+              SELECT 1
+              FROM payments p
+              WHERE p.user_id = users.user_id
+                AND p.status IN ('paid', 'promo_sent')
+          )
+          AND NOT EXISTS (
+              SELECT 1
+              FROM star_payments sp
+              WHERE sp.user_id = users.user_id
+                AND sp.status = 'paid'
+          )
+    """, (cutoff, now_iso, now_iso))
+    rows = [dict(row) for row in cur.fetchall()]
+    conn.close()
+    return rows
 
 
 def get_users_by_subscription_and_lang(sub_filter: str, lang: str) -> list:

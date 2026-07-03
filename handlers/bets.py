@@ -576,40 +576,37 @@ def _first_saved_stats_cta_keyboard(lang: str) -> InlineKeyboardMarkup:
 def _basic_week_99_offer_text(lang: str) -> str:
     if lang == "ru":
         return (
-            "🎉 Специальная цена для новых пользователей\n\n"
-            "Basic на 7 дней - всего 99⭐\n"
-            "(вместо $7)\n\n"
+            "🎁 Только для новых игроков\n\n"
+            "Basic на 7 дней - 99⭐ вместо $7\n\n"
             "За 7 дней AI покажет:\n\n"
             "📈 Какие ставки зарабатывают\n"
             "📉 Какие сливают банк\n"
             "💡 Как улучшить результаты\n"
             "🔥 Ежедневные AI-сигналы\n\n"
-            "Только 24 часа после первой ставки.\n\n"
+            "Доступно только 24 часа.\n\n"
             "👇 Активировать за 99⭐"
         )
     if lang == "en":
         return (
-            "🎉 Special price for new users\n\n"
-            "Basic for 7 days - only 99⭐\n"
-            "(instead of $7)\n\n"
+            "🎁 Only for new players\n\n"
+            "Basic for 7 days - 99⭐ instead of $7\n\n"
             "In 7 days AI will show:\n\n"
             "📈 Which bets make money\n"
             "📉 Which ones drain your bankroll\n"
             "💡 How to improve your results\n"
             "🔥 Daily AI signals\n\n"
-            "Only 24 hours after your first bet.\n\n"
+            "Available for 24 hours only.\n\n"
             "👇 Activate for 99⭐"
         )
     return (
-        "🎉 Спеціальна ціна для нових користувачів\n\n"
-        "Basic на 7 днів - лише 99⭐\n"
-        "(замість $7)\n\n"
+        "🎁 Тільки для нових гравців\n\n"
+        "Basic на 7 днів - 99⭐ замість $7\n\n"
         "За 7 днів AI покаже:\n\n"
         "📈 Які ставки заробляють\n"
         "📉 Які зливають банк\n"
         "💡 Як покращити результати\n"
         "🔥 Щоденні AI-сигнали\n\n"
-        "Лише 24 години після першої ставки.\n\n"
+        "Доступно лише 24 години.\n\n"
         "👇 Активувати за 99⭐"
     )
 
@@ -627,12 +624,54 @@ def _basic_week_99_offer_keyboard(lang: str) -> InlineKeyboardMarkup:
     ])
 
 
-async def _maybe_send_basic_week_99_offer(message, user_id: int, lang: str):
-    if not is_basic_week_99_offer_available(user_id):
-        return
-    await message.reply_text(
-        _basic_week_99_offer_text(lang),
-        reply_markup=_basic_week_99_offer_keyboard(lang),
+def _basic_standard_offer_text(lang: str) -> str:
+    if lang == "ru":
+        return (
+            "⭐ Basic подписка\n\n"
+            "Спеццена 99⭐ уже недоступна, но ты можешь активировать стандартный Basic.\n\n"
+            "Basic на 1 месяц - $7 / 525⭐\n\n"
+            "👇 Активировать Basic"
+        )
+    if lang == "en":
+        return (
+            "⭐ Basic subscription\n\n"
+            "The 99⭐ special price is no longer available, but you can activate standard Basic.\n\n"
+            "Basic for 1 month - $7 / 525⭐\n\n"
+            "👇 Activate Basic"
+        )
+    return (
+        "⭐ Basic підписка\n\n"
+        "Спецціна 99⭐ вже недоступна, але ти можеш активувати стандартний Basic.\n\n"
+        "Basic на 1 місяць - $7 / 525⭐\n\n"
+        "👇 Активувати Basic"
+    )
+
+
+def _basic_standard_offer_keyboard(lang: str) -> InlineKeyboardMarkup:
+    labels = {
+        "ua": ("⭐ Активувати Basic", "Пізніше"),
+        "ru": ("⭐ Активировать Basic", "Позже"),
+        "en": ("⭐ Activate Basic", "Later"),
+    }
+    buy_label, later_label = labels.get(_normalize_lang(lang), labels["en"])
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(buy_label, callback_data="stars_basic_month")],
+        [InlineKeyboardButton(later_label, callback_data="first_bet_offer_later")],
+    ])
+
+
+async def send_special_offer(bot, user_id: int, lang: str):
+    if is_basic_week_99_offer_available(user_id):
+        text = _basic_week_99_offer_text(lang)
+        keyboard = _basic_week_99_offer_keyboard(lang)
+    else:
+        text = _basic_standard_offer_text(lang)
+        keyboard = _basic_standard_offer_keyboard(lang)
+
+    await bot.send_message(
+        chat_id=user_id,
+        text=text,
+        reply_markup=keyboard,
     )
 
 
@@ -753,7 +792,6 @@ async def emotion_callback_handler(update: Update, context: ContextTypes.DEFAULT
                 _first_saved_stats_cta_text(lang),
                 reply_markup=_first_saved_stats_cta_keyboard(lang),
             )
-            await _maybe_send_basic_week_99_offer(query.message, user_id, lang)
         return
 
     total_used = get_trial_used_count(user_id)
@@ -774,7 +812,6 @@ async def emotion_callback_handler(update: Update, context: ContextTypes.DEFAULT
             _first_saved_stats_cta_text(lang),
             reply_markup=_first_saved_stats_cta_keyboard(lang),
         )
-        await _maybe_send_basic_week_99_offer(query.message, user_id, lang)
 
     if just_reached_limit or used_today >= daily_limit:
         trial_start = get_trial_start(user_id)
@@ -881,7 +918,6 @@ async def close_bet_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
             _first_saved_stats_cta_text(lang),
             reply_markup=_first_saved_stats_cta_keyboard(lang),
         )
-        await _maybe_send_basic_week_99_offer(query.message, user_id, lang)
 
     if result_key == "win":
         add_xp(user_id, XP_TABLE.get("win_bet", 15))

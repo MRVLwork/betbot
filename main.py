@@ -37,7 +37,11 @@ from db import (
     set_user_language,
     is_trial_available,
     can_view_basic_stats,
+    get_users_for_delayed_offer,
     get_subscription_type,
+    has_user_ever_paid,
+    is_special_offer_shown,
+    mark_special_offer_shown,
     should_include_trial,
 )
 from bets_db import (
@@ -105,6 +109,7 @@ from handlers.bets import (
     process_bet_photo,
     emotion_callback_handler,
     first_bet_offer_later_callback,
+    send_special_offer,
     tilt_warning_callback_handler,
 )
 from handlers.coach import coach_end_callback, handle_coach_message, open_coach
@@ -585,6 +590,19 @@ async def expire_unresolved_pending_bets(application):
             print(f"pending expire error for {user_id}: {e}")
 
 
+async def send_delayed_special_offers(application):
+    users = get_users_for_delayed_offer()
+    for user in users:
+        user_id = user["user_id"]
+        lang = (user.get("lang") or "en").lower()
+        try:
+            if not mark_special_offer_shown(user_id):
+                continue
+            await send_special_offer(application.bot, user_id, lang)
+        except Exception as e:
+            print(f"delayed special offer error for {user_id}: {e}")
+
+
 async def post_init(application):
     scheduler = AsyncIOScheduler(timezone=ZoneInfo("Europe/Kiev"))
     scheduler.add_job(
@@ -654,6 +672,14 @@ async def post_init(application):
         minute=20,
         timezone="Europe/Kiev",
         id="pending_expire",
+        args=[application],
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        send_delayed_special_offers,
+        trigger="interval",
+        minutes=15,
+        id="delayed_special_offers",
         args=[application],
         replace_existing=True,
     )
@@ -831,6 +857,14 @@ async def stats_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
             win_streak=stats["win_streak"],
         )
     )
+
+    if (
+        get_subscription_type(user_id) == "trial"
+        and not has_user_ever_paid(user_id)
+        and not is_special_offer_shown(user_id)
+        and mark_special_offer_shown(user_id)
+    ):
+        await send_special_offer(context.bot, user_id, lang)
 
 
 async def full_stats_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):

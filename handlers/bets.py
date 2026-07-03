@@ -140,46 +140,36 @@ def _daily_limit_reached_text(lang: str, plan: str, limit: int) -> str:
 
 def _trial_progress_text(lang: str, used_today: int, remaining_today: int, days_left: int) -> str:
     lang = _normalize_lang(lang)
+    _ = days_left
 
     if lang == "ua":
         return (
             f"✅ Скрін зараховано.\n"
             f"Сьогодні використано: {used_today}/{TRIAL_SCREEN_LIMIT}\n"
-            f"Залишилось сьогодні: {remaining_today}\n"
-            f"Днів пробного доступу: {days_left}"
+            f"Залишилось сьогодні: {remaining_today}"
         )
     if lang == "ru":
         return (
             f"✅ Скрин засчитан.\n"
             f"Сегодня использовано: {used_today}/{TRIAL_SCREEN_LIMIT}\n"
-            f"Осталось сегодня: {remaining_today}\n"
-            f"Дней пробного доступа: {days_left}"
+            f"Осталось сегодня: {remaining_today}"
         )
     return (
         f"Screenshot saved.\n"
         f"Used today: {used_today}/{TRIAL_SCREEN_LIMIT}\n"
-        f"Remaining today: {remaining_today}\n"
-        f"Trial days left: {days_left}"
+        f"Remaining today: {remaining_today}"
     )
 
 
 def _trial_fail_text(lang: str, used_trial: int, remaining_trial: int) -> str:
     lang = _normalize_lang(lang)
+    _ = (used_trial, remaining_trial)
 
     if lang == "ua":
-        return (
-            "⚠️ Цей скрін не вдалося розпізнати, але він зарахований у trial.\n"
-            f"Залишилось днів пробного доступу: {remaining_trial}"
-        )
+        return "⚠️ Цей скрін не вдалося розпізнати, але він зарахований у trial."
     if lang == "ru":
-        return (
-            "⚠️ Этот скрин не удалось распознать, но он засчитан в trial.\n"
-            f"Осталось дней пробного доступа: {remaining_trial}"
-        )
-    return (
-        "⚠️ This screenshot could not be recognized, but it was counted in the trial.\n"
-        f"Trial days remaining: {remaining_trial}"
-    )
+        return "⚠️ Этот скрин не удалось распознать, но он засчитан в trial."
+    return "⚠️ This screenshot could not be recognized, but it was counted in the trial."
 
 
 def _build_trial_pitch(lang: str, stats: dict, used_trial: int) -> str | None:
@@ -397,9 +387,9 @@ def _build_limit_pitch(lang: str, stats: dict) -> str:
     avg_odds = float(stats.get("avg_odds", 0) or 0)
 
     prefixes = {
-        "ua": "⛔ Твій 7-денний пробний доступ завершено.\n\n",
-        "ru": "⛔ Твой 7-дневный пробный доступ завершён.\n\n",
-        "en": "⛔ Your 7-day free trial has ended.\n\n",
+        "ua": "⛔ Твій пробний доступ завершено.\n\n",
+        "ru": "⛔ Твой пробный доступ завершён.\n\n",
+        "en": "⛔ Your free trial has ended.\n\n",
     }
     prefix = prefixes.get(lang, prefixes["en"])
 

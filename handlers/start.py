@@ -9,7 +9,6 @@ from db import (
     is_onboarding_completed,
     user_has_access,
     is_trial_available,
-    get_trial_remaining,
     is_eligible_for_first_payment_promo,
 )
 from handlers.onboarding import activate_trial_after_onboarding, start_onboarding
@@ -146,12 +145,10 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
                 return await activate_trial_after_onboarding(update, context, lang)
             return await start_onboarding(update, context)
         else:
-            remaining = get_trial_remaining(tg_user.id)
-
             limit_text = {
-                "ua": f"❌ Пробний доступ вже використано. Залишилось: {remaining}",
-                "ru": f"❌ Пробный доступ уже использован. Осталось: {remaining}",
-                "en": f"❌ Trial access has already been used. Remaining: {remaining}",
+                "ua": "❌ Пробний доступ вже використано.",
+                "ru": "❌ Пробный доступ уже использован.",
+                "en": "❌ Trial access has already been used.",
             }[lang]
 
             await query.message.reply_text(limit_text)

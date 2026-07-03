@@ -7,6 +7,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 
 TRIAL_SCREEN_LIMIT = 5
+TRIAL_DURATION_HOURS = 120
 LEVEL_THRESHOLDS = (0, 500, 1500, 3000, 6000)
 
 XP_TABLE = {
@@ -353,9 +354,12 @@ def init_db():
     add_column_if_not_exists("users", "daily_usage_reset_at", "TEXT")
     add_column_if_not_exists("users", "lang", "TEXT DEFAULT 'ua'")
     add_column_if_not_exists("users", "trial_started_at", "TEXT")
+    add_column_if_not_exists("users", "trial_activated_at", "TEXT")
     add_column_if_not_exists("users", "trial_expires_at", "TEXT")
     add_column_if_not_exists("users", "trial_used_count", "INTEGER DEFAULT 0")
     add_column_if_not_exists("users", "trial_completed", "INTEGER DEFAULT 0")
+    add_column_if_not_exists("users", "trial_reminder_2days_sent_at", "TEXT")
+    add_column_if_not_exists("users", "trial_reminder_24h_sent_at", "TEXT")
     add_column_if_not_exists("users", "promo_offer_used", "INTEGER DEFAULT 0")
     add_column_if_not_exists("users", "bet_day_basic_subscribed", "INTEGER DEFAULT 0")
     add_column_if_not_exists("users", "bet_day_vip_subscribed", "INTEGER DEFAULT 0")
@@ -1926,16 +1930,19 @@ def start_trial_mode(user_id: int):
     conn = get_conn()
     cur = conn.cursor()
     trial_start = datetime.now().isoformat()
-    trial_expires = (datetime.now() + timedelta(days=3)).isoformat()
+    trial_expires = (datetime.now() + timedelta(hours=TRIAL_DURATION_HOURS)).isoformat()
 
     cur.execute("""
         UPDATE users
         SET trial_started_at = ?,
+            trial_activated_at = ?,
             trial_expires_at = ?,
             trial_used_count = 0,
-            trial_completed = 0
+            trial_completed = 0,
+            trial_reminder_2days_sent_at = NULL,
+            trial_reminder_24h_sent_at = NULL
         WHERE user_id = ?
-    """, (trial_start, trial_expires, user_id))
+    """, (trial_start, trial_start, trial_expires, user_id))
 
     conn.commit()
     conn.close()
@@ -1958,7 +1965,7 @@ def is_trial_available(user_id: int) -> bool:
         if not trial_started:
             return False
         try:
-            expires = datetime.fromisoformat(trial_started) + timedelta(days=3)
+            expires = datetime.fromisoformat(trial_started) + timedelta(hours=TRIAL_DURATION_HOURS)
             return datetime.now() < expires
         except Exception:
             return False
@@ -2010,7 +2017,7 @@ def get_trial_remaining(user_id: int) -> int:
         if not trial_started:
             return 0
         try:
-            expires = datetime.fromisoformat(trial_started) + timedelta(days=3)
+            expires = datetime.fromisoformat(trial_started) + timedelta(hours=TRIAL_DURATION_HOURS)
         except Exception:
             return 0
     else:
@@ -2042,7 +2049,7 @@ def get_trial_start(user_id: int):
 
 def get_trial_day(user_id: int) -> int:
     """
-    Returns the current trial day (1-3).
+    Returns the current trial day (1-5).
     Day 1 is the first day after activation.
     Returns 0 when trial is not activated.
     """
@@ -2055,9 +2062,86 @@ def get_trial_day(user_id: int) -> int:
     try:
         start = datetime.fromisoformat(trial_started)
         delta = (datetime.now() - start).days + 1
-        return min(delta, 3)
+        return min(delta, 5)
     except Exception:
         return 0
+
+
+def mark_trial_reminder_2days_sent(user_id: int) -> bool:
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("""
+        UPDATE users
+        SET trial_reminder_2days_sent_at = ?
+        WHERE user_id = ?
+          AND trial_reminder_2days_sent_at IS NULL
+    """, (datetime.now().isoformat(), user_id))
+    updated = cur.rowcount > 0
+    conn.commit()
+    conn.close()
+    return updated
+
+
+def mark_trial_reminder_24h_sent(user_id: int) -> bool:
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("""
+        UPDATE users
+        SET trial_reminder_24h_sent_at = ?
+        WHERE user_id = ?
+          AND trial_reminder_24h_sent_at IS NULL
+    """, (datetime.now().isoformat(), user_id))
+    updated = cur.rowcount > 0
+    conn.commit()
+    conn.close()
+    return updated
+
+
+def get_users_for_trial_reminders() -> list[dict]:
+    conn = get_conn()
+    cur = conn.cursor()
+    now = datetime.now()
+    now_iso = now.isoformat()
+
+    # Trial is 120 hours. Show "2 days left" after 72h, and "24 hours left" after 96h.
+    threshold_2days = (now - timedelta(hours=72)).isoformat()
+    threshold_24h = (now - timedelta(hours=96)).isoformat()
+
+    cur.execute("""
+        SELECT
+            user_id,
+            lang,
+            CASE
+                WHEN COALESCE(trial_activated_at, trial_started_at) <= ?
+                     AND trial_reminder_24h_sent_at IS NULL
+                THEN '24h'
+                WHEN COALESCE(trial_activated_at, trial_started_at) <= ?
+                     AND COALESCE(trial_activated_at, trial_started_at) > ?
+                     AND trial_reminder_2days_sent_at IS NULL
+                THEN '2days'
+            END AS reminder_type
+        FROM users
+        WHERE trial_started_at IS NOT NULL
+          AND COALESCE(trial_activated_at, trial_started_at) IS NOT NULL
+          AND COALESCE(trial_completed, 0) = 0
+          AND (trial_expires_at IS NULL OR trial_expires_at > ?)
+          AND NOT (COALESCE(is_active, 0) = 1 AND access_until IS NOT NULL AND access_until > ?)
+          AND NOT EXISTS (
+              SELECT 1
+              FROM payments p
+              WHERE p.user_id = users.user_id
+                AND p.status IN ('paid', 'promo_sent')
+          )
+          AND NOT EXISTS (
+              SELECT 1
+              FROM star_payments sp
+              WHERE sp.user_id = users.user_id
+                AND sp.status = 'paid'
+          )
+    """, (threshold_24h, threshold_2days, threshold_24h, now_iso, now_iso))
+    rows = [dict(row) for row in cur.fetchall()]
+    conn.close()
+    return [row for row in rows if row.get("reminder_type")]
 
 
 def get_trial_users_for_notification(day: int) -> list[dict]:
@@ -2147,16 +2231,17 @@ def increment_trial_usage(user_id: int):
         return
 
     now_iso = datetime.now().isoformat()
-    trial_expires = (datetime.now() + timedelta(days=3)).isoformat()
+    trial_expires = (datetime.now() + timedelta(hours=TRIAL_DURATION_HOURS)).isoformat()
 
     if not user.get("trial_started_at"):
         cur.execute("""
             UPDATE users
             SET trial_started_at = ?,
+                trial_activated_at = COALESCE(trial_activated_at, ?),
                 trial_expires_at = COALESCE(trial_expires_at, ?),
                 trial_used_count = trial_used_count + 1
             WHERE user_id = ?
-        """, (now_iso, trial_expires, user_id))
+        """, (now_iso, now_iso, trial_expires, user_id))
     else:
         cur.execute("""
             UPDATE users
@@ -2416,7 +2501,7 @@ def get_referral_source_stats(source_key: str) -> dict:
                     if user_row.get("trial_expires_at"):
                         trial_expires = datetime.fromisoformat(user_row["trial_expires_at"])
                     else:
-                        trial_expires = datetime.fromisoformat(user_row["trial_started_at"]) + timedelta(days=3)
+                        trial_expires = datetime.fromisoformat(user_row["trial_started_at"]) + timedelta(hours=TRIAL_DURATION_HOURS)
                     trial_active = trial_expires > datetime.now()
                 except Exception:
                     trial_active = False

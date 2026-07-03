@@ -38,10 +38,13 @@ from db import (
     is_trial_available,
     can_view_basic_stats,
     get_users_for_delayed_offer,
+    get_users_for_trial_reminders,
     get_subscription_type,
     has_user_ever_paid,
     is_special_offer_shown,
     mark_special_offer_shown,
+    mark_trial_reminder_2days_sent,
+    mark_trial_reminder_24h_sent,
     should_include_trial,
 )
 from bets_db import (
@@ -603,6 +606,88 @@ async def send_delayed_special_offers(application):
             print(f"delayed special offer error for {user_id}: {e}")
 
 
+def _trial_reminder_2days_text(lang: str) -> str:
+    if lang == "ru":
+        return (
+            "⏳ До конца пробного доступа осталось 2 дня.\n\n"
+            "За это время успей добавить больше ставок -\n"
+            "чем больше данных, тем точнее AI покажет,\n"
+            "где ты сливаешь и где зарабатываешь."
+        )
+    if lang == "en":
+        return (
+            "⏳ 2 days left until your trial access ends.\n\n"
+            "Use this time to add more bets -\n"
+            "the more data you add, the more accurately AI will show\n"
+            "where you lose money and where you earn."
+        )
+    return (
+        "⏳ До кінця пробного доступу залишилось 2 дні.\n\n"
+        "За цей час встигни додати більше ставок -\n"
+        "що більше даних, то точніше AI покаже,\n"
+        "де ти зливаєш і де заробляєш."
+    )
+
+
+def _trial_reminder_24h_text(lang: str) -> str:
+    if lang == "ru":
+        return (
+            "⏳ Пробный доступ заканчивается через 24 часа.\n\n"
+            "Не потеряй свою статистику и AI-анализ.\n"
+            "👇 Активируй Basic, чтобы продолжить без перерыва."
+        )
+    if lang == "en":
+        return (
+            "⏳ Your trial access ends in 24 hours.\n\n"
+            "Do not lose your stats and AI analysis.\n"
+            "👇 Activate Basic to continue without a break."
+        )
+    return (
+        "⏳ Пробний доступ закінчується через 24 години.\n\n"
+        "Не втрать свою статистику й AI-аналіз.\n"
+        "👇 Активуй Basic, щоб продовжити без перерви."
+    )
+
+
+def _trial_reminder_24h_keyboard(lang: str) -> InlineKeyboardMarkup:
+    labels = {
+        "ua": "⭐ Активувати Basic",
+        "ru": "⭐ Активировать Basic",
+        "en": "⭐ Activate Basic",
+    }
+    return InlineKeyboardMarkup([[
+        InlineKeyboardButton(labels.get(lang, labels["en"]), callback_data="stars_basic_month")
+    ]])
+
+
+async def send_trial_time_reminders(application):
+    for user in get_users_for_trial_reminders():
+        user_id = user["user_id"]
+        lang = (user.get("lang") or "ua").lower()
+        if lang.startswith("uk"):
+            lang = "ua"
+        reminder_type = user.get("reminder_type")
+
+        try:
+            if reminder_type == "24h":
+                if not mark_trial_reminder_24h_sent(user_id):
+                    continue
+                await application.bot.send_message(
+                    chat_id=user_id,
+                    text=_trial_reminder_24h_text(lang),
+                    reply_markup=_trial_reminder_24h_keyboard(lang),
+                )
+            elif reminder_type == "2days":
+                if not mark_trial_reminder_2days_sent(user_id):
+                    continue
+                await application.bot.send_message(
+                    chat_id=user_id,
+                    text=_trial_reminder_2days_text(lang),
+                )
+        except Exception as e:
+            print(f"trial time reminder error for {user_id}: {e}")
+
+
 async def post_init(application):
     scheduler = AsyncIOScheduler(timezone=ZoneInfo("Europe/Kiev"))
     scheduler.add_job(
@@ -616,32 +701,12 @@ async def post_init(application):
         replace_existing=True,
     )
     scheduler.add_job(
-        send_trial_day2_notifications,
-        trigger="cron",
-        hour=10,
-        minute=0,
-        timezone="Europe/Kiev",
-        id="trial_day2",
-        args=[application],
-        replace_existing=True,
-    )
-    scheduler.add_job(
         send_daily_insights,
         trigger="cron",
         hour=10,
         minute=0,
         timezone="Europe/Kiev",
         id="daily_insights",
-        args=[application],
-        replace_existing=True,
-    )
-    scheduler.add_job(
-        send_trial_day3_notifications,
-        trigger="cron",
-        hour=10,
-        minute=30,
-        timezone="Europe/Kiev",
-        id="trial_day3",
         args=[application],
         replace_existing=True,
     )
@@ -680,6 +745,14 @@ async def post_init(application):
         trigger="interval",
         minutes=15,
         id="delayed_special_offers",
+        args=[application],
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        send_trial_time_reminders,
+        trigger="interval",
+        minutes=30,
+        id="trial_time_reminders",
         args=[application],
         replace_existing=True,
     )

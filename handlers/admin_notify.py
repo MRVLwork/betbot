@@ -22,7 +22,7 @@ def _activation_text(user_id: int, plan_label: str, payment_method: str = "") ->
 async def notify_admin_activation(context, user_id: int, plan_label: str, payment_method: str = ""):
     """
     Надсилає адміну сповіщення про активацію підписки.
-    plan_label: "Trial 3 дні" / "VIP 1 місяць" / "Basic" тощо.
+    plan_label: "Trial" / "VIP 1 місяць" / "Basic" тощо.
     payment_method: "Stars" / "USDT" / "Промокод" / "" для trial.
     """
     if not ADMIN_ID:

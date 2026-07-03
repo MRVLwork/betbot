@@ -178,7 +178,7 @@ async def activate_trial_after_onboarding(update: Update, context: ContextTypes.
 
     if is_trial_available(user_id):
         start_trial_mode(user_id)
-        await notify_admin_activation(context, user_id, "Trial 3 дні")
+        await notify_admin_activation(context, user_id, "Trial")
 
     user = get_user(user_id) or {}
     await message.reply_text(

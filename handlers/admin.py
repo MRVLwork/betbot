@@ -738,7 +738,7 @@ async def users_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 if trial_expires_at:
                     trial_expires = datetime.fromisoformat(trial_expires_at)
                 else:
-                    trial_expires = datetime.fromisoformat(trial_started) + timedelta(days=3)
+                    trial_expires = datetime.fromisoformat(trial_started) + timedelta(hours=120)
                 trial_active = trial_expires > now
             except Exception:
                 trial_active = False

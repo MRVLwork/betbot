@@ -6,6 +6,8 @@ import json
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
+from config import ANALYSIS_LIMIT_BASIC, ANALYSIS_LIMIT_TRIAL, ANALYSIS_LIMIT_VIP
+
 TRIAL_SCREEN_LIMIT = 5
 TRIAL_DURATION_HOURS = 120
 LEVEL_THRESHOLDS = (0, 500, 1500, 3000, 6000)
@@ -375,6 +377,8 @@ def init_db():
     add_column_if_not_exists("users", "first_screenshot_sent_at", "TEXT")
     add_column_if_not_exists("users", "first_bet_saved_at", "TEXT")
     add_column_if_not_exists("users", "special_offer_shown_at", "TEXT")
+    add_column_if_not_exists("users", "analysis_daily_used", "INTEGER DEFAULT 0")
+    add_column_if_not_exists("users", "analysis_daily_reset_at", "TEXT")
 
     add_column_if_not_exists("promo_codes", "plan_type", "TEXT DEFAULT 'basic'")
 
@@ -1435,6 +1439,73 @@ def should_include_trial(user_id: int) -> bool:
     Trial users use include_trial=True, Basic/VIP use include_trial=False.
     """
     return get_subscription_type(user_id) == "trial"
+
+
+def reset_analysis_usage_if_needed(user_id: int):
+    user = get_user(user_id)
+    if not user:
+        return
+
+    now = datetime.now()
+    reset_at_raw = user.get("analysis_daily_reset_at")
+    if reset_at_raw:
+        try:
+            reset_at = datetime.fromisoformat(reset_at_raw)
+            if reset_at.date() == now.date():
+                return
+        except Exception:
+            pass
+
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("""
+        UPDATE users
+        SET analysis_daily_used = 0,
+            analysis_daily_reset_at = ?
+        WHERE user_id = ?
+    """, (now.isoformat(), user_id))
+    conn.commit()
+    conn.close()
+
+
+def get_analysis_daily_limit(user_id: int) -> int:
+    sub_type = get_subscription_type(user_id)
+    if sub_type == "vip":
+        return ANALYSIS_LIMIT_VIP
+    if sub_type == "basic":
+        return ANALYSIS_LIMIT_BASIC
+    if sub_type == "trial":
+        return ANALYSIS_LIMIT_TRIAL
+    return 0
+
+
+def get_analysis_daily_remaining(user_id: int) -> int:
+    limit = get_analysis_daily_limit(user_id)
+    if limit <= 0:
+        return 0
+
+    reset_analysis_usage_if_needed(user_id)
+    user = get_user(user_id)
+    if not user:
+        return 0
+
+    used = int(user.get("analysis_daily_used") or 0)
+    remaining = limit - used
+    return remaining if remaining > 0 else 0
+
+
+def increment_analysis_daily_usage(user_id: int):
+    reset_analysis_usage_if_needed(user_id)
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("""
+        UPDATE users
+        SET analysis_daily_used = COALESCE(analysis_daily_used, 0) + 1,
+            analysis_daily_reset_at = COALESCE(analysis_daily_reset_at, ?)
+        WHERE user_id = ?
+    """, (datetime.now().isoformat(), user_id))
+    conn.commit()
+    conn.close()
 
 
 def activate_user_access(user_id: int, days: int, plan_type: str, source: str):

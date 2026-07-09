@@ -21,6 +21,21 @@ POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "").strip()
 # OpenAI
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
 OPENAI_MODEL_BASIC = os.getenv("OPENAI_MODEL_BASIC", "gpt-4.1-mini").strip()
+OPENAI_MODEL_ANALYSIS = os.getenv("OPENAI_MODEL_ANALYSIS", "gpt-5.4-mini").strip()
+
+
+def _int_env(name: str, default: int) -> int:
+    raw = (os.getenv(name, str(default)) or str(default)).strip()
+    try:
+        return int(raw)
+    except ValueError:
+        return default
+
+
+# Match analysis limits
+ANALYSIS_LIMIT_BASIC = _int_env("ANALYSIS_LIMIT_BASIC", 3)
+ANALYSIS_LIMIT_VIP = _int_env("ANALYSIS_LIMIT_VIP", 10)
+ANALYSIS_LIMIT_TRIAL = _int_env("ANALYSIS_LIMIT_TRIAL", 3)
 
 CRYPTOBOT_TOKEN = os.getenv("CRYPTOBOT_TOKEN", "").strip()
 CRYPTOBOT_API_URL = "https://pay.crypt.bot/api"

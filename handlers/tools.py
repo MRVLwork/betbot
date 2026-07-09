@@ -5,9 +5,10 @@ from telegram.ext import ContextTypes
 from db import (
     get_user,
     user_has_access,
-    is_trial_available,
-    get_user_daily_limit,
-    count_user_photos_today,
+    get_subscription_type,
+    get_analysis_daily_limit,
+    get_analysis_daily_remaining,
+    increment_analysis_daily_usage,
     subscribe_bet_day_basic,
     subscribe_bet_day_vip,
     is_subscribed_bet_day_basic,
@@ -36,6 +37,30 @@ def _normalize_lang(lang: str) -> str:
     if lang.startswith("ru"):
         return "ru"
     return "en"
+
+
+def _analysis_limit_reached_text(lang: str, limit: int) -> str:
+    texts = {
+        "ua": (
+            f"🚫 Денний ліміт AI-аналізу вичерпано ({limit}/{limit}).\n\n"
+            "Basic: 3 розбори/день\n"
+            "VIP: 10 розборів/день\n\n"
+            "👇 Обери тариф, щоб отримати більший ліміт."
+        ),
+        "ru": (
+            f"🚫 Дневной лимит AI-анализа исчерпан ({limit}/{limit}).\n\n"
+            "Basic: 3 разбора/день\n"
+            "VIP: 10 разборов/день\n\n"
+            "👇 Выбери тариф, чтобы получить больший лимит."
+        ),
+        "en": (
+            f"🚫 Daily AI analysis limit reached ({limit}/{limit}).\n\n"
+            "Basic: 3 analyses/day\n"
+            "VIP: 10 analyses/day\n\n"
+            "👇 Choose a plan to get a higher limit."
+        ),
+    }
+    return texts.get(lang, texts["en"])
 
 
 async def open_tools_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -332,8 +357,18 @@ async def tools_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
         return
 
     if query.data == "tool_ai":
-        if not has_access:
+        sub_type = get_subscription_type(user_id)
+        if sub_type not in ("trial", "basic", "vip"):
             await query.message.reply_text(get_text(lang, "ai_analysis_no_access"), reply_markup=access_keyboard(lang))
+            return
+
+        remaining = get_analysis_daily_remaining(user_id)
+        if remaining <= 0:
+            limit = get_analysis_daily_limit(user_id)
+            await query.message.reply_text(
+                _analysis_limit_reached_text(lang, limit),
+                reply_markup=access_keyboard(lang),
+            )
             return
 
         context.user_data["awaiting_ai_match_analysis"] = True
@@ -667,6 +702,22 @@ async def handle_ai_analysis_input(update: Update, context: ContextTypes.DEFAULT
     if not await_target:
         return
 
+    sub_type = get_subscription_type(user_id)
+    if sub_type not in ("trial", "basic", "vip"):
+        context.user_data.pop("awaiting_ai_match_analysis", None)
+        await await_target.reply_text(get_text(lang, "ai_analysis_no_access"), reply_markup=access_keyboard(lang))
+        return
+
+    remaining = get_analysis_daily_remaining(user_id)
+    if remaining <= 0:
+        context.user_data.pop("awaiting_ai_match_analysis", None)
+        limit = get_analysis_daily_limit(user_id)
+        await await_target.reply_text(
+            _analysis_limit_reached_text(lang, limit),
+            reply_markup=access_keyboard(lang),
+        )
+        return
+
     processing_text = get_text(lang, "ai_analysis_processing")
     await await_target.reply_text(processing_text)
 
@@ -689,51 +740,9 @@ async def handle_ai_analysis_input(update: Update, context: ContextTypes.DEFAULT
         await await_target.reply_text(get_text(lang, "ai_analysis_failed").format(error=error))
         return
 
+    increment_analysis_daily_usage(user_id)
     await await_target.reply_text(result["report_text"])
-
-    has_access = user_has_access(user_id)
-    user = get_user(user_id)
-    trial_started = user.get("trial_started_at") if user else None
-    in_trial = (
-        not has_access
-        and trial_started is not None
-        and is_trial_available(user_id)
-    )
-
-    if in_trial:
-        used_today = count_user_photos_today(user_id)
-        daily_limit = get_user_daily_limit(user_id)
-
-        if used_today >= daily_limit:
-            limit_texts = {
-                "ua": (
-                    "🚫 Денний ліміт вичерпано (5/5)\n\n"
-                    "Щоб продовжити аналіз сьогодні:\n\n"
-                    "🔹 Basic  $7/міс  15 скрінів/день\n"
-                    " VIP  $19.99/міс  30 скрінів/день\n\n"
-                    "👇 Оформи підписку і аналізуй без обмежень"
-                ),
-                "ru": (
-                    "🚫 Дневной лимит исчерпан (5/5)\n\n"
-                    "Чтобы продолжить анализ сегодня:\n\n"
-                    "🔹 Basic  $7/мес  15 скринов/день\n"
-                    " VIP  $19.99/мес  30 скринов/день\n\n"
-                    "👇 Оформи подписку и анализируй без ограничений"
-                ),
-                "en": (
-                    "🚫 Daily limit reached (5/5)\n\n"
-                    "To continue analysis today:\n\n"
-                    "🔹 Basic  $7/mo  15 screenshots/day\n"
-                    " VIP  $19.99/mo  30 screenshots/day\n\n"
-                    "👇 Subscribe and analyze without limits"
-                ),
-            }
-            await await_target.reply_text(
-                limit_texts.get(lang, limit_texts["en"]),
-                reply_markup=access_keyboard(lang)
-            )
-            return
-
     await await_target.reply_text(
         get_text(lang, "ai_analysis_done_hint")
     )
+    return

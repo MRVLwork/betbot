@@ -2,9 +2,9 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
-from db import get_ai_daily_remaining, get_user, user_has_access
+from db import get_ai_daily_remaining, get_user, has_vip_signals_access, user_has_access
 from keyboards import access_keyboard
-from services.ai_service import ai_coach_reply
+from services.ai_service import ai_coach_reply, is_vip
 
 
 def _normalize_lang(lang: str) -> str:
@@ -35,8 +35,7 @@ async def open_coach(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = get_user(user_id) or {}
     lang = _normalize_lang(user.get("lang", "en"))
     plan = (user.get("plan") or "basic").lower()
-
-    if not user_has_access(user_id) or plan != "vip":
+    if not ((user_has_access(user_id) and is_vip(plan)) or has_vip_signals_access(user_id)):
         texts = {
             "ua": "🧠 AI Тренер доступний тільки для VIP підписки\n👇 Оновити підписку",
             "ru": "🧠 AI Тренер доступен только для VIP подписки\n👇 Обновить подписку",
@@ -74,6 +73,7 @@ async def handle_coach_message(update: Update, context: ContextTypes.DEFAULT_TYP
     user = get_user(user_id) or {}
     lang = _normalize_lang(user.get("lang", "en"))
     plan = (user.get("plan") or "basic").lower()
+    coach_plan = "vip_signals" if has_vip_signals_access(user_id) else plan
 
     if update.message.text in {"✅ Завершити чат з тренером", "✅ Завершить чат с тренером", "✅ End coach chat"}:
         return
@@ -85,7 +85,7 @@ async def handle_coach_message(update: Update, context: ContextTypes.DEFAULT_TYP
     }
     await update.message.reply_text(processing[lang])
 
-    reply = await ai_coach_reply(user_id, update.message.text, lang, plan)
+    reply = await ai_coach_reply(user_id, update.message.text, lang, coach_plan)
     await update.message.reply_text(reply, reply_markup=_coach_end_keyboard(lang))
 
 

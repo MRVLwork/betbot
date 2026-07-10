@@ -1227,6 +1227,248 @@ def get_full_stats_between(user_id: int, start_dt, end_dt, include_trial: bool =
     return _calc_stats(rows)
 
 
+def _coach_period_bounds(period: str | None):
+    now = datetime.now()
+    period = (period or "all").strip().lower()
+    if period in {"today", "day"}:
+        return now.replace(hour=0, minute=0, second=0, microsecond=0), now, "today"
+    if period in {"current_month", "month", "this_month"}:
+        return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0), now, "current_month"
+    if period in {"last_30_days", "30d", "30_days"}:
+        return now - timedelta(days=30), now, "last_30_days"
+    return datetime(1970, 1, 1), now, "all"
+
+
+def _coach_rows(user_id: int, period: str | None = "all", include_trial: bool = False) -> tuple[list[dict], str]:
+    start_dt, end_dt, normalized_period = _coach_period_bounds(period)
+    rows = _get_rows_between(user_id, start_dt, end_dt, include_trial=include_trial)
+    parsed_rows = [dict(row) for row in rows if row.get("parse_status") == "parsed"]
+    return parsed_rows, normalized_period
+
+
+def _normalize_coach_type(value: str | None) -> str | None:
+    text = (value or "").strip().lower()
+    if not text:
+        return None
+    if any(token in text for token in ("total", "тотал", "тб", "тм", "over", "under")):
+        return "total"
+    if any(token in text for token in ("result", "результ", "исход", "перем", "winner", "win")):
+        return "result"
+    return text if text in TYPE_BUCKETS else None
+
+
+def _normalize_coach_market(value: str | None) -> str | None:
+    text = (value or "").strip().lower()
+    if not text:
+        return None
+    aliases = {
+        "1x2": {"1x2", "п1", "п2", "нічия", "ничья", "draw", "winner", "перемога", "победа"},
+        "total": {"total", "тотал", "тб", "тм", "over", "under"},
+        "btts": {"btts", "обидві", "обе", "both teams"},
+        "handicap": {"handicap", "фора"},
+        "double_chance": {"double_chance", "1x", "x2", "12", "подвійний", "двойной"},
+        "corners": {"corners", "кутові", "угловые"},
+        "cards": {"cards", "картки", "карточки"},
+    }
+    for market, tokens in aliases.items():
+        if any(token in text for token in tokens):
+            return market
+    return text if text in MARKET_BUCKETS else None
+
+
+def _coach_row_matches_sport(row: dict, sport: str | None) -> bool:
+    text = (sport or "").strip().lower()
+    if not text:
+        return True
+    sport_aliases = {
+        "football": {"football", "soccer", "футбол"},
+        "tennis": {"tennis", "теніс", "теннис"},
+        "basketball": {"basketball", "баскетбол"},
+        "hockey": {"hockey", "хокей", "хоккей"},
+        "baseball": {"baseball", "бейсбол"},
+        "volleyball": {"volleyball", "волейбол"},
+    }
+    aliases = {text}
+    for values in sport_aliases.values():
+        if text in values:
+            aliases = values
+            break
+
+    raw_parts = [
+        row.get("sport"),
+        row.get("raw_json"),
+        row.get("bet_type"),
+        row.get("bet_market"),
+        row.get("bet_subtype"),
+    ]
+    haystack = " ".join(str(part or "").lower() for part in raw_parts)
+    return any(alias in haystack for alias in aliases)
+
+
+def _coach_filter_rows(
+    rows: list[dict],
+    bet_type: str | None = None,
+    bet_market: str | None = None,
+    sport: str | None = None,
+    result: str | None = None,
+) -> list[dict]:
+    normalized_type = _normalize_coach_type(bet_type)
+    normalized_market = _normalize_coach_market(bet_market)
+    normalized_result = (result or "").strip().lower() or None
+    if normalized_result == "loss":
+        normalized_result = "lose"
+    if normalized_result == "return":
+        normalized_result = "refund"
+
+    filtered = []
+    for row in rows:
+        if normalized_type and (row.get("bet_type") or "").lower() != normalized_type:
+            continue
+        if normalized_market and (row.get("bet_market") or "").lower() != normalized_market:
+            continue
+        if normalized_result and (row.get("bet_result") or "").lower() != normalized_result:
+            continue
+        if sport and not _coach_row_matches_sport(row, sport):
+            continue
+        filtered.append(row)
+    return filtered
+
+
+def _coach_public_stats(stats: dict) -> dict:
+    return {
+        "total_bets": stats["total_bets"],
+        "settled_bets": stats["settled_bets"],
+        "pending_bets": stats["pending_bets"],
+        "wins": stats["wins"],
+        "losses": stats["losses"],
+        "refunds": stats["refunds"],
+        "total_stake": stats["total_stake"],
+        "settled_stake": stats["settled_stake"],
+        "net_profit": stats["net_profit"],
+        "roi": stats["roi"],
+        "win_rate": stats["win_rate"],
+        "avg_odds": stats["avg_odds"],
+        "best_type": _pick_best_bucket(stats["types"]),
+        "weak_type": _pick_weak_bucket(stats["types"]),
+        "best_market": _pick_best_bucket(stats["markets"]),
+        "weak_market": _pick_weak_bucket(stats["markets"]),
+        "types": stats["types"],
+        "markets": stats["markets"],
+    }
+
+
+def tool_get_overall_stats(user_id: int, period: str = "all") -> dict:
+    rows, normalized_period = _coach_rows(user_id, period)
+    return {
+        "ok": True,
+        "period": normalized_period,
+        **_coach_public_stats(_calc_stats(rows)),
+    }
+
+
+def tool_get_last_bet(user_id: int) -> dict:
+    conn = get_conn()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            """
+            SELECT id, stake_amount, odds, bet_result, currency, parse_status, bet_type,
+                   bet_market, bet_subtype, emotion, profit, created_at
+            FROM bets
+            WHERE user_id = ?
+              AND parse_status = 'parsed'
+            ORDER BY created_at DESC, id DESC
+            LIMIT 1
+            """,
+            (user_id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            return {"ok": True, "found": False, "bet": None}
+        normalized = _normalize_row(row) or {}
+        return {
+            "ok": True,
+            "found": True,
+            "bet": {
+                "id": row.get("id"),
+                "stake_amount": row.get("stake_amount"),
+                "odds": row.get("odds"),
+                "bet_result": row.get("bet_result"),
+                "currency": row.get("currency"),
+                "bet_type": row.get("bet_type"),
+                "bet_market": row.get("bet_market"),
+                "bet_subtype": row.get("bet_subtype"),
+                "emotion": row.get("emotion"),
+                "profit": round(float(normalized.get("profit") or row.get("profit") or 0), 2),
+                "created_at": row.get("created_at"),
+            },
+        }
+    finally:
+        conn.close()
+
+
+def tool_get_avg_odds(
+    user_id: int,
+    bet_type: str | None = None,
+    bet_market: str | None = None,
+    sport: str | None = None,
+    period: str = "all",
+) -> dict:
+    rows, normalized_period = _coach_rows(user_id, period)
+    rows = _coach_filter_rows(rows, bet_type=bet_type, bet_market=bet_market, sport=sport)
+    odds_values = [_safe_float(row.get("odds")) for row in rows if _safe_float(row.get("odds")) > 0]
+    avg_odds = round(sum(odds_values) / len(odds_values), 2) if odds_values else 0.0
+    return {
+        "ok": True,
+        "period": normalized_period,
+        "bet_type": _normalize_coach_type(bet_type),
+        "bet_market": _normalize_coach_market(bet_market),
+        "sport": sport,
+        "count": len(odds_values),
+        "avg_odds": avg_odds,
+    }
+
+
+def tool_get_stats_by_sport(user_id: int, sport: str, period: str = "all") -> dict:
+    rows, normalized_period = _coach_rows(user_id, period)
+    rows = _coach_filter_rows(rows, sport=sport)
+    stats = _calc_stats(rows)
+    return {
+        "ok": True,
+        "period": normalized_period,
+        "sport": sport,
+        "found": stats["total_bets"] > 0,
+        "note": "sport is matched only when stored in bet raw data" if stats["total_bets"] == 0 else "",
+        **_coach_public_stats(stats),
+    }
+
+
+def tool_get_bets_by_result(user_id: int, result: str, period: str = "all") -> dict:
+    rows, normalized_period = _coach_rows(user_id, period)
+    rows = _coach_filter_rows(rows, result=result)
+    stats = _calc_stats(rows)
+    return {
+        "ok": True,
+        "period": normalized_period,
+        "result": (result or "").strip().lower(),
+        "count": stats["total_bets"],
+        "total_stake": stats["total_stake"],
+        "net_profit": stats["net_profit"],
+        "avg_odds": stats["avg_odds"],
+        "bets": [
+            {
+                "id": row.get("id"),
+                "stake_amount": row.get("stake_amount"),
+                "odds": row.get("odds"),
+                "bet_type": row.get("bet_type"),
+                "bet_market": row.get("bet_market"),
+                "created_at": row.get("created_at"),
+            }
+            for row in rows[:20]
+        ],
+    }
+
+
 def get_daily_insight_data(user_id: int, lang: str) -> dict | None:
     """
     Returns data for the daily insight or None when recent activity is insufficient.

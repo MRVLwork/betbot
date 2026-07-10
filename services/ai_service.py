@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import base64
+import json
+import logging
 import re
 from datetime import datetime, timedelta
 
@@ -10,6 +12,22 @@ from db import get_ai_daily_remaining, increment_ai_daily_usage
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 async_client = AsyncOpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
+
+
+VIP_PLAN_ALIASES = {
+    "vip",
+    "vip_signals",
+    "stars_vip",
+    "stars_vip_month",
+    "stars_vip_signals_10d",
+    "usdt_vip",
+    "usdt_vip_month",
+    "usdt_vip_signals_10d",
+}
+
+
+def is_vip(plan: str | None) -> bool:
+    return (plan or "").strip().lower() in VIP_PLAN_ALIASES
 
 
 def _to_float(value: str | None):
@@ -261,20 +279,179 @@ def analyze_basic_bet_screenshot(image_bytes: bytes) -> dict:
         return {"ok": False, "error": str(e)}
 
 
+COACH_TOOLS = [
+    {
+        "type": "function",
+        "name": "tool_get_overall_stats",
+        "description": "Get exact overall betting stats for the user for a period.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "period": {
+                    "type": "string",
+                    "enum": ["all", "today", "current_month", "last_30_days"],
+                    "description": "Use current_month when the user asks about this month.",
+                }
+            },
+            "additionalProperties": False,
+        },
+    },
+    {
+        "type": "function",
+        "name": "tool_get_last_bet",
+        "description": "Get the user's latest saved bet.",
+        "parameters": {"type": "object", "properties": {}, "additionalProperties": False},
+    },
+    {
+        "type": "function",
+        "name": "tool_get_avg_odds",
+        "description": "Get exact average odds and count, optionally filtered by bet type, market, sport, and period.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "bet_type": {"type": "string", "description": "total/result or localized equivalent"},
+                "bet_market": {"type": "string", "description": "1x2/total/btts/handicap/double_chance/corners/cards/other"},
+                "sport": {"type": "string", "description": "Sport name if the user asks about a sport"},
+                "period": {"type": "string", "enum": ["all", "today", "current_month", "last_30_days"]},
+            },
+            "additionalProperties": False,
+        },
+    },
+    {
+        "type": "function",
+        "name": "tool_get_stats_by_sport",
+        "description": "Get exact stats for bets matched to a sport in stored bet data.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "sport": {"type": "string"},
+                "period": {"type": "string", "enum": ["all", "today", "current_month", "last_30_days"]},
+            },
+            "required": ["sport"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "type": "function",
+        "name": "tool_get_bets_by_result",
+        "description": "Get exact count and totals for bets with a specific result.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "result": {"type": "string", "enum": ["win", "lose", "refund", "pending"]},
+                "period": {"type": "string", "enum": ["all", "today", "current_month", "last_30_days"]},
+            },
+            "required": ["result"],
+            "additionalProperties": False,
+        },
+    },
+]
+
+
+def _coach_no_access_text(lang: str) -> str:
+    if lang.startswith("ru"):
+        return "AI Тренер доступен только для VIP-подписки."
+    if lang.startswith("ua"):
+        return "AI Тренер доступний тільки для VIP-підписки."
+    return "AI Coach is available only for VIP users."
+
+
+def _coach_service_error_text(lang: str) -> str:
+    if lang.startswith("ru"):
+        return "Не удалось получить ответ AI тренера. Попробуй ещё раз."
+    if lang.startswith("ua"):
+        return "Не вдалося отримати відповідь AI тренера. Спробуй ще раз."
+    return "Failed to get an AI coach reply. Try again."
+
+
+def _coach_low_data_text(lang: str) -> str:
+    if lang.startswith("ru"):
+        return "Добавь сначала несколько ставок, минимум 3, чтобы мне было что анализировать. После этого я смогу честно показать слабые места и точные цифры."
+    if lang.startswith("ua"):
+        return "Додай спершу кілька ставок, мінімум 3, щоб я мав що аналізувати. Після цього я зможу чесно показати слабкі місця й точні цифри."
+    return "Add a few bets first, at least 3, so I have enough data to analyze. Then I can show weak spots and exact numbers honestly."
+
+
+def _coach_limit_text(lang: str) -> str:
+    if lang.startswith("ru"):
+        return "Лимит AI запросов на сегодня исчерпан."
+    if lang.startswith("ua"):
+        return "Ліміт AI запитів на сьогодні вичерпано."
+    return "Your AI daily limit has been reached for today."
+
+
+def _coach_system_prompt(lang: str) -> str:
+    return f"""Ти персональний AI-тренер з беттингу.
+Мова відповіді: {lang}. Відповідай мовою юзера: ua/ru/en.
+
+У тебе є інструменти для отримання точних даних про ставки юзера.
+Коли питають про статистику, останню ставку, середній коефіцієнт, спорт, результат, прибуток, ROI, типи ставок або місяць - ЗАВЖДИ виклич відповідний інструмент.
+
+ЖОРСТКО:
+- НІКОЛИ не називай числа, яких не отримав з інструменту.
+- Якщо інструмент повернув порожньо або даних немає - чесно скажи про це.
+- Не рахуй сам і не вигадуй.
+- Тільки беттинг, статистика, дисципліна. Ніяких прогнозів на майбутні матчі.
+- Максимум 200 слів.
+
+Дозволені формати відповідей: конкретна цифра з поясненням, зріз, коротка порада на основі отриманих даних.
+Якщо користувач питає "цього місяця", передавай period="current_month".
+Для складених питань можна зробити кілька послідовних викликів, але не більше 3 tool-викликів.
+"""
+
+
+def _extract_response_tool_calls(response) -> list[dict]:
+    calls = []
+    for item in getattr(response, "output", []) or []:
+        if getattr(item, "type", None) != "function_call":
+            continue
+        calls.append({
+            "call_id": getattr(item, "call_id", None),
+            "name": getattr(item, "name", None),
+            "arguments": getattr(item, "arguments", "{}") or "{}",
+        })
+    return [call for call in calls if call["call_id"] and call["name"]]
+
+
+def _execute_coach_tool(user_id: int, name: str, arguments: str) -> dict:
+    from bets_db import (
+        tool_get_avg_odds,
+        tool_get_bets_by_result,
+        tool_get_last_bet,
+        tool_get_overall_stats,
+        tool_get_stats_by_sport,
+    )
+
+    tool_map = {
+        "tool_get_overall_stats": tool_get_overall_stats,
+        "tool_get_last_bet": tool_get_last_bet,
+        "tool_get_avg_odds": tool_get_avg_odds,
+        "tool_get_stats_by_sport": tool_get_stats_by_sport,
+        "tool_get_bets_by_result": tool_get_bets_by_result,
+    }
+    try:
+        args = json.loads(arguments or "{}")
+        if not isinstance(args, dict):
+            args = {}
+        func = tool_map.get(name)
+        if not func:
+            return {"ok": False, "error": "data_unavailable", "reason": "unknown_tool"}
+        return func(user_id=user_id, **args)
+    except Exception as e:
+        logging.error(f"Coach tool failed: {name}: {e}", exc_info=True)
+        return {"ok": False, "error": "data_unavailable"}
+
+
 async def ai_coach_reply(user_id: int, user_message: str, lang: str, plan: str) -> str:
     """
-    Персональний AI тренер з повним контекстом юзера.
-    Тільки для VIP юзерів.
+    Personal AI coach. Uses tool-calls for exact betting stats and never injects
+    calculated numbers directly into the prompt.
     """
     lang = (lang or "en").lower()
     plan = (plan or "basic").lower()
 
-    if plan != "vip":
-        if lang.startswith("ru"):
-            return "🧠 AI Тренер доступен только для VIP подписки."
-        if lang.startswith("ua"):
-            return "🧠 AI Тренер доступний тільки для VIP підписки."
-        return "🧠 AI Coach is available only for VIP users."
+    if not is_vip(plan):
+        return _coach_no_access_text(lang)
 
     if not OPENAI_API_KEY or not async_client:
         if lang.startswith("ru"):
@@ -285,99 +462,66 @@ async def ai_coach_reply(user_id: int, user_message: str, lang: str, plan: str) 
 
     remaining = get_ai_daily_remaining(user_id)
     if remaining <= 0:
-        if lang.startswith("ru"):
-            return "Лимит AI запросов на сегодня исчерпан."
-        if lang.startswith("ua"):
-            return "Ліміт AI запитів на сьогодні вичерпано."
-        return "Your AI daily limit has been reached for today."
-
-    from bets_db import get_analytics_between
-
-    end_dt = datetime.now()
-    start_dt = end_dt - timedelta(days=30)
-    stats = get_analytics_between(user_id, start_dt, end_dt, plan="vip")
-
-    system_prompts = {
-        "ua": f"""Ти персональний тренер з беттингу для конкретного юзера.
-
-Статистика юзера за 30 днів:
-- ROI: {stats['roi']}%
-- Winrate: {stats['win_rate']}%
-- Прибуток: {stats['net_profit']}
-- Ставок: {stats['total_bets']}
-- Найгірша серія програшів: {stats['worst_lose_streak']}
-- Найкращий тип ставок: {stats.get('best_type', 'невідомо')}
-- Слабке місце: {stats.get('weak_type', 'невідомо')}
-- Профіль: {stats.get('profile_code', 'mixed')}
-
-Правила відповідей:
-- Відповідай ТІЛЬКИ на теми беттінгу, статистики, дисципліни
-- Давай конкретні поради з цифрами
-- Ніколи не давай прогнози на конкретні матчі
-- Будь прямим, не лий воду
-- Максимум 200 слів""",
-        "ru": f"""Ты персональный тренер по беттингу для конкретного юзера.
-
-Статистика юзера за 30 дней:
-- ROI: {stats['roi']}%
-- Winrate: {stats['win_rate']}%
-- Прибыль: {stats['net_profit']}
-- Ставок: {stats['total_bets']}
-- Худшая серия проигрышей: {stats['worst_lose_streak']}
-- Лучший тип ставок: {stats.get('best_type', 'неизвестно')}
-- Слабое место: {stats.get('weak_type', 'неизвестно')}
-- Профиль: {stats.get('profile_code', 'mixed')}
-
-Правила ответов:
-- Отвечай ТОЛЬКО на темы беттинга, статистики, дисциплины
-- Давай конкретные советы с цифрами
-- Никогда не давай прогнозы на конкретные матчи
-- Будь прямым, без воды
-- Максимум 200 слов""",
-        "en": f"""You are a personal betting coach for a specific user.
-
-User stats for the last 30 days:
-- ROI: {stats['roi']}%
-- Win rate: {stats['win_rate']}%
-- Profit: {stats['net_profit']}
-- Bets: {stats['total_bets']}
-- Worst losing streak: {stats['worst_lose_streak']}
-- Best bet type: {stats.get('best_type', 'unknown')}
-- Weak spot: {stats.get('weak_type', 'unknown')}
-- Profile: {stats.get('profile_code', 'mixed')}
-
-Reply rules:
-- Answer ONLY about betting, statistics, discipline
-- Give concrete advice with numbers
-- Never give predictions for specific matches
-- Be direct, no fluff
-- Maximum 200 words""",
-    }
+        return _coach_limit_text(lang)
 
     try:
+        from bets_db import tool_get_overall_stats
+
+        overall = tool_get_overall_stats(user_id=user_id, period="all")
+        if int(overall.get("total_bets") or 0) < 3:
+            return _coach_low_data_text(lang)
+
         response = await async_client.responses.create(
             model=OPENAI_MODEL_BASIC,
             input=[
                 {
                     "role": "system",
-                    "content": [{"type": "input_text", "text": system_prompts.get(lang, system_prompts["en"])}],
+                    "content": [{"type": "input_text", "text": _coach_system_prompt(lang)}],
                 },
                 {
                     "role": "user",
                     "content": [{"type": "input_text", "text": user_message}],
                 },
             ],
+            tools=COACH_TOOLS,
             max_output_tokens=300,
         )
+
+        executed_calls = 0
+        tool_calls = _extract_response_tool_calls(response)
+
+        while tool_calls and executed_calls < 3:
+            outputs = []
+            for call in tool_calls:
+                if executed_calls >= 3:
+                    result = {"ok": False, "error": "tool_limit_reached"}
+                else:
+                    result = _execute_coach_tool(user_id, call["name"], call["arguments"])
+                    executed_calls += 1
+                outputs.append({
+                    "type": "function_call_output",
+                    "call_id": call["call_id"],
+                    "output": json.dumps(result, ensure_ascii=False),
+                })
+
+            response = await async_client.responses.create(
+                model=OPENAI_MODEL_BASIC,
+                previous_response_id=response.id,
+                input=outputs,
+                tools=COACH_TOOLS,
+                max_output_tokens=300,
+            )
+            tool_calls = _extract_response_tool_calls(response)
+
+        if tool_calls:
+            logging.error("Coach stopped after tool call limit for user_id=%s", user_id)
+            return _coach_service_error_text(lang)
+
         increment_ai_daily_usage(user_id)
         text = (response.output_text or "").strip()
         if text:
             return text
-    except Exception:
-        pass
+    except Exception as e:
+        logging.error(f"Coach failed: {e}", exc_info=True)
 
-    if lang.startswith("ru"):
-        return "Не удалось получить ответ AI тренера. Попробуй еще раз."
-    if lang.startswith("ua"):
-        return "Не вдалося отримати відповідь AI тренера. Спробуй ще раз."
-    return "Failed to get an AI coach reply. Try again."
+    return _coach_service_error_text(lang)

@@ -27,6 +27,7 @@ from keyboards import (
 )
 from services.tools_service import get_tools_menu
 from services.match_analysis_service import analyze_match_screenshot, analyze_match_text
+from services.ai_service import is_vip
 from languages import get_text
 
 
@@ -429,7 +430,12 @@ async def tools_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
         from keyboards import vip_subscription_keyboard
 
         sub_type = get_subscription_type(user_id)
-        if sub_type == "vip":
+        has_coach_access = (
+            sub_type == "vip"
+            or (user_has_access(user_id) and is_vip(plan))
+            or has_vip_signals_access(user_id)
+        )
+        if has_coach_access:
             texts = {
                 "ua": (
                     "🧠 *AI Тренер*\n\n"

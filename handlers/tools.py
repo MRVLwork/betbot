@@ -8,6 +8,7 @@ from db import (
     get_subscription_type,
     get_analysis_daily_limit,
     get_analysis_daily_remaining,
+    get_coldmind_remaining,
     increment_analysis_daily_usage,
     subscribe_bet_day_basic,
     subscribe_bet_day_vip,
@@ -426,16 +427,38 @@ async def tools_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
         return
 
     if query.data == "tool_coach":
-        from db import get_subscription_type, is_eligible_for_first_payment_promo
-        from keyboards import vip_subscription_keyboard
-
         sub_type = get_subscription_type(user_id)
         has_coach_access = (
-            sub_type == "vip"
+            sub_type in {"trial", "basic", "vip"}
             or (user_has_access(user_id) and is_vip(plan))
             or has_vip_signals_access(user_id)
         )
         if has_coach_access:
+            if sub_type == "trial":
+                remaining, _, _ = get_coldmind_remaining(user_id, "trial")
+                if remaining <= 0:
+                    texts = {
+                        "ua": (
+                            "🧊 На пробному доступі — 1 запит ColdMind на день, і він вичерпаний.\n\n"
+                            "Повний ColdMind (десятки запитів на місяць) доступний у Basic і VIP:\n"
+                            "👇 Активуй, щоб я стежив за твоїм банком щодня."
+                        ),
+                        "ru": (
+                            "🧊 На пробном доступе — 1 запрос ColdMind в день, и он исчерпан.\n\n"
+                            "Полный ColdMind (десятки запросов в месяц) доступен в Basic и VIP:\n"
+                            "👇 Активируй, чтобы я следил за твоим банком каждый день."
+                        ),
+                        "en": (
+                            "🧊 Trial access gives 1 ColdMind request per day, and it is used.\n\n"
+                            "Full ColdMind (dozens of requests per month) is available in Basic and VIP:\n"
+                            "👇 Activate access so I can watch your bankroll every day."
+                        ),
+                    }
+                    await query.message.reply_text(
+                        texts.get(lang, texts["en"]),
+                        reply_markup=access_keyboard(lang),
+                    )
+                    return
             texts = {
                 "ua": (
                     "🧊 *ColdMind AI Agent*\n\n"
@@ -465,6 +488,12 @@ async def tools_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
                     " What's my most profitable market?"
                 ),
             }
+            if sub_type == "trial":
+                await query.message.reply_text({
+                    "ua": "🧊 ColdMind (пробний доступ)\nТобі доступний 1 запит на день. Повний доступ — у Basic і VIP.",
+                    "ru": "🧊 ColdMind (пробный доступ)\nТебе доступен 1 запрос в день. Полный доступ — в Basic и VIP.",
+                    "en": "🧊 ColdMind (trial access)\nYou have 1 request per day. Full access is in Basic and VIP.",
+                }.get(lang, "🧊 ColdMind (trial access)\nYou have 1 request per day. Full access is in Basic and VIP."))
             context.user_data["awaiting_coach_reply"] = True
             await query.message.reply_text(
                 texts.get(lang, texts["ua"]),
@@ -472,16 +501,13 @@ async def tools_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
             )
         else:
             texts = {
-                "ua": "🧊 ColdMind AI Agent доступний у VIP підписці.",
-                "ru": "🧊 ColdMind AI Agent доступен в VIP подписке.",
-                "en": "🧊 ColdMind AI Agent is available with VIP subscription.",
+                "ua": "🧊 ColdMind AI Agent доступний у Trial, Basic і VIP.",
+                "ru": "🧊 ColdMind AI Agent доступен в Trial, Basic и VIP.",
+                "en": "🧊 ColdMind AI Agent is available in Trial, Basic and VIP.",
             }
             await query.message.reply_text(
                 texts.get(lang, texts["ua"]),
-                reply_markup=vip_subscription_keyboard(
-                    lang,
-                    show_promo=is_eligible_for_first_payment_promo(user_id),
-                ),
+                reply_markup=access_keyboard(lang),
             )
         return
 

@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 from openai import AsyncOpenAI, OpenAI
 from config import OPENAI_API_KEY, OPENAI_MODEL_BASIC
-from db import get_ai_daily_remaining, increment_ai_daily_usage
+from db import get_coldmind_remaining, increment_coldmind_usage
 
 
 client = OpenAI(api_key=OPENAI_API_KEY)
@@ -350,10 +350,10 @@ COACH_TOOLS = [
 
 def _coach_no_access_text(lang: str) -> str:
     if lang.startswith("ru"):
-        return "ColdMind AI Agent доступен только для VIP-подписки."
+        return "ColdMind AI Agent доступен в Trial, Basic и VIP."
     if lang.startswith("ua"):
-        return "ColdMind AI Agent доступний тільки для VIP-підписки."
-    return "ColdMind AI Agent is available only for VIP users."
+        return "ColdMind AI Agent доступний у Trial, Basic і VIP."
+    return "ColdMind AI Agent is available in Trial, Basic and VIP."
 
 
 def _coach_service_error_text(lang: str) -> str:
@@ -374,10 +374,10 @@ def _coach_low_data_text(lang: str) -> str:
 
 def _coach_limit_text(lang: str) -> str:
     if lang.startswith("ru"):
-        return "Лимит AI запросов на сегодня исчерпан."
+        return "Лимит ColdMind исчерпан."
     if lang.startswith("ua"):
-        return "Ліміт AI запитів на сьогодні вичерпано."
-    return "Your AI daily limit has been reached for today."
+        return "Ліміт ColdMind вичерпано."
+    return "Your ColdMind limit has been reached."
 
 
 def _coach_system_prompt(lang: str) -> str:
@@ -450,7 +450,7 @@ async def ai_coach_reply(user_id: int, user_message: str, lang: str, plan: str) 
     lang = (lang or "en").lower()
     plan = (plan or "basic").lower()
 
-    if not is_vip(plan):
+    if plan not in {"trial", "basic", "vip"} and not is_vip(plan):
         return _coach_no_access_text(lang)
 
     if not OPENAI_API_KEY or not async_client:
@@ -460,7 +460,7 @@ async def ai_coach_reply(user_id: int, user_message: str, lang: str, plan: str) 
             return "AI сервіс тимчасово недоступний."
         return "AI service is temporarily unavailable."
 
-    remaining = get_ai_daily_remaining(user_id)
+    remaining, _, _ = get_coldmind_remaining(user_id, plan)
     if remaining <= 0:
         return _coach_limit_text(lang)
 
@@ -469,6 +469,7 @@ async def ai_coach_reply(user_id: int, user_message: str, lang: str, plan: str) 
 
         overall = tool_get_overall_stats(user_id=user_id, period="all")
         if int(overall.get("total_bets") or 0) < 3:
+            increment_coldmind_usage(user_id, plan)
             return _coach_low_data_text(lang)
 
         response = await async_client.responses.create(
@@ -517,9 +518,9 @@ async def ai_coach_reply(user_id: int, user_message: str, lang: str, plan: str) 
             logging.error("Coach stopped after tool call limit for user_id=%s", user_id)
             return _coach_service_error_text(lang)
 
-        increment_ai_daily_usage(user_id)
         text = (response.output_text or "").strip()
         if text:
+            increment_coldmind_usage(user_id, plan)
             return text
     except Exception as e:
         logging.error(f"Coach failed: {e}", exc_info=True)

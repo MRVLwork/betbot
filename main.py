@@ -1348,7 +1348,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🔒 Полная статистика  только Basic/VIP",
         "🔒 Full stats  Basic/VIP only",
         "📊 Wrapped",
-        "🧊 ColdMind AI Agent", "🔒 ColdMind AI Agent VIP",
+        "🧊 ColdMind AI Agent",
         "🧊 Мої ліміти", "🧊 Мои лимиты", "🧊 My limits",
         "🧠 Аналітика", "🧠 Аналитика", "🧠 Analytics",
         "🛠 Усі інструменти", "🛠 Все инструменты", "🛠 All tools",
@@ -1458,7 +1458,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_weekly_wrap(update, context)
     elif text in ("🧊 Мої ліміти", "🧊 Мои лимиты", "🧊 My limits"):
         await open_limits_menu(update, context)
-    elif text in ("🧊 ColdMind AI Agent", "🔒 ColdMind AI Agent VIP"):
+    elif text in ("🧊 ColdMind AI Agent",):
         await open_coach(update, context)
     elif text in ("🧠 AI-розбір", "🧠 AI-разбор", "🧠 AI analysis"):
         if not user_has_access(user_id):

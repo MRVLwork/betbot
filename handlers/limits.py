@@ -6,6 +6,7 @@ from telegram.ext import ContextTypes
 
 from db import (
     get_daily_limit_usage,
+    get_subscription_type,
     get_user,
     get_user_limits,
     has_vip_signals_access,
@@ -249,12 +250,16 @@ async def limits_callback_handler(update: Update, context: ContextTypes.DEFAULT_
         return
 
     if data == "limits_ask_coldmind":
+        sub_type = get_subscription_type(user_id)
         plan = (user.get("plan") or "basic").lower()
-        if not ((user_has_access(user_id) and is_vip(plan)) or has_vip_signals_access(user_id)):
+        has_coldmind = sub_type in {"trial", "basic", "vip"} or (
+            user_has_access(user_id) and is_vip(plan)
+        ) or has_vip_signals_access(user_id)
+        if not has_coldmind:
             await query.message.reply_text({
-                "ua": "🧊 ColdMind AI Agent доступний тільки для VIP підписки.",
-                "ru": "🧊 ColdMind AI Agent доступен только для VIP подписки.",
-                "en": "🧊 ColdMind AI Agent is available only with VIP subscription.",
+                "ua": "🧊 ColdMind AI Agent доступний у Trial, Basic і VIP.",
+                "ru": "🧊 ColdMind AI Agent доступен в Trial, Basic и VIP.",
+                "en": "🧊 ColdMind AI Agent is available in Trial, Basic and VIP.",
             }[lang])
             return
         context.user_data["awaiting_coach_reply"] = True

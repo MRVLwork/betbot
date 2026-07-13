@@ -6,7 +6,14 @@ import json
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
-from config import ANALYSIS_LIMIT_BASIC, ANALYSIS_LIMIT_TRIAL, ANALYSIS_LIMIT_VIP
+from config import (
+    ANALYSIS_LIMIT_BASIC,
+    ANALYSIS_LIMIT_TRIAL,
+    ANALYSIS_LIMIT_VIP,
+    COLDMIND_LIMIT_BASIC_PER_MONTH,
+    COLDMIND_LIMIT_TRIAL_PER_DAY,
+    COLDMIND_LIMIT_VIP_PER_MONTH,
+)
 
 TRIAL_SCREEN_LIMIT = 5
 TRIAL_DURATION_HOURS = 120
@@ -385,6 +392,10 @@ def init_db():
     add_column_if_not_exists("users", "limit_lose_amount", "DOUBLE PRECISION")
     add_column_if_not_exists("users", "limits_configured_at", "TEXT")
     add_column_if_not_exists("users", "limits_prompt_sent_date", "TEXT")
+    add_column_if_not_exists("users", "coldmind_used_date", "TEXT")
+    add_column_if_not_exists("users", "coldmind_used_today", "INTEGER DEFAULT 0")
+    add_column_if_not_exists("users", "coldmind_used_month", "TEXT")
+    add_column_if_not_exists("users", "coldmind_used_count", "INTEGER DEFAULT 0")
 
     add_column_if_not_exists("promo_codes", "plan_type", "TEXT DEFAULT 'basic'")
 
@@ -1687,6 +1698,122 @@ def increment_analysis_daily_usage(user_id: int):
             analysis_daily_reset_at = COALESCE(analysis_daily_reset_at, ?)
         WHERE user_id = ?
     """, (datetime.now().isoformat(), user_id))
+    conn.commit()
+    conn.close()
+
+
+def _normalize_coldmind_plan(plan: str | None) -> str:
+    plan = (plan or "").strip().lower()
+    if plan == "trial":
+        return "trial"
+    if plan in {"vip", "vip_signals", "stars_vip", "stars_vip_month", "stars_vip_signals_10d", "usdt_vip", "usdt_vip_month", "usdt_vip_signals_10d"}:
+        return "vip"
+    if plan in {"basic", "stars_basic", "stars_basic_month", "stars_basic_week_99", "usdt_basic", "usdt_basic_month"}:
+        return "basic"
+    return "none"
+
+
+def _coldmind_limit_for_plan(plan: str | None) -> tuple[int, str]:
+    normalized = _normalize_coldmind_plan(plan)
+    if normalized == "trial":
+        return COLDMIND_LIMIT_TRIAL_PER_DAY, "day"
+    if normalized == "vip":
+        return COLDMIND_LIMIT_VIP_PER_MONTH, "month"
+    if normalized == "basic":
+        return COLDMIND_LIMIT_BASIC_PER_MONTH, "month"
+    return 0, "none"
+
+
+def reset_coldmind_usage_if_needed(user_id: int, plan: str | None):
+    normalized = _normalize_coldmind_plan(plan)
+    if normalized == "none":
+        return
+
+    now = datetime.now()
+    user = get_user(user_id)
+    if not user:
+        return
+
+    conn = get_conn()
+    cur = conn.cursor()
+    if normalized == "trial":
+        today = now.date().isoformat()
+        if user.get("coldmind_used_date") != today:
+            cur.execute(
+                """
+                UPDATE users
+                SET coldmind_used_date = ?,
+                    coldmind_used_today = 0
+                WHERE user_id = ?
+                """,
+                (today, user_id),
+            )
+            conn.commit()
+    else:
+        month = now.strftime("%Y-%m")
+        if user.get("coldmind_used_month") != month:
+            cur.execute(
+                """
+                UPDATE users
+                SET coldmind_used_month = ?,
+                    coldmind_used_count = 0
+                WHERE user_id = ?
+                """,
+                (month, user_id),
+            )
+            conn.commit()
+    conn.close()
+
+
+def get_coldmind_remaining(user_id: int, plan: str | None) -> tuple[int, int, str]:
+    limit, period_type = _coldmind_limit_for_plan(plan)
+    if limit <= 0:
+        return 0, 0, period_type
+
+    reset_coldmind_usage_if_needed(user_id, plan)
+    user = get_user(user_id)
+    if not user:
+        return 0, limit, period_type
+
+    if period_type == "day":
+        used = int(user.get("coldmind_used_today") or 0)
+    else:
+        used = int(user.get("coldmind_used_count") or 0)
+    remaining = limit - used
+    return (remaining if remaining > 0 else 0), limit, period_type
+
+
+def increment_coldmind_usage(user_id: int, plan: str | None):
+    limit, period_type = _coldmind_limit_for_plan(plan)
+    if limit <= 0:
+        return
+
+    reset_coldmind_usage_if_needed(user_id, plan)
+    now = datetime.now()
+    conn = get_conn()
+    cur = conn.cursor()
+    if period_type == "day":
+        today = now.date().isoformat()
+        cur.execute(
+            """
+            UPDATE users
+            SET coldmind_used_date = ?,
+                coldmind_used_today = COALESCE(coldmind_used_today, 0) + 1
+            WHERE user_id = ?
+            """,
+            (today, user_id),
+        )
+    else:
+        month = now.strftime("%Y-%m")
+        cur.execute(
+            """
+            UPDATE users
+            SET coldmind_used_month = ?,
+                coldmind_used_count = COALESCE(coldmind_used_count, 0) + 1
+            WHERE user_id = ?
+            """,
+            (month, user_id),
+        )
     conn.commit()
     conn.close()
 

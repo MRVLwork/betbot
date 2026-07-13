@@ -474,21 +474,21 @@ def tools_keyboard(lang: str):
         keyboard = [
             [InlineKeyboardButton("🧮 Калькулятор Келли", callback_data="tool_kelly")],
             [InlineKeyboardButton("📊 Лимит банка", callback_data="tool_bank_limit")],
-            [InlineKeyboardButton("🧊 ColdMind AI Agent VIP", callback_data="tool_coach")],
+            [InlineKeyboardButton("🧊 ColdMind AI Agent", callback_data="tool_coach")],
             [InlineKeyboardButton("🔥 Streak дисциплины", callback_data="tool_streak")],
         ]
     elif lang == "en":
         keyboard = [
             [InlineKeyboardButton("🧮 Kelly Calculator", callback_data="tool_kelly")],
             [InlineKeyboardButton("📊 Bank limit", callback_data="tool_bank_limit")],
-            [InlineKeyboardButton("🧊 ColdMind AI Agent VIP", callback_data="tool_coach")],
+            [InlineKeyboardButton("🧊 ColdMind AI Agent", callback_data="tool_coach")],
             [InlineKeyboardButton("🔥 Discipline streak", callback_data="tool_streak")],
         ]
     else:
         keyboard = [
             [InlineKeyboardButton("🧮 Калькулятор Келлі", callback_data="tool_kelly")],
             [InlineKeyboardButton("📊 Ліміт банку", callback_data="tool_bank_limit")],
-            [InlineKeyboardButton("🧊 ColdMind AI Agent VIP", callback_data="tool_coach")],
+            [InlineKeyboardButton("🧊 ColdMind AI Agent", callback_data="tool_coach")],
             [InlineKeyboardButton("🔥 Streak дисципліни", callback_data="tool_streak")],
         ]
     return InlineKeyboardMarkup(keyboard)

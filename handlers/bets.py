@@ -37,6 +37,7 @@ from keyboards import access_keyboard, main_menu_keyboard, welcome_offer_keyboar
 from languages import get_text
 from services.ai_service import analyze_basic_bet_screenshot
 from handlers.tools import handle_ai_analysis_input
+from handlers.limits import build_limit_warning_texts, limit_warning_keyboard
 
 
 LEVEL_NAMES = {
@@ -532,6 +533,30 @@ def _pending_result_prompt(lang: str, is_reminder: bool = False, is_final: bool 
     return texts.get(lang, texts["en"])
 
 
+async def _send_coldmind_limit_warnings(
+    message,
+    user_id: int,
+    lang: str,
+    stake_amount=None,
+    include_stake: bool = True,
+    include_bets_count: bool = True,
+    include_losses: bool = True,
+):
+    warnings = build_limit_warning_texts(
+        user_id,
+        lang,
+        stake_amount=stake_amount,
+        include_stake=include_stake,
+        include_bets_count=include_bets_count,
+        include_losses=include_losses,
+    )
+    for warning in warnings:
+        await message.reply_text(
+            warning,
+            reply_markup=limit_warning_keyboard(lang),
+        )
+
+
 def _first_saved_stats_cta_text(lang: str) -> str:
     if lang == "ru":
         return (
@@ -902,6 +927,14 @@ async def close_bet_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
             name=result_names.get(lang, result_names["en"]).get(result_key, result_key),
         )
     )
+    await _send_coldmind_limit_warnings(
+        query.message,
+        user_id,
+        lang,
+        include_stake=False,
+        include_bets_count=False,
+        include_losses=result_key == "lose",
+    )
     first_bet_saved_now = mark_first_bet_saved(user_id)
     if first_bet_saved_now:
         await query.message.reply_text(
@@ -1135,6 +1168,14 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         first_bet_saved_now = False
         if result.get("bet_result") != "pending":
             first_bet_saved_now = mark_first_bet_saved(user_id)
+
+        await _send_coldmind_limit_warnings(
+            update.message,
+            user_id,
+            lang,
+            stake_amount=result.get("stake_amount"),
+            include_losses=result.get("bet_result") == "lose",
+        )
 
         xp_result = add_xp(user_id, XP_TABLE["add_bet"])
         level_up_result = xp_result

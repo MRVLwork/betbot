@@ -37,14 +37,36 @@ def main_menu_keyboard(lang: str = "ua", plan: str = "basic"):
 
 
 def extra_menu_keyboard(lang: str = "ua"):
-    keyboard = [
-        [KeyboardButton("🧠 AI-розбір")],
-        [KeyboardButton("📅 Підсумки тижня")],
-        [KeyboardButton("🎯 Мій профіль")],
-        [KeyboardButton("🛠 Інструменти")],
-        [KeyboardButton(" Налаштування")],
-        [KeyboardButton(" Назад")],
-    ]
+    if lang == "ru":
+        keyboard = [
+            [KeyboardButton("🧠 AI-разбор")],
+            [KeyboardButton("📅 Итоги недели")],
+            [KeyboardButton("🎯 Мой профиль")],
+            [KeyboardButton("🧊 Мои лимиты")],
+            [KeyboardButton("🛠 Инструменты")],
+            [KeyboardButton(" Настройки")],
+            [KeyboardButton(" Назад")],
+        ]
+    elif lang == "en":
+        keyboard = [
+            [KeyboardButton("🧠 AI analysis")],
+            [KeyboardButton("📅 Weekly recap")],
+            [KeyboardButton("🎯 My profile")],
+            [KeyboardButton("🧊 My limits")],
+            [KeyboardButton("🛠 Tools")],
+            [KeyboardButton(" Settings")],
+            [KeyboardButton(" Back")],
+        ]
+    else:
+        keyboard = [
+            [KeyboardButton("🧠 AI-розбір")],
+            [KeyboardButton("📅 Підсумки тижня")],
+            [KeyboardButton("🎯 Мій профіль")],
+            [KeyboardButton("🧊 Мої ліміти")],
+            [KeyboardButton("🛠 Інструменти")],
+            [KeyboardButton(" Налаштування")],
+            [KeyboardButton(" Назад")],
+        ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
 
 

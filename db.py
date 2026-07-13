@@ -379,6 +379,12 @@ def init_db():
     add_column_if_not_exists("users", "special_offer_shown_at", "TEXT")
     add_column_if_not_exists("users", "analysis_daily_used", "INTEGER DEFAULT 0")
     add_column_if_not_exists("users", "analysis_daily_reset_at", "TEXT")
+    add_column_if_not_exists("users", "limit_stake_amount", "DOUBLE PRECISION")
+    add_column_if_not_exists("users", "limit_bets_count", "INTEGER")
+    add_column_if_not_exists("users", "limit_lose_count", "INTEGER")
+    add_column_if_not_exists("users", "limit_lose_amount", "DOUBLE PRECISION")
+    add_column_if_not_exists("users", "limits_configured_at", "TEXT")
+    add_column_if_not_exists("users", "limits_prompt_sent_date", "TEXT")
 
     add_column_if_not_exists("promo_codes", "plan_type", "TEXT DEFAULT 'basic'")
 
@@ -461,6 +467,183 @@ def get_user(user_id: int):
 
     conn.close()
     return row
+
+
+LIMIT_FIELDS = {
+    "stake_amount": "limit_stake_amount",
+    "bets_count": "limit_bets_count",
+    "lose_count": "limit_lose_count",
+    "lose_amount": "limit_lose_amount",
+}
+
+
+def get_user_limits(user_id: int) -> dict:
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT limit_stake_amount,
+               limit_bets_count,
+               limit_lose_count,
+               limit_lose_amount,
+               limits_configured_at,
+               limits_prompt_sent_date
+        FROM users
+        WHERE user_id = ?
+        """,
+        (user_id,),
+    )
+    row = cur.fetchone()
+    conn.close()
+    return dict(row) if row else {}
+
+
+def get_limit_stake_amount(user_id: int):
+    return get_user_limits(user_id).get("limit_stake_amount")
+
+
+def get_limit_bets_count(user_id: int):
+    return get_user_limits(user_id).get("limit_bets_count")
+
+
+def get_limit_lose_count(user_id: int):
+    return get_user_limits(user_id).get("limit_lose_count")
+
+
+def get_limit_lose_amount(user_id: int):
+    return get_user_limits(user_id).get("limit_lose_amount")
+
+
+def _set_user_limit(user_id: int, field_key: str, value):
+    column = LIMIT_FIELDS.get(field_key)
+    if not column:
+        raise ValueError(f"Unknown limit field: {field_key}")
+
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        f'UPDATE users SET "{column}" = ? WHERE user_id = ?',
+        (value, user_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def set_limit_stake_amount(user_id: int, value: float | None):
+    _set_user_limit(user_id, "stake_amount", value)
+
+
+def set_limit_bets_count(user_id: int, value: int | None):
+    _set_user_limit(user_id, "bets_count", value)
+
+
+def set_limit_lose_count(user_id: int, value: int | None):
+    _set_user_limit(user_id, "lose_count", value)
+
+
+def set_limit_lose_amount(user_id: int, value: float | None):
+    _set_user_limit(user_id, "lose_amount", value)
+
+
+def mark_limits_configured(user_id: int):
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        UPDATE users
+        SET limits_configured_at = COALESCE(limits_configured_at, ?)
+        WHERE user_id = ?
+        """,
+        (datetime.now().isoformat(), user_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def mark_limits_prompt_sent(user_id: int, sent_date: str):
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE users SET limits_prompt_sent_date = ? WHERE user_id = ?",
+        (sent_date, user_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_users_for_limits_prompt(today: str) -> list[dict]:
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT user_id,
+               lang,
+               plan,
+               is_active,
+               access_until,
+               trial_started_at,
+               trial_expires_at,
+               trial_completed,
+               limits_configured_at,
+               limits_prompt_sent_date,
+               limit_stake_amount,
+               limit_bets_count,
+               limit_lose_count,
+               limit_lose_amount
+        FROM users
+        WHERE COALESCE(limits_prompt_sent_date, '') != ?
+        """,
+        (today,),
+    )
+    rows = cur.fetchall()
+    conn.close()
+
+    result = []
+    now = datetime.now()
+    for row in rows:
+        user_id = int(row["user_id"])
+        if user_has_access(user_id):
+            result.append(dict(row))
+            continue
+        if int(row.get("trial_completed") or 0) == 1:
+            continue
+        trial_started = row.get("trial_started_at")
+        if not trial_started:
+            continue
+        trial_expires = row.get("trial_expires_at")
+        try:
+            expires = (
+                datetime.fromisoformat(trial_expires)
+                if trial_expires else
+                datetime.fromisoformat(trial_started) + timedelta(hours=TRIAL_DURATION_HOURS)
+            )
+        except Exception:
+            continue
+        if expires > now:
+            result.append(dict(row))
+    return result
+
+
+def get_daily_limit_usage(user_id: int) -> dict:
+    from bets_db import _get_rows_between
+
+    now = datetime.now()
+    start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    rows = _get_rows_between(user_id, start, now, include_trial=should_include_trial(user_id))
+    parsed = [row for row in rows if row.get("parse_status") == "parsed"]
+    losses = [row for row in parsed if (row.get("bet_result") or "").lower() == "lose"]
+    lose_amount = 0.0
+    for row in losses:
+        profit = row.get("profit")
+        if profit is not None and float(profit or 0) < 0:
+            lose_amount += abs(float(profit or 0))
+        else:
+            lose_amount += float(row.get("stake_amount") or 0)
+    return {
+        "bets_count": len(parsed),
+        "lose_count": len(losses),
+        "lose_amount": round(lose_amount, 2),
+    }
 
 
 def get_user_display_info(user_id: int) -> str:

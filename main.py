@@ -38,10 +38,12 @@ from db import (
     is_trial_available,
     can_view_basic_stats,
     get_users_for_delayed_offer,
+    get_users_for_limits_prompt,
     get_users_for_trial_reminders,
     get_subscription_type,
     has_user_ever_paid,
     is_special_offer_shown,
+    mark_limits_prompt_sent,
     mark_special_offer_shown,
     mark_trial_reminder_2days_sent,
     mark_trial_reminder_24h_sent,
@@ -117,6 +119,12 @@ from handlers.bets import (
 )
 from handlers.coach import coach_end_callback, handle_coach_message, open_coach
 from handlers.discipline import show_streak
+from handlers.limits import (
+    handle_limit_value_input,
+    limits_callback_handler,
+    open_limits_menu,
+    send_limits_prompt,
+)
 from handlers.profile import profile_callback_handler, show_profile
 from handlers.tools import (
     open_tools_menu,
@@ -606,6 +614,18 @@ async def send_delayed_special_offers(application):
             print(f"delayed special offer error for {user_id}: {e}")
 
 
+async def send_daily_limits_prompts(application):
+    today = datetime.now(ZoneInfo("Europe/Kiev")).date().isoformat()
+    users = get_users_for_limits_prompt(today)
+    for user in users:
+        user_id = user["user_id"]
+        try:
+            await send_limits_prompt(application.bot, user, today)
+            mark_limits_prompt_sent(user_id, today)
+        except Exception as e:
+            print(f"daily limits prompt error for {user_id}: {e}")
+
+
 def _trial_reminder_2days_text(lang: str) -> str:
     if lang == "ru":
         return (
@@ -707,6 +727,16 @@ async def post_init(application):
         minute=0,
         timezone="Europe/Kiev",
         id="daily_insights",
+        args=[application],
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        send_daily_limits_prompts,
+        trigger="cron",
+        hour=10,
+        minute=1,
+        timezone="Europe/Kiev",
+        id="daily_limits_prompts",
         args=[application],
         replace_existing=True,
     )
@@ -1319,6 +1349,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🔒 Full stats  Basic/VIP only",
         "📊 Wrapped",
         "🧊 ColdMind AI Agent", "🔒 ColdMind AI Agent VIP",
+        "🧊 Мої ліміти", "🧊 Мои лимиты", "🧊 My limits",
         "🧠 Аналітика", "🧠 Аналитика", "🧠 Analytics",
         "🛠 Усі інструменти", "🛠 Все инструменты", "🛠 All tools",
         "💳 Купити доступ", "💳 Купить доступ", "💳 Buy access",
@@ -1343,6 +1374,10 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if context.user_data.get("awaiting_bank_limit"):
         await handle_bank_limit_input(update, context)
+        return ConversationHandler.END
+
+    if context.user_data.get("awaiting_limit_field"):
+        await handle_limit_value_input(update, context)
         return ConversationHandler.END
 
     if context.user_data.pop("awaiting_settings_promo", None):
@@ -1421,6 +1456,8 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     elif text in ("📅 Підсумки тижня", "📅 Итоги недели", "📅 Weekly recap", "📊 Wrapped"):
         await send_weekly_wrap(update, context)
+    elif text in ("🧊 Мої ліміти", "🧊 Мои лимиты", "🧊 My limits"):
+        await open_limits_menu(update, context)
     elif text in ("🧊 ColdMind AI Agent", "🔒 ColdMind AI Agent VIP"):
         await open_coach(update, context)
     elif text in ("🧠 AI-розбір", "🧠 AI-разбор", "🧠 AI analysis"):
@@ -1832,6 +1869,7 @@ def main():
     app.add_handler(CallbackQueryHandler(language_handler, pattern="^lang_"))
     app.add_handler(CallbackQueryHandler(settings_callback_handler, pattern="^settings_"))
     app.add_handler(CallbackQueryHandler(profile_callback_handler, pattern="^profile_"))
+    app.add_handler(CallbackQueryHandler(limits_callback_handler, pattern="^limits_"))
     app.add_handler(CallbackQueryHandler(coach_end_callback, pattern="^coach_end$"))
     app.add_handler(CallbackQueryHandler(tilt_warning_callback_handler, pattern="^tilt_warning_"))
     app.add_handler(CallbackQueryHandler(emotion_callback_handler, pattern="^emotion_"))

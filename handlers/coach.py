@@ -18,9 +18,9 @@ def _normalize_lang(lang: str) -> str:
 
 def _coach_end_keyboard(lang: str) -> InlineKeyboardMarkup:
     labels = {
-        "ua": "✅ Завершити чат з тренером",
-        "ru": "✅ Завершить чат с тренером",
-        "en": "✅ End coach chat",
+        "ua": "✅ Завершити чат з ColdMind AI Agent",
+        "ru": "✅ Завершить чат с ColdMind AI Agent",
+        "en": "✅ End ColdMind AI Agent chat",
     }
     return InlineKeyboardMarkup([
         [InlineKeyboardButton(labels.get(lang, labels["en"]), callback_data="coach_end")]
@@ -37,9 +37,9 @@ async def open_coach(update: Update, context: ContextTypes.DEFAULT_TYPE):
     plan = (user.get("plan") or "basic").lower()
     if not ((user_has_access(user_id) and is_vip(plan)) or has_vip_signals_access(user_id)):
         texts = {
-            "ua": "🧠 AI Тренер доступний тільки для VIP підписки\n👇 Оновити підписку",
-            "ru": "🧠 AI Тренер доступен только для VIP подписки\n👇 Обновить подписку",
-            "en": "🧠 AI Coach is available only with VIP subscription\n👇 Upgrade your plan",
+            "ua": "🧊 ColdMind AI Agent доступний тільки для VIP підписки\n👇 Оновити підписку",
+            "ru": "🧊 ColdMind AI Agent доступен только для VIP подписки\n👇 Обновить подписку",
+            "en": "🧊 ColdMind AI Agent is available only with VIP subscription\n👇 Upgrade your plan",
         }
         await update.message.reply_text(texts[lang], reply_markup=access_keyboard(lang))
         return
@@ -56,9 +56,9 @@ async def open_coach(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     context.user_data["awaiting_coach_reply"] = True
     prompts = {
-        "ua": "🧠 Запитай мене про свою статистику або стратегію:",
-        "ru": "🧠 Спроси меня о своей статистике или стратегии:",
-        "en": "🧠 Ask me about your stats or strategy:",
+        "ua": "🧊 ColdMind AI Agent\n\nЗапитай мене про свою статистику або стратегію:",
+        "ru": "🧊 ColdMind AI Agent\n\nСпроси меня о своей статистике или стратегии:",
+        "en": "🧊 ColdMind AI Agent\n\nAsk me about your stats or strategy:",
     }
     await update.message.reply_text(prompts[lang], reply_markup=_coach_end_keyboard(lang))
 
@@ -75,13 +75,13 @@ async def handle_coach_message(update: Update, context: ContextTypes.DEFAULT_TYP
     plan = (user.get("plan") or "basic").lower()
     coach_plan = "vip_signals" if has_vip_signals_access(user_id) else plan
 
-    if update.message.text in {"✅ Завершити чат з тренером", "✅ Завершить чат с тренером", "✅ End coach chat"}:
+    if update.message.text in {"✅ Завершити чат з ColdMind AI Agent", "✅ Завершить чат с ColdMind AI Agent", "✅ End ColdMind AI Agent chat"}:
         return
 
     processing = {
-        "ua": "🧠 Аналізую твою статистику...",
-        "ru": "🧠 Анализирую твою статистику...",
-        "en": "🧠 Analyzing your stats...",
+        "ua": "🧊 Аналізую твою статистику...",
+        "ru": "🧊 Анализирую твою статистику...",
+        "en": "🧊 Analyzing your stats...",
     }
     await update.message.reply_text(processing[lang])
 
@@ -98,9 +98,9 @@ async def coach_end_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
     context.user_data.pop("awaiting_coach_reply", None)
 
     texts = {
-        "ua": "Чат з AI тренером завершено.",
-        "ru": "Чат с AI тренером завершен.",
-        "en": "AI coach chat ended.",
+        "ua": "Чат з ColdMind AI Agent завершено.",
+        "ru": "Чат с ColdMind AI Agent завершен.",
+        "en": "ColdMind AI Agent chat ended.",
     }
 
     await query.message.edit_reply_markup(None)

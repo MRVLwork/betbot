@@ -120,17 +120,17 @@ def _daily_limit_reached_text(lang: str, plan: str, limit: int) -> str:
     texts = {
         "ua": {
             "trial": f"🚫 Ліміт на сьогодні: {limit}/{limit} скрінів використано\n\nВ Basic: аналіз 15 ставок/день\nВ VIP: анализ 30 ставок/день\n\n👇 Оновити план",
-            "basic": f"🚫 Ліміт на сьогодні: {limit}/{limit} скрінів використано\n\nВ VIP: аналіз 30 ставок/день + AI Тренер\n\n👇 Оновити до VIP",
+            "basic": f"🚫 Ліміт на сьогодні: {limit}/{limit} скрінів використано\n\nВ VIP: аналіз 30 ставок/день + 🧊 ColdMind AI Agent\n\n👇 Оновити до VIP",
             "vip": f"🚫 Ліміт на сьогодні: {limit}/{limit} скрінів використано\nПовернись завтра 🌙",
         },
         "ru": {
             "trial": f"🚫 Лимит на сегодня: {limit}/{limit} скринов использовано\n\nВ Basic: анализ 15 ставок/день\nВ VIP: анализ 30 ставок/день\n\n👇 Обновить план",
-            "basic": f"🚫 Лимит на сегодня: {limit}/{limit} скринов использовано\n\nВ VIP: анализ 30 ставок/день + AI Тренер\n\n👇 Обновить до VIP",
+            "basic": f"🚫 Лимит на сегодня: {limit}/{limit} скринов использовано\n\nВ VIP: анализ 30 ставок/день + 🧊 ColdMind AI Agent\n\n👇 Обновить до VIP",
             "vip": f"🚫 Лимит на сегодня: {limit}/{limit} скринов использовано\nВозвращайся завтра 🌙",
         },
         "en": {
             "trial": f"🚫 Today's limit reached: {limit}/{limit} screenshots used\n\nIn Basic: 15 screenshots/day\nIn VIP: 30 screenshots/day\n\n👇 Upgrade plan",
-            "basic": f"🚫 Today's limit reached: {limit}/{limit} screenshots used\n\nIn VIP: 30 screenshots/day + AI Coach\n\n👇 Upgrade to VIP",
+            "basic": f"🚫 Today's limit reached: {limit}/{limit} screenshots used\n\nIn VIP: 30 screenshots/day + 🧊 ColdMind AI Agent\n\n👇 Upgrade to VIP",
             "vip": f"🚫 Today's limit reached: {limit}/{limit} screenshots used\nCome back tomorrow 🌙",
         },
     }

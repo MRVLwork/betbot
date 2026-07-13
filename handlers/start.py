@@ -166,7 +166,7 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
                 " VIP 1 місяць  $19.99\n"
                 "🔥 AI Прогнози Basic + VIP\n"
                 " 30 скрінів на день\n"
-                " AI Тренер\n"
+                " 🧊 ColdMind AI Agent\n"
                 " Всі функції без обмежень"
             ),
             "ru": (
@@ -179,7 +179,7 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
                 " VIP 1 месяц  $19.99\n"
                 "🔥 AI Прогнозы Basic + VIP\n"
                 " 30 скринов в день\n"
-                " AI Тренер\n"
+                " 🧊 ColdMind AI Agent\n"
                 " Все функции без ограничений"
             ),
             "en": (
@@ -192,7 +192,7 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
                 " VIP 1 month  $19.99\n"
                 "🔥 Basic + VIP AI Predictions\n"
                 " 30 screenshots per day\n"
-                " AI Coach\n"
+                " 🧊 ColdMind AI Agent\n"
                 " All features unlimited"
             ),
         }[lang]

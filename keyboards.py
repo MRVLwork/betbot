@@ -12,12 +12,27 @@ def welcome_offer_keyboard(lang: str):
 
 
 def main_menu_keyboard(lang: str = "ua", plan: str = "basic"):
-    keyboard = [
-        [KeyboardButton("🔥 AI-сигнали")],
-        [KeyboardButton("💎 Отримати VIP")],
-        [KeyboardButton("📸 Додати ставку")],
-        [KeyboardButton("📊 Моя статистика"), KeyboardButton(" Ще")],
-    ]
+    if lang == "ru":
+        keyboard = [
+            [KeyboardButton("🔥 AI-сигналы")],
+            [KeyboardButton("💎 Получить VIP")],
+            [KeyboardButton("🧊 ColdMind AI Agent"), KeyboardButton("📸 Добавить ставку")],
+            [KeyboardButton("📊 Моя статистика"), KeyboardButton("Ещё")],
+        ]
+    elif lang == "en":
+        keyboard = [
+            [KeyboardButton("🔥 AI Signals")],
+            [KeyboardButton("💎 Get VIP")],
+            [KeyboardButton("🧊 ColdMind AI Agent"), KeyboardButton("📸 Add bet")],
+            [KeyboardButton("📊 My stats"), KeyboardButton("More")],
+        ]
+    else:
+        keyboard = [
+            [KeyboardButton("🔥 AI-сигнали")],
+            [KeyboardButton("💎 Отримати VIP")],
+            [KeyboardButton("🧊 ColdMind AI Agent"), KeyboardButton("📸 Додати ставку")],
+            [KeyboardButton("📊 Моя статистика"), KeyboardButton("Ще")],
+        ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
 
 
@@ -437,21 +452,21 @@ def tools_keyboard(lang: str):
         keyboard = [
             [InlineKeyboardButton("🧮 Калькулятор Келли", callback_data="tool_kelly")],
             [InlineKeyboardButton("📊 Лимит банка", callback_data="tool_bank_limit")],
-            [InlineKeyboardButton("🧠 AI Тренер VIP", callback_data="tool_coach")],
+            [InlineKeyboardButton("🧊 ColdMind AI Agent VIP", callback_data="tool_coach")],
             [InlineKeyboardButton("🔥 Streak дисциплины", callback_data="tool_streak")],
         ]
     elif lang == "en":
         keyboard = [
             [InlineKeyboardButton("🧮 Kelly Calculator", callback_data="tool_kelly")],
             [InlineKeyboardButton("📊 Bank limit", callback_data="tool_bank_limit")],
-            [InlineKeyboardButton("🧠 AI Coach VIP", callback_data="tool_coach")],
+            [InlineKeyboardButton("🧊 ColdMind AI Agent VIP", callback_data="tool_coach")],
             [InlineKeyboardButton("🔥 Discipline streak", callback_data="tool_streak")],
         ]
     else:
         keyboard = [
             [InlineKeyboardButton("🧮 Калькулятор Келлі", callback_data="tool_kelly")],
             [InlineKeyboardButton("📊 Ліміт банку", callback_data="tool_bank_limit")],
-            [InlineKeyboardButton("🧠 AI Тренер VIP", callback_data="tool_coach")],
+            [InlineKeyboardButton("🧊 ColdMind AI Agent VIP", callback_data="tool_coach")],
             [InlineKeyboardButton("🔥 Streak дисципліни", callback_data="tool_streak")],
         ]
     return InlineKeyboardMarkup(keyboard)

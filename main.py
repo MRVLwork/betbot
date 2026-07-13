@@ -179,7 +179,7 @@ def _trial_stats_upsell_text(lang: str) -> str:
             "\U0001F4C8 \u041f\u0440\u043e\u0444\u0456\u043b\u044c \u0431\u0435\u0442\u0442\u0435\u0440\u0430\n\n"
             "Що отримаєш у VIP - $19.99/міс:\n"
             "🔥 AI Прогнози Basic + VIP\n"
-            "\U0001F9E0 AI \u0422\u0440\u0435\u043d\u0435\u0440 (\u043f\u0435\u0440\u0441\u043e\u043d\u0430\u043b\u044c\u043d\u0438\u0439 \u0440\u043e\u0437\u0431\u0456\u0440)\n"
+            "\U0001F9CA ColdMind AI Agent (\u043f\u0435\u0440\u0441\u043e\u043d\u0430\u043b\u044c\u043d\u0438\u0439 \u0440\u043e\u0437\u0431\u0456\u0440)\n"
             "\U0001F4CA \u041f\u043e\u0433\u043b\u0438\u0431\u043b\u0435\u043d\u0430 \u0430\u043d\u0430\u043b\u0456\u0442\u0438\u043a\u0430 \u043f\u043e \u0440\u0438\u043d\u043a\u0430\u0445\n"
             "\U0001F4CA 30 \u0441\u043a\u0440\u0456\u043d\u0456\u0432 \u043d\u0430 \u0434\u0435\u043d\u044c\n"
             "\U0001F3C6 \u0412\u0441\u0456 \u0444\u0443\u043d\u043a\u0446\u0456\u0457 \u0431\u0435\u0437 \u043e\u0431\u043c\u0435\u0436\u0435\u043d\u044c\n\n"
@@ -201,7 +201,7 @@ def _trial_stats_upsell_text(lang: str) -> str:
             "\U0001F4C8 \u041f\u0440\u043e\u0444\u0438\u043b\u044c \u0431\u0435\u0442\u0442\u0435\u0440\u0430\n\n"
             "Что получишь в VIP - $19.99/мес:\n"
             "🔥 AI Прогнозы Basic + VIP\n"
-            "\U0001F9E0 AI \u0422\u0440\u0435\u043d\u0435\u0440 (\u043f\u0435\u0440\u0441\u043e\u043d\u0430\u043b\u044c\u043d\u044b\u0439 \u0440\u0430\u0437\u0431\u043e\u0440)\n"
+            "\U0001F9CA ColdMind AI Agent (\u043f\u0435\u0440\u0441\u043e\u043d\u0430\u043b\u044c\u043d\u044b\u0439 \u0440\u0430\u0437\u0431\u043e\u0440)\n"
             "\U0001F4CA \u0423\u0433\u043b\u0443\u0431\u043b\u0451\u043d\u043d\u0430\u044f \u0430\u043d\u0430\u043b\u0438\u0442\u0438\u043a\u0430 \u043f\u043e \u0440\u044b\u043d\u043a\u0430\u043c\n"
             "\U0001F4CA 30 \u0441\u043a\u0440\u0438\u043d\u043e\u0432 \u0432 \u0434\u0435\u043d\u044c\n"
             "\U0001F3C6 \u0412\u0441\u0435 \u0444\u0443\u043d\u043a\u0446\u0438\u0438 \u0431\u0435\u0437 \u043e\u0433\u0440\u0430\u043d\u0438\u0447\u0435\u043d\u0438\u0439\n\n"
@@ -223,7 +223,7 @@ def _trial_stats_upsell_text(lang: str) -> str:
             "\U0001F4C8 Bettor profile\n\n"
             "What you get in VIP - $19.99/mo:\n"
             "🔥 Basic + VIP AI Predictions\n"
-            "\U0001F9E0 AI Coach (personal analysis)\n"
+            "\U0001F9CA ColdMind AI Agent (personal analysis)\n"
             "\U0001F4CA Deep market analytics\n"
             "\U0001F4CA 30 screenshots per day\n"
             "\U0001F3C6 All features unlimited\n\n"
@@ -289,7 +289,7 @@ def _trial_day3_text(lang: str, stats: dict) -> str:
             f"Завтра ты потеряешь:\n"
             f"🔥 AI Прогнозы дня (готовые ставки)\n"
             f"📊 Полную статистику и ROI\n"
-            f"🧠 AI Тренера\n\n"
+            f"🧊 ColdMind AI Agent\n\n"
             f"💰 Продолжай зарабатывать умнее -\n"
             f"активируй подписку 👇"
         )
@@ -299,7 +299,7 @@ def _trial_day3_text(lang: str, stats: dict) -> str:
             f"Tomorrow you'll lose:\n"
             f"🔥 AI Predictions of the day (ready picks)\n"
             f"📊 Full stats and ROI\n"
-            f"🧠 AI Coach\n\n"
+            f"🧊 ColdMind AI Agent\n\n"
             f"💰 Keep betting smarter -\n"
             f"activate a subscription 👇"
         )
@@ -308,7 +308,7 @@ def _trial_day3_text(lang: str, stats: dict) -> str:
         f"Завтра ти втратиш:\n"
         f"🔥 AI Прогнози дня (готові ставки)\n"
         f"📊 Повну статистику і ROI\n"
-        f"🧠 AI Тренера\n\n"
+        f"🧊 ColdMind AI Agent\n\n"
         f"💰 Продовжуй заробляти розумніше -\n"
         f"активуй підписку 👇"
     )
@@ -323,7 +323,7 @@ def _trial_expired_text(lang: str, stats: dict) -> str:
             f"Теперь ты потерял:\n"
             f"🔥 AI Прогнозы дня (готовые ставки)\n"
             f"📊 Полную статистику и ROI\n"
-            f"🧠 AI Тренера\n\n"
+            f"🧊 ColdMind AI Agent\n\n"
             f"💰 Продолжай зарабатывать умнее -\n"
             f"активируй подписку 👇"
         )
@@ -333,7 +333,7 @@ def _trial_expired_text(lang: str, stats: dict) -> str:
             f"You've now lost:\n"
             f"🔥 AI Predictions of the day (ready picks)\n"
             f"📊 Full stats and ROI\n"
-            f"🧠 AI Coach\n\n"
+            f"🧊 ColdMind AI Agent\n\n"
             f"💰 Keep betting smarter -\n"
             f"activate a subscription 👇"
         )
@@ -342,7 +342,7 @@ def _trial_expired_text(lang: str, stats: dict) -> str:
         f"Тепер ти втратив:\n"
         f"🔥 AI Прогнози дня (готові ставки)\n"
         f"📊 Повну статистику і ROI\n"
-        f"🧠 AI Тренера\n\n"
+        f"🧊 ColdMind AI Agent\n\n"
         f"💰 Продовжуй заробляти розумніше -\n"
         f"активуй підписку 👇"
     )
@@ -1301,7 +1301,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return ConversationHandler.END
 
-    if text in ("Ще", " Ще", "Меню", " Меню", "More", " More", "Menu", " Menu"):
+    if text in ("Ще", " Ще", "Ещё", " Ещё", "Еще", " Еще", "Меню", " Меню", "More", " More", "Menu", " Menu"):
         await update.message.reply_text(
             "Додаткові можливості\nОбери потрібний розділ:",
             reply_markup=extra_menu_keyboard(lang)
@@ -1318,7 +1318,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🔒 Полная статистика  только Basic/VIP",
         "🔒 Full stats  Basic/VIP only",
         "📊 Wrapped",
-        "🧠 AI Тренер", "🧠 AI Coach", "🔒 AI Тренер VIP", "🔒 AI Coach VIP",
+        "🧊 ColdMind AI Agent", "🔒 ColdMind AI Agent VIP",
         "🧠 Аналітика", "🧠 Аналитика", "🧠 Analytics",
         "🛠 Усі інструменти", "🛠 Все инструменты", "🛠 All tools",
         "💳 Купити доступ", "💳 Купить доступ", "💳 Buy access",
@@ -1421,7 +1421,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     elif text in ("📅 Підсумки тижня", "📅 Итоги недели", "📅 Weekly recap", "📊 Wrapped"):
         await send_weekly_wrap(update, context)
-    elif text in ("🧠 AI Тренер", "🧠 AI Coach", "🔒 AI Тренер VIP", "🔒 AI Coach VIP"):
+    elif text in ("🧊 ColdMind AI Agent", "🔒 ColdMind AI Agent VIP"):
         await open_coach(update, context)
     elif text in ("🧠 AI-розбір", "🧠 AI-разбор", "🧠 AI analysis"):
         if not user_has_access(user_id):
@@ -1603,7 +1603,7 @@ async def open_vip_subscription(update, context):
                 "Що ти отримаєш:\n"
                 " ✅ AI Прогнози Basic + VIP (готові ставки)\n"
                 " ✅ 30 скрінів на день\n"
-                " ✅ AI Тренер з персональним аналізом\n"
+                " ✅ 🧊 ColdMind AI Agent з персональним аналізом\n"
                 " ✅ Повна статистика з емоціями\n"
                 " ✅ Калькулятор Келлі + Ліміт банку\n\n"
                 "💰 Знижки на 3 і 6 місяців\n"
@@ -1616,7 +1616,7 @@ async def open_vip_subscription(update, context):
                 "Что ты получишь:\n"
                 " ✅ AI Прогнозы Basic + VIP (готовые ставки)\n"
                 " ✅ 30 скринов в день\n"
-                " ✅ AI Тренер с персональным анализом\n"
+                " ✅ 🧊 ColdMind AI Agent с персональным анализом\n"
                 " ✅ Полная статистика с эмоциями\n"
                 " ✅ Калькулятор Келли + Лимит банка\n\n"
                 "💰 Скидки на 3 и 6 месяцев\n"
@@ -1629,7 +1629,7 @@ async def open_vip_subscription(update, context):
                 "What you get:\n"
                 " ✅ Basic + VIP AI Predictions (ready picks)\n"
                 " ✅ 30 screens per day\n"
-                " ✅ AI Coach with personal analysis\n"
+                " ✅ 🧊 ColdMind AI Agent with personal analysis\n"
                 " ✅ Full stats with emotions\n"
                 " ✅ Kelly Calculator + Bank Limit\n\n"
                 "💰 Discounts on 3 and 6 months\n"
@@ -1643,7 +1643,7 @@ async def open_vip_subscription(update, context):
                 "Що ти отримаєш:\n"
                 " ✅ AI Прогнози Basic + VIP (готові ставки)\n"
                 " ✅ 30 скрінів на день\n"
-                " ✅ AI Тренер з персональним аналізом\n"
+                " ✅ 🧊 ColdMind AI Agent з персональним аналізом\n"
                 " ✅ Повна статистика з емоціями\n"
                 " ✅ Калькулятор Келлі + Ліміт банку\n\n"
                 "Обери план нижче:"
@@ -1653,7 +1653,7 @@ async def open_vip_subscription(update, context):
                 "Что ты получишь:\n"
                 " ✅ AI Прогнозы Basic + VIP (готовые ставки)\n"
                 " ✅ 30 скринов в день\n"
-                " ✅ AI Тренер с персональным анализом\n"
+                " ✅ 🧊 ColdMind AI Agent с персональным анализом\n"
                 " ✅ Полная статистика с эмоциями\n"
                 " ✅ Калькулятор Келли + Лимит банка\n\n"
                 "Выбери план ниже:"
@@ -1663,7 +1663,7 @@ async def open_vip_subscription(update, context):
                 "What you get:\n"
                 " ✅ Basic + VIP AI Predictions (ready picks)\n"
                 " ✅ 30 screens per day\n"
-                " ✅ AI Coach with personal analysis\n"
+                " ✅ 🧊 ColdMind AI Agent with personal analysis\n"
                 " ✅ Full stats with emotions\n"
                 " ✅ Kelly Calculator + Bank Limit\n\n"
                 "Choose your plan below:"

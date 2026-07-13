@@ -350,18 +350,18 @@ COACH_TOOLS = [
 
 def _coach_no_access_text(lang: str) -> str:
     if lang.startswith("ru"):
-        return "AI Тренер доступен только для VIP-подписки."
+        return "ColdMind AI Agent доступен только для VIP-подписки."
     if lang.startswith("ua"):
-        return "AI Тренер доступний тільки для VIP-підписки."
-    return "AI Coach is available only for VIP users."
+        return "ColdMind AI Agent доступний тільки для VIP-підписки."
+    return "ColdMind AI Agent is available only for VIP users."
 
 
 def _coach_service_error_text(lang: str) -> str:
     if lang.startswith("ru"):
-        return "Не удалось получить ответ AI тренера. Попробуй ещё раз."
+        return "Не удалось получить ответ ColdMind AI Agent. Попробуй ещё раз."
     if lang.startswith("ua"):
-        return "Не вдалося отримати відповідь AI тренера. Спробуй ще раз."
-    return "Failed to get an AI coach reply. Try again."
+        return "Не вдалося отримати відповідь ColdMind AI Agent. Спробуй ще раз."
+    return "Failed to get a ColdMind AI Agent reply. Try again."
 
 
 def _coach_low_data_text(lang: str) -> str:
@@ -381,7 +381,7 @@ def _coach_limit_text(lang: str) -> str:
 
 
 def _coach_system_prompt(lang: str) -> str:
-    return f"""Ти персональний AI-тренер з беттингу.
+    return f"""Ти ColdMind AI Agent, персональний AI-агент з беттингу.
 Мова відповіді: {lang}. Відповідай мовою юзера: ua/ru/en.
 
 У тебе є інструменти для отримання точних даних про ставки юзера.
@@ -444,7 +444,7 @@ def _execute_coach_tool(user_id: int, name: str, arguments: str) -> dict:
 
 async def ai_coach_reply(user_id: int, user_message: str, lang: str, plan: str) -> str:
     """
-    Personal AI coach. Uses tool-calls for exact betting stats and never injects
+    Personal ColdMind AI Agent. Uses tool-calls for exact betting stats and never injects
     calculated numbers directly into the prompt.
     """
     lang = (lang or "en").lower()

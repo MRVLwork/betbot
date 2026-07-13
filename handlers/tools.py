@@ -438,7 +438,7 @@ async def tools_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
         if has_coach_access:
             texts = {
                 "ua": (
-                    "🧠 *AI Тренер*\n\n"
+                    "🧊 *ColdMind AI Agent*\n\n"
                     "Запитай мене про свою статистику\n"
                     "або стратегію ставок.\n\n"
                     "Наприклад:\n"
@@ -447,7 +447,7 @@ async def tools_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
                     " На чому я найкраще заробляю?"
                 ),
                 "ru": (
-                    "🧠 *AI Тренер*\n\n"
+                    "🧊 *ColdMind AI Agent*\n\n"
                     "Спроси меня о своей статистике\n"
                     "или стратегии ставок.\n\n"
                     "Например:\n"
@@ -456,7 +456,7 @@ async def tools_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
                     " На чём я лучше всего зарабатываю?"
                 ),
                 "en": (
-                    "🧠 *AI Coach*\n\n"
+                    "🧊 *ColdMind AI Agent*\n\n"
                     "Ask me about your stats\n"
                     "or betting strategy.\n\n"
                     "For example:\n"
@@ -472,9 +472,9 @@ async def tools_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
             )
         else:
             texts = {
-                "ua": "🧠 AI Тренер доступний у VIP підписці.",
-                "ru": "🧠 AI Тренер доступен в VIP подписке.",
-                "en": "🧠 AI Coach is available with VIP subscription.",
+                "ua": "🧊 ColdMind AI Agent доступний у VIP підписці.",
+                "ru": "🧊 ColdMind AI Agent доступен в VIP подписке.",
+                "en": "🧊 ColdMind AI Agent is available with VIP subscription.",
             }
             await query.message.reply_text(
                 texts.get(lang, texts["ua"]),

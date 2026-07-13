@@ -1078,7 +1078,7 @@ def _get_rows_between(user_id: int, start_dt, end_dt, include_trial: bool = Fals
         WHERE user_id = ?
           AND created_at >= ?
           AND created_at <= ?
-          AND COALESCE(is_trial, 0) = ?
+          AND (? = 1 OR COALESCE(is_trial, 0) = 0)
         ORDER BY created_at ASC
     """,
         (
@@ -1239,7 +1239,7 @@ def _coach_period_bounds(period: str | None):
     return datetime(1970, 1, 1), now, "all"
 
 
-def _coach_rows(user_id: int, period: str | None = "all", include_trial: bool = False) -> tuple[list[dict], str]:
+def _coach_rows(user_id: int, period: str | None = "all", include_trial: bool = True) -> tuple[list[dict], str]:
     start_dt, end_dt, normalized_period = _coach_period_bounds(period)
     rows = _get_rows_between(user_id, start_dt, end_dt, include_trial=include_trial)
     parsed_rows = [dict(row) for row in rows if row.get("parse_status") == "parsed"]
@@ -1358,7 +1358,7 @@ def _coach_public_stats(stats: dict) -> dict:
 
 
 def tool_get_overall_stats(user_id: int, period: str = "all") -> dict:
-    rows, normalized_period = _coach_rows(user_id, period)
+    rows, normalized_period = _coach_rows(user_id, period, include_trial=True)
     return {
         "ok": True,
         "period": normalized_period,
@@ -1366,17 +1366,19 @@ def tool_get_overall_stats(user_id: int, period: str = "all") -> dict:
     }
 
 
-def tool_get_last_bet(user_id: int) -> dict:
+def tool_get_last_bet(user_id: int, include_trial: bool = True) -> dict:
     conn = get_conn()
     cur = conn.cursor()
     try:
+        trial_filter = "" if include_trial else "AND COALESCE(is_trial, 0) = 0"
         cur.execute(
-            """
+            f"""
             SELECT id, stake_amount, odds, bet_result, currency, parse_status, bet_type,
                    bet_market, bet_subtype, emotion, profit, created_at
             FROM bets
             WHERE user_id = ?
               AND parse_status = 'parsed'
+              {trial_filter}
             ORDER BY created_at DESC, id DESC
             LIMIT 1
             """,
@@ -1414,7 +1416,7 @@ def tool_get_avg_odds(
     sport: str | None = None,
     period: str = "all",
 ) -> dict:
-    rows, normalized_period = _coach_rows(user_id, period)
+    rows, normalized_period = _coach_rows(user_id, period, include_trial=True)
     rows = _coach_filter_rows(rows, bet_type=bet_type, bet_market=bet_market, sport=sport)
     odds_values = [_safe_float(row.get("odds")) for row in rows if _safe_float(row.get("odds")) > 0]
     avg_odds = round(sum(odds_values) / len(odds_values), 2) if odds_values else 0.0
@@ -1430,7 +1432,7 @@ def tool_get_avg_odds(
 
 
 def tool_get_stats_by_sport(user_id: int, sport: str, period: str = "all") -> dict:
-    rows, normalized_period = _coach_rows(user_id, period)
+    rows, normalized_period = _coach_rows(user_id, period, include_trial=True)
     rows = _coach_filter_rows(rows, sport=sport)
     stats = _calc_stats(rows)
     return {
@@ -1444,7 +1446,7 @@ def tool_get_stats_by_sport(user_id: int, sport: str, period: str = "all") -> di
 
 
 def tool_get_bets_by_result(user_id: int, result: str, period: str = "all") -> dict:
-    rows, normalized_period = _coach_rows(user_id, period)
+    rows, normalized_period = _coach_rows(user_id, period, include_trial=True)
     rows = _coach_filter_rows(rows, result=result)
     stats = _calc_stats(rows)
     return {

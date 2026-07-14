@@ -396,6 +396,13 @@ def init_db():
     add_column_if_not_exists("users", "coldmind_used_today", "INTEGER DEFAULT 0")
     add_column_if_not_exists("users", "coldmind_used_month", "TEXT")
     add_column_if_not_exists("users", "coldmind_used_count", "INTEGER DEFAULT 0")
+    add_column_if_not_exists("users", "vip_week_started_at", "TEXT")
+    add_column_if_not_exists("users", "vip_week_is_promo", "INTEGER DEFAULT 0")
+    add_column_if_not_exists("users", "vip_welcome_sent", "TEXT")
+    add_column_if_not_exists("users", "vip_midweek_sent", "TEXT")
+    add_column_if_not_exists("users", "vip_pre_end_sent", "TEXT")
+    add_column_if_not_exists("users", "vip_ended_sent", "TEXT")
+    add_column_if_not_exists("users", "vip_winback_sent", "TEXT")
 
     add_column_if_not_exists("promo_codes", "plan_type", "TEXT DEFAULT 'basic'")
 
@@ -886,7 +893,7 @@ def is_eligible_for_first_payment_promo(user_id: int) -> bool:
     return not has_user_ever_paid(user_id)
 
 
-def is_basic_week_99_offer_available(user_id: int) -> bool:
+def is_vip_week_199_offer_available(user_id: int) -> bool:
     user = get_user(user_id)
     if not user:
         return False
@@ -1706,9 +1713,9 @@ def _normalize_coldmind_plan(plan: str | None) -> str:
     plan = (plan or "").strip().lower()
     if plan == "trial":
         return "trial"
-    if plan in {"vip", "vip_signals", "stars_vip", "stars_vip_month", "stars_vip_signals_10d", "usdt_vip", "usdt_vip_month", "usdt_vip_signals_10d"}:
+    if plan in {"vip", "vip_signals", "stars_vip", "stars_vip_month", "stars_vip_week_199", "stars_vip_signals_10d", "usdt_vip", "usdt_vip_month", "usdt_vip_signals_10d"}:
         return "vip"
-    if plan in {"basic", "stars_basic", "stars_basic_month", "stars_basic_week_99", "usdt_basic", "usdt_basic_month"}:
+    if plan in {"basic", "stars_basic", "stars_basic_month", "usdt_basic", "usdt_basic_month"}:
         return "basic"
     return "none"
 
@@ -1816,6 +1823,102 @@ def increment_coldmind_usage(user_id: int, plan: str | None):
         )
     conn.commit()
     conn.close()
+
+
+VIP_WEEK_FLAG_COLUMNS = {
+    "welcome": "vip_welcome_sent",
+    "midweek": "vip_midweek_sent",
+    "pre_end": "vip_pre_end_sent",
+    "ended": "vip_ended_sent",
+    "winback": "vip_winback_sent",
+}
+
+
+def mark_vip_week_promo_started(user_id: int):
+    now = datetime.now().isoformat()
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        UPDATE users
+        SET vip_week_started_at = ?,
+            vip_week_is_promo = 1,
+            vip_welcome_sent = NULL,
+            vip_midweek_sent = NULL,
+            vip_pre_end_sent = NULL,
+            vip_ended_sent = NULL,
+            vip_winback_sent = NULL
+        WHERE user_id = ?
+        """,
+        (now, user_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def clear_vip_week_promo(user_id: int):
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        UPDATE users
+        SET vip_week_is_promo = 0,
+            vip_week_started_at = NULL
+        WHERE user_id = ?
+        """,
+        (user_id,),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_vip_week_promo_users() -> list[dict]:
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT user_id,
+               lang,
+               plan,
+               is_active,
+               access_until,
+               vip_week_started_at,
+               vip_week_is_promo,
+               vip_welcome_sent,
+               vip_midweek_sent,
+               vip_pre_end_sent,
+               vip_ended_sent,
+               vip_winback_sent
+        FROM users
+        WHERE COALESCE(vip_week_is_promo, 0) = 1
+          AND vip_week_started_at IS NOT NULL
+        """
+    )
+    rows = cur.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def mark_vip_week_message_sent(user_id: int, flag: str) -> bool:
+    column = VIP_WEEK_FLAG_COLUMNS.get(flag)
+    if not column:
+        raise ValueError(f"Unknown vip week flag: {flag}")
+
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        f"""
+        UPDATE users
+        SET "{column}" = ?
+        WHERE user_id = ?
+          AND "{column}" IS NULL
+        """,
+        (datetime.now().isoformat(), user_id),
+    )
+    conn.commit()
+    updated = cur.rowcount > 0
+    conn.close()
+    return updated
 
 
 def activate_user_access(user_id: int, days: int, plan_type: str, source: str):

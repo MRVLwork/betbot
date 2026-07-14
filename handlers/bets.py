@@ -27,7 +27,7 @@ from db import (
     get_trial_remaining,
     get_trial_used_count,
     increment_trial_usage,
-    is_basic_week_99_offer_available,
+    is_vip_week_199_offer_available,
     get_trial_start,
     mark_first_bet_saved,
     mark_first_screenshot_sent,
@@ -588,100 +588,100 @@ def _first_saved_stats_cta_keyboard(lang: str) -> InlineKeyboardMarkup:
     ]])
 
 
-def _basic_week_99_offer_text(lang: str) -> str:
+def _vip_week_199_offer_text(lang: str) -> str:
     if lang == "ru":
         return (
             "🎁 Только для новых игроков\n\n"
-            "Basic на 7 дней - 99⭐ вместо $7\n\n"
-            "За 7 дней AI покажет:\n\n"
-            "📈 Какие ставки зарабатывают\n"
-            "📉 Какие сливают банк\n"
-            "💡 Как улучшить результаты\n"
-            "🔥 Ежедневные AI-сигналы\n\n"
-            "Доступно только 24 часа.\n\n"
-            "👇 Активировать за 99⭐"
+            "VIP на 7 дней — 199⭐ вместо $20\n\n"
+            "Полный доступ ко всему:\n"
+            "🧊 ColdMind AI Agent — следит за банком, не дает слить\n"
+            "📈 Какие ставки зарабатывают, какие сливают банк\n"
+            "🔥 AI-анализ матчей с реальными данными\n"
+            "📊 Полная статистика и инсайты\n\n"
+            "Доступно только 24 часа.\n"
+            "199⭐ (~$4) — первая неделя VIP, далее $20/мес."
         )
     if lang == "en":
         return (
             "🎁 Only for new players\n\n"
-            "Basic for 7 days - 99⭐ instead of $7\n\n"
-            "In 7 days AI will show:\n\n"
-            "📈 Which bets make money\n"
-            "📉 Which ones drain your bankroll\n"
-            "💡 How to improve your results\n"
-            "🔥 Daily AI signals\n\n"
-            "Available for 24 hours only.\n\n"
-            "👇 Activate for 99⭐"
+            "VIP for 7 days — 199⭐ instead of $20\n\n"
+            "Full access to everything:\n"
+            "🧊 ColdMind AI Agent — watches your bankroll and helps prevent tilt\n"
+            "📈 Which bets make money and which drain your bankroll\n"
+            "🔥 AI match analysis with real data\n"
+            "📊 Full stats and insights\n\n"
+            "Available for 24 hours only.\n"
+            "199⭐ (~$4) — first VIP week, then $20/mo."
         )
     return (
         "🎁 Тільки для нових гравців\n\n"
-        "Basic на 7 днів - 99⭐ замість $7\n\n"
-        "За 7 днів AI покаже:\n\n"
-        "📈 Які ставки заробляють\n"
-        "📉 Які зливають банк\n"
-        "💡 Як покращити результати\n"
-        "🔥 Щоденні AI-сигнали\n\n"
-        "Доступно лише 24 години.\n\n"
-        "👇 Активувати за 99⭐"
+        "VIP на 7 днів — 199⭐ замість $20\n\n"
+        "Повний доступ до всього:\n"
+        "🧊 ColdMind AI Agent — стежить за банком, не дає злити\n"
+        "📈 Які ставки заробляють, які зливають банк\n"
+        "🔥 AI-аналіз матчів з реальними даними\n"
+        "📊 Повна статистика та інсайти\n\n"
+        "Доступно лише 24 години.\n"
+        "199⭐ (~$4) — перший тиждень VIP, далі $20/міс."
     )
 
 
-def _basic_week_99_offer_keyboard(lang: str) -> InlineKeyboardMarkup:
+def _vip_week_199_offer_keyboard(lang: str) -> InlineKeyboardMarkup:
     labels = {
-        "ua": ("⭐ Активувати за 99 зірок", "Пізніше"),
-        "ru": ("⭐ Активировать за 99 звёзд", "Позже"),
-        "en": ("⭐ Activate for 99 Stars", "Later"),
+        "ua": ("⭐ Активувати VIP за 199 зірок", "Пізніше"),
+        "ru": ("⭐ Активировать VIP за 199 звёзд", "Позже"),
+        "en": ("⭐ Activate VIP for 199 Stars", "Later"),
     }
     buy_label, later_label = labels.get(_normalize_lang(lang), labels["en"])
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton(buy_label, callback_data="stars_basic_week_99")],
+        [InlineKeyboardButton(buy_label, callback_data="stars_vip_week_199")],
         [InlineKeyboardButton(later_label, callback_data="first_bet_offer_later")],
     ])
 
 
-def _basic_standard_offer_text(lang: str) -> str:
+def _vip_standard_offer_text(lang: str) -> str:
     if lang == "ru":
         return (
-            "⭐ Basic подписка\n\n"
-            "Спеццена 99⭐ уже недоступна, но ты можешь активировать стандартный Basic.\n\n"
-            "Basic на 1 месяц - $7 / 525⭐\n\n"
-            "👇 Активировать Basic"
+            "💎 VIP подписка\n\n"
+            "Спеццена 199⭐ уже недоступна, но ты можешь активировать стандартный VIP.\n\n"
+            "VIP на 1 месяц — $20 / 1500⭐\n\n"
+            "👇 Активировать VIP"
         )
     if lang == "en":
         return (
-            "⭐ Basic subscription\n\n"
-            "The 99⭐ special price is no longer available, but you can activate standard Basic.\n\n"
-            "Basic for 1 month - $7 / 525⭐\n\n"
-            "👇 Activate Basic"
+            "💎 VIP subscription\n\n"
+            "The 199⭐ special price is no longer available, but you can activate standard VIP.\n\n"
+            "VIP for 1 month — $20 / 1500⭐\n\n"
+            "👇 Activate VIP"
         )
     return (
-        "⭐ Basic підписка\n\n"
-        "Спецціна 99⭐ вже недоступна, але ти можеш активувати стандартний Basic.\n\n"
-        "Basic на 1 місяць - $7 / 525⭐\n\n"
-        "👇 Активувати Basic"
+        "💎 VIP підписка\n\n"
+        "Спецціна 199⭐ вже недоступна, але ти можеш активувати стандартний VIP.\n\n"
+        "VIP на 1 місяць — $20 / 1500⭐\n\n"
+        "👇 Активувати VIP"
     )
 
 
-def _basic_standard_offer_keyboard(lang: str) -> InlineKeyboardMarkup:
+def _vip_standard_offer_keyboard(lang: str) -> InlineKeyboardMarkup:
     labels = {
-        "ua": ("⭐ Активувати Basic", "Пізніше"),
-        "ru": ("⭐ Активировать Basic", "Позже"),
-        "en": ("⭐ Activate Basic", "Later"),
+        "ua": ("💎 Активувати VIP", "Пізніше"),
+        "ru": ("💎 Активировать VIP", "Позже"),
+        "en": ("💎 Activate VIP", "Later"),
     }
     buy_label, later_label = labels.get(_normalize_lang(lang), labels["en"])
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton(buy_label, callback_data="stars_basic_month")],
+        [InlineKeyboardButton(buy_label, callback_data="stars_vip_1m")],
         [InlineKeyboardButton(later_label, callback_data="first_bet_offer_later")],
     ])
 
 
 async def send_special_offer(bot, user_id: int, lang: str):
-    if is_basic_week_99_offer_available(user_id):
-        text = _basic_week_99_offer_text(lang)
-        keyboard = _basic_week_99_offer_keyboard(lang)
+    if is_vip_week_199_offer_available(user_id):
+        text = _vip_week_199_offer_text(lang)
+        keyboard = _vip_week_199_offer_keyboard(lang)
     else:
-        text = _basic_standard_offer_text(lang)
-        keyboard = _basic_standard_offer_keyboard(lang)
+        text = _vip_standard_offer_text(lang)
+        keyboard = _vip_standard_offer_keyboard(lang)
 
     await bot.send_message(
         chat_id=user_id,

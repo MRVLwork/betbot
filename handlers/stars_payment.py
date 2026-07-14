@@ -10,7 +10,10 @@ from db import (
     is_eligible_for_first_payment_promo,
     activate_vip_bet_day_access,
     activate_vip_signals_access,
-    is_basic_week_99_offer_available,
+    is_vip_week_199_offer_available,
+    clear_vip_week_promo,
+    mark_vip_week_message_sent,
+    mark_vip_week_promo_started,
     subscribe_to_signal,
 )
 from keyboards import stars_plans_keyboard
@@ -113,15 +116,15 @@ async def open_stars_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.reply_text(_unknown_plan_text(lang))
         return
 
-    if plan_key == "stars_basic_week_99" and not is_basic_week_99_offer_available(user_id):
+    if plan_key == "stars_vip_week_199" and not is_vip_week_199_offer_available(user_id):
         await query.message.reply_text(
             {
-                "ua": "⏳ Спец-ціна 99⭐ вже недоступна. Показую стандартний Basic.",
-                "ru": "⏳ Спеццена 99⭐ уже недоступна. Показываю стандартный Basic.",
-                "en": "⏳ The 99⭐ special price is no longer available. Showing standard Basic.",
-            }.get(lang, "⏳ The 99⭐ special price is no longer available. Showing standard Basic.")
+                "ua": "⏳ Спец-ціна 199⭐ вже недоступна. Показую стандартний VIP.",
+                "ru": "⏳ Спеццена 199⭐ уже недоступна. Показываю стандартный VIP.",
+                "en": "⏳ The 199⭐ special price is no longer available. Showing standard VIP.",
+            }.get(lang, "⏳ The 199⭐ special price is no longer available. Showing standard VIP.")
         )
-        plan_key = "stars_basic_month"
+        plan_key = "stars_vip_1m"
         plan = get_stars_plan(plan_key)
 
     if plan.get("first_payment_only") and not is_eligible_for_first_payment_promo(user_id):
@@ -184,6 +187,10 @@ async def successful_payment_handler(update: Update, context: ContextTypes.DEFAU
             plan_type=plan["plan_type"],
             source=f"stars:{plan_key}",
         )
+        if plan_key == "stars_vip_week_199":
+            mark_vip_week_promo_started(user_id)
+        elif plan_key in {"stars_vip_month", "stars_vip_1m", "stars_vip_winback_1299"} and plan.get("plan_type") == "vip":
+            clear_vip_week_promo(user_id)
 
     if plan.get("first_payment_only"):
         mark_promo_offer_used(user_id)
@@ -195,3 +202,12 @@ async def successful_payment_handler(update: Update, context: ContextTypes.DEFAU
     lang = _normalize_lang(user["lang"] if user and user.get("lang") else "en")
 
     await update.message.reply_text(_success_text(lang))
+
+    if plan_key == "stars_vip_week_199" and mark_vip_week_message_sent(user_id, "welcome"):
+        await update.message.reply_text(
+            {
+                "ua": "🧊 Тепер я в грі. Стежу за твоїм банком щодня.\nДодавай ставки — покажу, де ти зливаєш і де заробляєш.\nЗа цей тиждень зроблю з твоєї гри систему.",
+                "ru": "🧊 Теперь я в игре. Слежу за твоим банком каждый день.\nДобавляй ставки — покажу, где ты сливаешь и где зарабатываешь.\nЗа эту неделю сделаю из твоей игры систему.",
+                "en": "🧊 I am in the game now. Watching your bankroll every day.\nAdd bets — I will show where you leak and where you earn.\nThis week I will turn your game into a system.",
+            }.get(lang, "🧊 I am in the game now. Watching your bankroll every day.\nAdd bets — I will show where you leak and where you earn.\nThis week I will turn your game into a system.")
+        )

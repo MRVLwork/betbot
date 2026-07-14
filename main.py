@@ -40,6 +40,7 @@ from db import (
     get_users_for_delayed_offer,
     get_users_for_limits_prompt,
     get_users_for_trial_reminders,
+    get_vip_week_promo_users,
     get_subscription_type,
     has_user_ever_paid,
     is_special_offer_shown,
@@ -47,6 +48,7 @@ from db import (
     mark_special_offer_shown,
     mark_trial_reminder_2days_sent,
     mark_trial_reminder_24h_sent,
+    mark_vip_week_message_sent,
     should_include_trial,
 )
 from bets_db import (
@@ -626,6 +628,196 @@ async def send_daily_limits_prompts(application):
             print(f"daily limits prompt error for {user_id}: {e}")
 
 
+def _vip_week_lang(lang: str) -> str:
+    lang = (lang or "ua").lower()
+    if lang.startswith("uk") or lang.startswith("ua"):
+        return "ua"
+    if lang.startswith("ru"):
+        return "ru"
+    return "en"
+
+
+def _vip_continue_keyboard(lang: str, winback: bool = False) -> InlineKeyboardMarkup:
+    lang = _vip_week_lang(lang)
+    if winback:
+        labels = {
+            "ua": "💎 Повернути зі знижкою",
+            "ru": "💎 Вернуться со скидкой",
+            "en": "💎 Return with discount",
+        }
+        callback = "stars_vip_winback_1299"
+    else:
+        labels = {
+            "ua": "💎 Продовжити VIP",
+            "ru": "💎 Продолжить VIP",
+            "en": "💎 Continue VIP",
+        }
+        callback = "stars_vip_month"
+    return InlineKeyboardMarkup([[
+        InlineKeyboardButton(labels.get(lang, labels["en"]), callback_data=callback)
+    ]])
+
+
+def _vip_week_type_label(lang: str, key: str) -> str:
+    labels = {
+        "ua": {"total": "тоталах", "result": "результатах"},
+        "ru": {"total": "тоталах", "result": "исходах"},
+        "en": {"total": "totals", "result": "match results"},
+    }
+    return labels.get(lang, labels["en"]).get(key, key or "-")
+
+
+def _vip_week_best_weak(stats: dict, lang: str) -> tuple[str, str, int]:
+    buckets = [
+        (key, value)
+        for key, value in (stats.get("types") or {}).items()
+        if int(value.get("count") or 0) > 0
+    ]
+    if not buckets:
+        fallback = {
+            "ua": "даних ще мало",
+            "ru": "данных ещё мало",
+            "en": "not enough data yet",
+        }.get(lang, "not enough data yet")
+        return fallback, fallback, 0
+
+    best_key, best = max(
+        buckets,
+        key=lambda item: (float(item[1].get("roi") or 0), float(item[1].get("profit") or 0)),
+    )
+    weak_key, weak = min(
+        buckets,
+        key=lambda item: (float(item[1].get("roi") or 0), float(item[1].get("profit") or 0)),
+    )
+    best_text = f"{_vip_week_type_label(lang, best_key)} ({float(best.get('roi') or 0):g}%)"
+    weak_text = f"{_vip_week_type_label(lang, weak_key)} ({float(weak.get('roi') or 0):g}%)"
+    insight_count = int(stats.get("total_bets") or 0)
+    return best_text, weak_text, insight_count
+
+
+def _vip_week_stats(user_id: int) -> tuple[str, str, int]:
+    end_dt = datetime.now()
+    start_dt = end_dt - timedelta(days=30)
+    stats = get_full_stats_between(user_id, start_dt, end_dt, include_trial=True)
+    user = get_user(user_id) or {}
+    lang = _vip_week_lang(user.get("lang") or "ua")
+    return _vip_week_best_weak(stats, lang)
+
+
+def _vip_week_welcome_text(lang: str) -> str:
+    return {
+        "ua": "🧊 Тепер я в грі. Стежу за твоїм банком щодня.\nДодавай ставки — покажу, де ти зливаєш і де заробляєш.\nЗа цей тиждень зроблю з твоєї гри систему.",
+        "ru": "🧊 Теперь я в игре. Слежу за твоим банком каждый день.\nДобавляй ставки — покажу, где ты сливаешь и где зарабатываешь.\nЗа эту неделю сделаю из твоей игры систему.",
+        "en": "🧊 I am in the game now. Watching your bankroll every day.\nAdd bets — I will show where you leak and where you earn.\nThis week I will turn your game into a system.",
+    }.get(lang, "🧊 I am in the game now. Watching your bankroll every day.\nAdd bets — I will show where you leak and where you earn.\nThis week I will turn your game into a system.")
+
+
+def _vip_week_midweek_text(lang: str, best: str, weak: str) -> str:
+    return {
+        "ua": f"🧊 Підсумок за половину тижня:\nТвоя сила — {best}. Зливаєш на {weak}.\nЩе є 3 дні VIP, щоб закріпити це. Використай їх.",
+        "ru": f"🧊 Итог за половину недели:\nТвоя сила — {best}. Сливаешь на {weak}.\nЕсть ещё 3 дня VIP, чтобы закрепить это. Используй их.",
+        "en": f"🧊 Half-week summary:\nYour strength is {best}. You leak on {weak}.\nYou still have 3 VIP days to lock this in. Use them.",
+    }.get(lang, f"🧊 Half-week summary:\nYour strength is {best}. You leak on {weak}.\nYou still have 3 VIP days to lock this in. Use them.")
+
+
+def _vip_week_pre_end_text(lang: str, insight_count: int) -> str:
+    return {
+        "ua": f"🧊 Твій VIP-тиждень закінчується завтра.\n\nЗа цей тиждень я розібрав {insight_count} ставок і показав, де банк тримається, а де тече.\nБез VIP я перестану стежити за твоїм банком.\n\nПродовжимо? $20/міс — я лишаюсь з тобою щодня.",
+        "ru": f"🧊 Твоя VIP-неделя заканчивается завтра.\n\nЗа эту неделю я разобрал {insight_count} ставок и показал, где банк держится, а где течёт.\nБез VIP я перестану следить за твоим банком.\n\nПродолжим? $20/мес — я остаюсь с тобой каждый день.",
+        "en": f"🧊 Your VIP week ends tomorrow.\n\nThis week I reviewed {insight_count} bets and showed where your bankroll holds and where it leaks.\nWithout VIP, I stop watching your bankroll.\n\nContinue? $20/mo — I stay with you every day.",
+    }.get(lang, f"🧊 Your VIP week ends tomorrow.\n\nThis week I reviewed {insight_count} bets and showed where your bankroll holds and where it leaks.\nWithout VIP, I stop watching your bankroll.\n\nContinue? $20/mo — I stay with you every day.")
+
+
+def _vip_week_ended_text(lang: str) -> str:
+    return {
+        "ua": "🧊 VIP завершився. Я більше не стежу за твоїм банком.\nКоли захочеш повернути контроль — я тут.",
+        "ru": "🧊 VIP завершился. Я больше не слежу за твоим банком.\nКогда захочешь вернуть контроль — я здесь.",
+        "en": "🧊 VIP ended. I am no longer watching your bankroll.\nWhen you want control back — I am here.",
+    }.get(lang, "🧊 VIP ended. I am no longer watching your bankroll.\nWhen you want control back — I am here.")
+
+
+def _vip_week_winback_text(lang: str) -> str:
+    return {
+        "ua": "🧊 Два дні без контролю банку.\nПовернись — перший місяць VIP зі знижкою: 1299⭐ замість повної ціни.",
+        "ru": "🧊 Два дня без контроля банка.\nВернись — первый месяц VIP со скидкой: 1299⭐ вместо полной цены.",
+        "en": "🧊 Two days without bankroll control.\nCome back — first VIP month with a discount: 1299⭐ instead of full price.",
+    }.get(lang, "🧊 Two days without bankroll control.\nCome back — first VIP month with a discount: 1299⭐ instead of full price.")
+
+
+def _vip_week_is_active(user: dict, now: datetime) -> bool:
+    if int(user.get("is_active") or 0) != 1:
+        return False
+    access_until = user.get("access_until")
+    if not access_until:
+        return False
+    try:
+        return datetime.fromisoformat(access_until) > now
+    except Exception:
+        return False
+
+
+async def send_vip_week_conversion_messages(application):
+    now = datetime.now()
+    for user in get_vip_week_promo_users():
+        user_id = user["user_id"]
+        lang = _vip_week_lang(user.get("lang") or "ua")
+        started_raw = user.get("vip_week_started_at")
+        try:
+            started_at = datetime.fromisoformat(str(started_raw))
+        except Exception:
+            continue
+
+        week_end = started_at + timedelta(days=7)
+        age = now - started_at
+        is_active = _vip_week_is_active(user, now)
+
+        try:
+            if now >= week_end and not is_active and not user.get("vip_ended_sent"):
+                if mark_vip_week_message_sent(user_id, "ended"):
+                    await application.bot.send_message(
+                        chat_id=user_id,
+                        text=_vip_week_ended_text(lang),
+                        reply_markup=_vip_continue_keyboard(lang),
+                    )
+                continue
+
+            if now >= week_end + timedelta(days=2) and not is_active:
+                if mark_vip_week_message_sent(user_id, "winback"):
+                    await application.bot.send_message(
+                        chat_id=user_id,
+                        text=_vip_week_winback_text(lang),
+                        reply_markup=_vip_continue_keyboard(lang, winback=True),
+                    )
+                continue
+
+            if age >= timedelta(days=6) and is_active:
+                best, weak, insight_count = _vip_week_stats(user_id)
+                if mark_vip_week_message_sent(user_id, "pre_end"):
+                    await application.bot.send_message(
+                        chat_id=user_id,
+                        text=_vip_week_pre_end_text(lang, insight_count),
+                        reply_markup=_vip_continue_keyboard(lang),
+                    )
+                continue
+
+            if age >= timedelta(hours=84) and is_active:
+                best, weak, _ = _vip_week_stats(user_id)
+                if mark_vip_week_message_sent(user_id, "midweek"):
+                    await application.bot.send_message(
+                        chat_id=user_id,
+                        text=_vip_week_midweek_text(lang, best, weak),
+                    )
+                continue
+
+            if mark_vip_week_message_sent(user_id, "welcome"):
+                await application.bot.send_message(
+                    chat_id=user_id,
+                    text=_vip_week_welcome_text(lang),
+                )
+        except Exception as e:
+            print(f"vip week conversion error for {user_id}: {e}")
+
+
 def _trial_reminder_2days_text(lang: str) -> str:
     if lang == "ru":
         return (
@@ -783,6 +975,14 @@ async def post_init(application):
         trigger="interval",
         minutes=30,
         id="trial_time_reminders",
+        args=[application],
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        send_vip_week_conversion_messages,
+        trigger="interval",
+        hours=1,
+        id="vip_week_conversion",
         args=[application],
         replace_existing=True,
     )

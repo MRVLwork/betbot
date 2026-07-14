@@ -19,6 +19,7 @@ VIP_PLAN_ALIASES = {
     "vip_signals",
     "stars_vip",
     "stars_vip_month",
+    "stars_vip_week_199",
     "stars_vip_signals_10d",
     "usdt_vip",
     "usdt_vip_month",

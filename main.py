@@ -28,6 +28,7 @@ from telegram.ext import (
 
 from config import BOT_TOKEN, ADMIN_ID
 from db import (
+    clear_daily_ai_signal_lists,
     init_db,
     user_has_access,
     get_user_daily_limit,
@@ -89,6 +90,9 @@ from handlers.stars_payment import (
 )
 from handlers.vip_purchase import plan_payment_choice
 from handlers.admin import (
+    add_basic_signal_command,
+    add_free_signal_command,
+    add_vip_signal_command,
     commands_list,
     addpromo,
     genbasicweek,
@@ -900,6 +904,14 @@ async def send_trial_time_reminders(application):
             print(f"trial time reminder error for {user_id}: {e}")
 
 
+async def clear_daily_ai_signals_job():
+    try:
+        clear_daily_ai_signal_lists()
+        print("Daily AI signal lists cleared")
+    except Exception as e:
+        print(f"daily AI signal clear error: {e}")
+
+
 async def post_init(application):
     scheduler = AsyncIOScheduler(timezone=ZoneInfo("Europe/Kiev"))
     scheduler.add_job(
@@ -920,6 +932,15 @@ async def post_init(application):
         timezone="Europe/Kiev",
         id="daily_insights",
         args=[application],
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        clear_daily_ai_signals_job,
+        trigger="cron",
+        hour=6,
+        minute=0,
+        timezone="Europe/Kiev",
+        id="clear_daily_ai_signals",
         replace_existing=True,
     )
     scheduler.add_job(
@@ -1993,6 +2014,9 @@ def main():
     app.add_handler(CommandHandler("commands", commands_list))
     app.add_handler(CommandHandler("dellastbet", del_last_bet_command))
     app.add_handler(CommandHandler("addpromo", addpromo))
+    app.add_handler(CommandHandler(["freeSignals", "freesignals"], add_free_signal_command))
+    app.add_handler(CommandHandler(["basicSignals", "basicsignals"], add_basic_signal_command))
+    app.add_handler(CommandHandler(["vipSignals", "vipsignals"], add_vip_signal_command))
     app.add_handler(CommandHandler("genbasicweek", genbasicweek))
     app.add_handler(CommandHandler("genbasicmonth", genbasicmonth))
     app.add_handler(CommandHandler("genvipweek", genvipweek))

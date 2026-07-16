@@ -7,6 +7,9 @@ from telegram.ext import ContextTypes
 
 from config import ADMIN_ID
 from db import (
+    add_basic_signal,
+    add_free_signal,
+    add_vip_signal,
     create_promo,
     get_all_promos,
     get_all_users,
@@ -144,6 +147,31 @@ async def addpromo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Використань: {uses}\n"
         f"Тариф: {plan_type}"
     )
+
+
+async def _add_admin_signal(update: Update, context: ContextTypes.DEFAULT_TYPE, add_func, command: str):
+    if not is_admin(update.effective_user.id):
+        return
+
+    text = " ".join(context.args).strip()
+    if not text:
+        await update.message.reply_text(f"Формат: /{command} <текст ставки>")
+        return
+
+    total = add_func(text)
+    await update.message.reply_text(f"✅ Додано. Всього у списку: {total}.")
+
+
+async def add_free_signal_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await _add_admin_signal(update, context, add_free_signal, "freeSignals")
+
+
+async def add_basic_signal_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await _add_admin_signal(update, context, add_basic_signal, "basicSignals")
+
+
+async def add_vip_signal_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await _add_admin_signal(update, context, add_vip_signal, "vipSignals")
 
 
 async def genbasicweek(update: Update, context: ContextTypes.DEFAULT_TYPE):

@@ -10,7 +10,12 @@ from db import (
     subscribe_to_signal,
     is_subscribed_to_signal,
     is_eligible_for_first_payment_promo,
+    get_free_signals,
+    get_basic_signals,
+    get_vip_signals,
 )
+
+HISTORY_OF_BETS_URL = "https://t.me/+HM_H1lv3zGA1NmMy"
 
 
 def _normalize_lang(lang):
@@ -41,8 +46,71 @@ def _get_vip_signals_active(user_id: int) -> bool:
         return False
 
 
+def _intro_text(lang: str) -> str:
+    if lang == "ru":
+        return (
+            "🔥 AI Прогнозы дня\n\n"
+            "Готовые ставки от AI-агента - бери и играй умнее."
+        )
+    if lang == "en":
+        return (
+            "🔥 AI Predictions of the day\n\n"
+            "Ready-to-bet picks from the AI agent - take them and play smarter."
+        )
+    return (
+        "🔥 AI Прогнози дня\n\n"
+        "Готові ставки від AI-агента - бери й грай розумніше."
+    )
+
+
+def _empty_free_text(lang: str) -> str:
+    if lang == "ru":
+        return "Сегодня ещё нет бесплатных ставок."
+    if lang == "en":
+        return "No free bets yet today."
+    return "Сьогодні ще немає безкоштовних ставок."
+
+
+def _empty_paid_text(lang: str, level: str) -> str:
+    if lang == "ru":
+        return f"Сегодня ещё нет {level} ставок."
+    if lang == "en":
+        return f"No {level} bets yet today."
+    return f"Сьогодні ще немає {level} ставок."
+
+
+def _format_signal_lines(rows: list[dict], empty_text: str) -> str:
+    if not rows:
+        return empty_text
+    return "\n".join(f"{idx}. {row['text']}" for idx, row in enumerate(rows, start=1))
+
+
+def _main_signals_text(lang: str) -> str:
+    free_list = _format_signal_lines(get_free_signals(), _empty_free_text(lang))
+    return f"{_intro_text(lang)}\n\nFree user's bets\n{free_list}"
+
+
+def _paid_signals_text(lang: str, level: str, rows: list[dict]) -> str:
+    title = {
+        "basic": "📊 Basic daily AI bets",
+        "vip": "💎 VIP daily AI bets",
+    }[level]
+    empty = _empty_paid_text(lang, "Basic" if level == "basic" else "VIP")
+    return f"{title}\n\n{_format_signal_lines(rows, empty)}"
+
+
+def _signals_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("📊 Basic daily AI bets", callback_data="signals_basic_daily"),
+            InlineKeyboardButton("📜 History of bets", url=HISTORY_OF_BETS_URL),
+        ],
+        [InlineKeyboardButton("💎 VIP daily AI bets", callback_data="signals_vip_daily")],
+    ])
+
+
 async def open_signals_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Show AI signal subscription menu."""
+    """Show AI signals tab with free picks and paid-level buttons."""
     if not update.message:
         return
 
@@ -60,102 +128,88 @@ async def open_signals_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if sub_type == "vip" and not is_subscribed_to_signal(user_id, "vip"):
         subscribe_to_signal(user_id, "vip")
 
-    if lang == "ru":
-        title = (
-            "🔥 *AI Прогнозы дня*\n\n"
-            "Готовые ставки от AI-агента -\n"
-            "бери и зарабатывай умнее.\n\n"
-            "Выбери уровень прогнозов:"
-        )
-    elif lang == "en":
-        title = (
-            "🔥 *AI Predictions of the day*\n\n"
-            "Ready-to-bet picks from AI agent -\n"
-            "take and earn smarter.\n\n"
-            "Choose prediction level:"
-        )
-    else:
-        title = (
-            "🔥 *AI Прогнози дня*\n\n"
-            "Готові ставки від AI-агента -\n"
-            "бери і заробляй розумніше.\n\n"
-            "Обери рівень прогнозів:"
-        )
-
-    vip_signals_active = _get_vip_signals_active(user_id)
-
-    if sub_type == "trial":
-        labels = {
-            "ua": [
-                "🔥 Trial Прогнози (активні)",
-                "🔥 Basic Прогнози - купити підписку",
-                "💎 VIP Прогнози - купити підписку",
-            ],
-            "ru": [
-                "🔥 Trial Прогнозы (активны)",
-                "🔥 Basic Прогнозы - купить подписку",
-                "💎 VIP Прогнозы - купить подписку",
-            ],
-            "en": [
-                "🔥 Trial Predictions (active)",
-                "🔥 Basic Predictions - buy subscription",
-                "💎 VIP Predictions - buy subscription",
-            ],
-        }
-        label = labels.get(lang, labels["ua"])
-        buttons = [
-            [InlineKeyboardButton(label[0], callback_data="signals_trial_info")],
-            [InlineKeyboardButton(label[1], callback_data="signals_buy_basic")],
-            [InlineKeyboardButton(label[2], callback_data="signals_buy_vip")],
-        ]
-    elif sub_type == "basic":
-        vip_label_active = {
-            "ua": "💎 VIP Прогнози (активні)",
-            "ru": "💎 VIP Прогнозы (активны)",
-            "en": "💎 VIP Predictions (active)",
-        }
-        vip_label_buy = {
-            "ua": "💎 VIP Прогнози  $5 / 10 днів",
-            "ru": "💎 VIP Прогнозы  $5 / 10 дней",
-            "en": "💎 VIP Predictions  $5 / 10 days",
-        }
-        basic_label = {
-            "ua": "🔥 Basic Прогнози (активні)",
-            "ru": "🔥 Basic Прогнозы (активны)",
-            "en": "🔥 Basic Predictions (active)",
-        }
-        buttons = [
-            [InlineKeyboardButton(basic_label.get(lang, basic_label["ua"]), callback_data="signals_basic_info")],
-        ]
-        if vip_signals_active:
-            buttons.append([InlineKeyboardButton(vip_label_active.get(lang, vip_label_active["ua"]), callback_data="signals_vip_info")])
-        else:
-            buttons.append([InlineKeyboardButton(vip_label_buy.get(lang, vip_label_buy["ua"]), callback_data="signals_buy_vip_for_basic")])
-    elif sub_type == "vip":
-        labels = {
-            "ua": ["🔥 Basic Прогнози (активні)", "💎 VIP Прогнози (активні)"],
-            "ru": ["🔥 Basic Прогнозы (активны)", "💎 VIP Прогнозы (активны)"],
-            "en": ["🔥 Basic Predictions (active)", "💎 VIP Predictions (active)"],
-        }
-        label = labels.get(lang, labels["ua"])
-        buttons = [
-            [InlineKeyboardButton(label[0], callback_data="signals_basic_info")],
-            [InlineKeyboardButton(label[1], callback_data="signals_vip_info")],
-        ]
-    else:
-        no_access = {
-            "ua": "Для AI Прогнозів потрібна активна підписка.",
-            "ru": "Для AI Прогнозов нужна активная подписка.",
-            "en": "Active subscription required for AI Predictions.",
-        }
-        await update.message.reply_text(no_access.get(lang, no_access["ua"]))
-        return
-
     await update.message.reply_text(
-        title,
-        reply_markup=InlineKeyboardMarkup(buttons),
-        parse_mode="Markdown",
+        _main_signals_text(lang),
+        reply_markup=_signals_keyboard(),
     )
+
+
+async def _send_basic_offer(message, lang: str):
+    from keyboards import access_keyboard
+
+    promo = {
+        "ua": (
+            "💰 Basic підписка  $7/міс\n\n"
+            "Отримуй Basic daily AI bets і повну статистику.\n\n"
+            "Обери спосіб оплати:"
+        ),
+        "ru": (
+            "💰 Basic подписка  $7/мес\n\n"
+            "Получай Basic daily AI bets и полную статистику.\n\n"
+            "Выбери способ оплаты:"
+        ),
+        "en": (
+            "💰 Basic  $7/mo\n\n"
+            "Get Basic daily AI bets and full stats.\n\n"
+            "Choose payment:"
+        ),
+    }
+    await message.reply_text(promo.get(lang, promo["ua"]), reply_markup=access_keyboard(lang))
+
+
+async def _send_vip_offer(message, lang: str, user_id: int):
+    from keyboards import vip_subscription_keyboard
+
+    promo = {
+        "ua": (
+            "💎 VIP підписка\n\n"
+            "Отримуй Basic + VIP daily AI bets, ColdMind AI Agent і повну статистику.\n\n"
+            "Обери план:"
+        ),
+        "ru": (
+            "💎 VIP подписка\n\n"
+            "Получай Basic + VIP daily AI bets, ColdMind AI Agent и полную статистику.\n\n"
+            "Выбери план:"
+        ),
+        "en": (
+            "💎 VIP\n\n"
+            "Get Basic + VIP daily AI bets, ColdMind AI Agent and full stats.\n\n"
+            "Choose plan:"
+        ),
+    }
+    await message.reply_text(
+        promo.get(lang, promo["ua"]),
+        reply_markup=vip_subscription_keyboard(
+            lang,
+            show_promo=is_eligible_for_first_payment_promo(user_id),
+        ),
+    )
+
+
+async def _send_vip_signals_offer(message, lang: str):
+    from keyboards import vip_signals_payment_keyboard
+
+    promo = {
+        "ua": (
+            "💎 VIP daily AI bets  $5 / 10 днів\n\n"
+            "Окрема підписка на VIP ставки без апгрейду на повний VIP.\n\n"
+            "399⭐ або $5\n\n"
+            "Обери спосіб оплати:"
+        ),
+        "ru": (
+            "💎 VIP daily AI bets  $5 / 10 дней\n\n"
+            "Отдельная подписка на VIP ставки без апгрейда на полный VIP.\n\n"
+            "399⭐ или $5\n\n"
+            "Выбери способ оплаты:"
+        ),
+        "en": (
+            "💎 VIP daily AI bets  $5 / 10 days\n\n"
+            "Separate VIP bets subscription without full VIP upgrade.\n\n"
+            "399⭐ or $5\n\n"
+            "Choose payment:"
+        ),
+    }
+    await message.reply_text(promo.get(lang, promo["ua"]), reply_markup=vip_signals_payment_keyboard(lang))
 
 
 async def signals_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -166,147 +220,36 @@ async def signals_callback_handler(update: Update, context: ContextTypes.DEFAULT
     user_id = update.effective_user.id
     user = get_user(user_id) or {}
     lang = _normalize_lang(user.get("lang"))
+    sub_type = get_subscription_type(user_id)
     data = query.data
 
-    if data in ("signals_trial_info", "signals_basic_info", "signals_vip_info"):
-        info = {
-            "ua": "✅ Підписка активна. Очікуй AI Прогнози від AI-агента - вони приходитимуть автоматично, коли є цінні події.",
-            "ru": "✅ Подписка активна. Ожидай AI Прогнозы от AI-агента - они будут приходить автоматически, когда есть ценные события.",
-            "en": "✅ Subscription active. Wait for AI Predictions from the AI agent - they will arrive automatically when valuable events appear.",
-        }
-        await query.message.reply_text(info.get(lang, info["ua"]))
+    if data in ("signals_basic_daily", "signals_basic_info"):
+        if sub_type in ("basic", "vip"):
+            await query.message.reply_text(_paid_signals_text(lang, "basic", get_basic_signals()))
+        else:
+            await _send_basic_offer(query.message, lang)
+        return
+
+    if data in ("signals_vip_daily", "signals_vip_info"):
+        if _get_vip_signals_active(user_id):
+            await query.message.reply_text(_paid_signals_text(lang, "vip", get_vip_signals()))
+        elif sub_type == "basic":
+            await _send_vip_signals_offer(query.message, lang)
+        else:
+            await _send_vip_offer(query.message, lang, user_id)
+        return
+
+    if data == "signals_trial_info":
+        await query.message.reply_text(_main_signals_text(lang), reply_markup=_signals_keyboard())
         return
 
     if data == "signals_buy_basic":
-        from keyboards import access_keyboard
-
-        promo = {
-            "ua": (
-                "💰 *Basic підписка  $7/міс*\n\n"
-                "Заробляй на ставках розумніше:\n\n"
-                "Що отримуєш:\n"
-                " 🔥 AI Прогнози Basic щодня\n"
-                " 15 скрінів/день\n"
-                " Повна статистика з інсайтами\n"
-                " Калькулятор Келлі\n"
-                " Ліміт банку\n\n"
-                " Обери спосіб оплати:"
-            ),
-            "ru": (
-                "💰 *Basic подписка  $7/мес*\n\n"
-                "Зарабатывай на ставках умнее:\n\n"
-                "Что получаешь:\n"
-                " 🔥 AI Прогнозы Basic каждый день\n"
-                " 15 скринов/день\n"
-                " Полная статистика с инсайтами\n"
-                " Калькулятор Келли\n"
-                " Лимит банка\n\n"
-                " Выбери способ оплаты:"
-            ),
-            "en": (
-                "💰 *Basic  $7/mo*\n\n"
-                "Bet smarter, earn more:\n\n"
-                "Includes:\n"
-                " 🔥 Basic AI Predictions daily\n"
-                " 15 screens/day\n"
-                " Full stats with insights\n"
-                " Kelly Calculator\n"
-                " Bank limit\n\n"
-                " Choose payment:"
-            ),
-        }
-        await query.message.reply_text(
-            promo.get(lang, promo["ua"]),
-            parse_mode="Markdown",
-            reply_markup=access_keyboard(lang),
-        )
+        await _send_basic_offer(query.message, lang)
         return
 
     if data == "signals_buy_vip":
-        from keyboards import vip_subscription_keyboard
-
-        promo = {
-            "ua": (
-                "💎 *VIP підписка*\n\n"
-                "Заробляй на ставках розумніше:\n\n"
-                "Що отримуєш:\n"
-                " 🔥 AI Прогнози Basic + VIP\n"
-                " 30 скрінів/день\n"
-                " 🧊 ColdMind AI Agent з персональним аналізом\n"
-                " Повна статистика з емоціями\n"
-                " Бенчмарк серед топ беттерів\n"
-                " Калькулятор Келлі + Ліміт банку\n\n"
-                " Обери план:"
-            ),
-            "ru": (
-                "💎 *VIP подписка*\n\n"
-                "Зарабатывай на ставках умнее:\n\n"
-                "Что получаешь:\n"
-                " 🔥 AI Прогнозы Basic + VIP\n"
-                " 30 скринов/день\n"
-                " 🧊 ColdMind AI Agent с персональным анализом\n"
-                " Полная статистика с эмоциями\n"
-                " Бенчмарк среди топ беттеров\n"
-                " Калькулятор Келли + Лимит банка\n\n"
-                " Выбери план:"
-            ),
-            "en": (
-                "💎 *VIP*\n\n"
-                "Bet smarter, earn more:\n\n"
-                "Includes:\n"
-                " 🔥 Basic + VIP AI Predictions\n"
-                " 30 screens/day\n"
-                " 🧊 ColdMind AI Agent with personal analysis\n"
-                " Full emotional stats\n"
-                " Ranking among top bettors\n"
-                " Kelly Calculator + Bank Limit\n\n"
-                " Choose plan:"
-            ),
-        }
-        await query.message.reply_text(
-            promo.get(lang, promo["ua"]),
-            parse_mode="Markdown",
-            reply_markup=vip_subscription_keyboard(
-                lang,
-                show_promo=is_eligible_for_first_payment_promo(user_id),
-            ),
-        )
+        await _send_vip_offer(query.message, lang, user_id)
         return
 
     if data == "signals_buy_vip_for_basic":
-        from keyboards import vip_signals_payment_keyboard
-
-        promo = {
-            "ua": (
-                "💎 *VIP Прогнози  $5 / 10 днів*\n\n"
-                "Окрема підписка на VIP прогнози\n"
-                "без апгрейду на повний VIP план.\n\n"
-                "Отримуй готові ставки від AI-агента\n"
-                "і заробляй розумніше 10 днів.\n\n"
-                " 399⭐ або $5\n\n"
-                " Обери спосіб оплати:"
-            ),
-            "ru": (
-                "💎 *VIP Прогнозы  $5 / 10 дней*\n\n"
-                "Отдельная подписка на VIP прогнозы\n"
-                "без апгрейда на полный VIP план.\n\n"
-                "Получай готовые ставки от AI-агента\n"
-                "и зарабатывай умнее 10 дней.\n\n"
-                " 399⭐ или $5\n\n"
-                " Выбери способ оплаты:"
-            ),
-            "en": (
-                "💎 *VIP Predictions  $5 / 10 days*\n\n"
-                "Separate VIP predictions subscription\n"
-                "without full VIP upgrade.\n\n"
-                "Get ready picks from the AI agent\n"
-                "and earn smarter for 10 days.\n\n"
-                " 399⭐ or $5\n\n"
-                " Choose payment:"
-            ),
-        }
-        await query.message.reply_text(
-            promo.get(lang, promo["ua"]),
-            parse_mode="Markdown",
-            reply_markup=vip_signals_payment_keyboard(lang),
-        )
+        await _send_vip_signals_offer(query.message, lang)

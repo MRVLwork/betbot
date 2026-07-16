@@ -356,6 +356,30 @@ def init_db():
         )
     """)
 
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS free_signals (
+            id SERIAL PRIMARY KEY,
+            text TEXT NOT NULL,
+            added_at TEXT NOT NULL
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS basic_signals (
+            id SERIAL PRIMARY KEY,
+            text TEXT NOT NULL,
+            added_at TEXT NOT NULL
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS vip_signals (
+            id SERIAL PRIMARY KEY,
+            text TEXT NOT NULL,
+            added_at TEXT NOT NULL
+        )
+    """)
+
     conn.commit()
     conn.close()
 
@@ -1919,6 +1943,95 @@ def mark_vip_week_message_sent(user_id: int, flag: str) -> bool:
     updated = cur.rowcount > 0
     conn.close()
     return updated
+
+
+SIGNAL_LIST_TABLES = {
+    "free": "free_signals",
+    "basic": "basic_signals",
+    "vip": "vip_signals",
+}
+
+
+def _signal_table(signal_type: str) -> str:
+    table = SIGNAL_LIST_TABLES.get((signal_type or "").strip().lower())
+    if not table:
+        raise ValueError(f"Unknown signal list type: {signal_type}")
+    return table
+
+
+def add_signal_row(signal_type: str, text: str) -> int:
+    table = _signal_table(signal_type)
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        f'INSERT INTO "{table}" (text, added_at) VALUES (?, ?)',
+        (text.strip(), datetime.now().isoformat()),
+    )
+    cur.execute(f'SELECT COUNT(*) AS count FROM "{table}"')
+    row = cur.fetchone()
+    conn.commit()
+    conn.close()
+    return int(row["count"] if row else 0)
+
+
+def get_signal_rows(signal_type: str) -> list[dict]:
+    table = _signal_table(signal_type)
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(f'SELECT id, text, added_at FROM "{table}" ORDER BY id ASC')
+    rows = cur.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def clear_signal_rows(signal_type: str):
+    table = _signal_table(signal_type)
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(f'DELETE FROM "{table}"')
+    conn.commit()
+    conn.close()
+
+
+def add_free_signal(text: str) -> int:
+    return add_signal_row("free", text)
+
+
+def get_free_signals() -> list[dict]:
+    return get_signal_rows("free")
+
+
+def clear_free_signals():
+    clear_signal_rows("free")
+
+
+def add_basic_signal(text: str) -> int:
+    return add_signal_row("basic", text)
+
+
+def get_basic_signals() -> list[dict]:
+    return get_signal_rows("basic")
+
+
+def clear_basic_signals():
+    clear_signal_rows("basic")
+
+
+def add_vip_signal(text: str) -> int:
+    return add_signal_row("vip", text)
+
+
+def get_vip_signals() -> list[dict]:
+    return get_signal_rows("vip")
+
+
+def clear_vip_signals():
+    clear_signal_rows("vip")
+
+
+def clear_daily_ai_signal_lists():
+    for signal_type in SIGNAL_LIST_TABLES:
+        clear_signal_rows(signal_type)
 
 
 def activate_user_access(user_id: int, days: int, plan_type: str, source: str):

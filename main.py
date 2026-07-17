@@ -14,7 +14,7 @@ if hasattr(sys.stderr, 'reconfigure'):
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiohttp import web
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import BotCommand, InlineKeyboardButton, InlineKeyboardMarkup, MenuButtonCommands, Update
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -69,7 +69,7 @@ from keyboards import (
     extra_menu_keyboard,
 )
 from languages import get_text
-from handlers.start import start, start_offer_buttons
+from handlers.start import send_main_menu, start, start_offer_buttons
 from handlers.onboarding import (
     onboarding_goal,
     onboarding_sport,
@@ -140,7 +140,7 @@ from handlers.tools import (
     handle_kelly_input,
     handle_bank_limit_input,
 )
-from handlers.signals import open_signals_menu, signals_callback_handler
+from handlers.signals import open_signals_menu, send_signals_menu, signals_callback_handler
 from handlers.weekly_wrap import send_weekly_wrap, send_weekly_wrap_broadcast
 from webhook_server import create_webhook_app, set_bot
 from states import (
@@ -170,6 +170,109 @@ def get_user_plan(user_id: int) -> str:
 
 def _is_trial_user(user_id: int) -> bool:
     return get_subscription_type(user_id) == "trial"
+
+
+def _normalize_lang_local(lang: str | None) -> str:
+    lang = (lang or "en").lower()
+    if lang.startswith("uk") or lang.startswith("ua"):
+        return "ua"
+    if lang.startswith("ru"):
+        return "ru"
+    return "en"
+
+
+def _add_bet_hint_text(lang: str) -> str:
+    if lang == "ru":
+        return "📸 Пришли скрин купона или текст ставки. Я распознаю ставку и добавлю её в трекер."
+    if lang == "en":
+        return "📸 Send a bet slip screenshot or bet text. I will parse it and add it to the tracker."
+    return "📸 Надішли скрін купона або текст ставки. Я розпізнаю ставку й додам її в трекер."
+
+
+def _about_bot_text(lang: str) -> str:
+    if lang == "ru":
+        return (
+            "ℹ Bet Tracker\n\n"
+            "Бот для учета ставок, статистики, AI-сигналов и дисциплины банка.\n\n"
+            "Главное: добавляй купоны, смотри ROI и прибыль, проверяй слабые места и используй ColdMind для контроля."
+        )
+    if lang == "en":
+        return (
+            "ℹ Bet Tracker\n\n"
+            "A bot for bet tracking, statistics, AI signals and bankroll discipline.\n\n"
+            "Add bet slips, track ROI and profit, find weak spots and use ColdMind for control."
+        )
+    return (
+        "ℹ Bet Tracker\n\n"
+        "Бот для обліку ставок, статистики, AI-сигналів і дисципліни банку.\n\n"
+        "Додавай купони, дивись ROI і прибуток, знаходь слабкі місця та використовуй ColdMind для контролю."
+    )
+
+
+async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message:
+        return ConversationHandler.END
+    user_id = update.effective_user.id
+    user = get_user(user_id) or {}
+    if not user_has_access(user_id):
+        return await start(update, context)
+    await send_main_menu(update.message, user_id, _normalize_lang_local(user.get("lang")))
+    return ConversationHandler.END
+
+
+async def main_menu_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    user_id = update.effective_user.id
+    user = get_user(user_id) or {}
+    lang = _normalize_lang_local(user.get("lang"))
+    data = query.data
+
+    if data == "main_menu":
+        await send_main_menu(query.message, user_id, lang)
+        return
+
+    if data == "main_signals":
+        await send_signals_menu(query.message, user_id)
+        return
+
+    if data == "main_stats":
+        is_trial_user = _is_trial_user(user_id)
+        has_access = user_has_access(user_id)
+        await query.message.reply_text(
+            get_text(lang, "choose_stats_type"),
+            reply_markup=stats_submenu_keyboard(lang, is_trial=is_trial_user and not has_access),
+        )
+        return
+
+    if data == "main_ai_analysis":
+        if not user_has_access(user_id):
+            await query.message.reply_text(get_text(lang, "ai_analysis_no_access"), reply_markup=access_keyboard(lang))
+            return
+        context.user_data["awaiting_ai_match_analysis"] = True
+        await query.message.reply_text(get_text(lang, "ai_analysis_send_prompt"))
+        return
+
+    if data == "main_vip":
+        show_promo = has_user_ever_paid(user_id) is False
+        vip_texts = {
+            "ua": "💎 VIP підписка\n\nОбери тривалість VIP або окремий доступ до VIP прогнозів:",
+            "ru": "💎 VIP подписка\n\nВыбери срок VIP или отдельный доступ к VIP прогнозам:",
+            "en": "💎 VIP subscription\n\nChoose VIP duration or separate VIP predictions access:",
+        }
+        await query.message.reply_text(
+            vip_texts.get(lang, vip_texts["en"]),
+            reply_markup=vip_subscription_keyboard(lang, show_promo=show_promo),
+        )
+        return
+
+    if data == "main_add_bet":
+        await query.message.reply_text(_add_bet_hint_text(lang))
+        return
+
+    if data == "main_about":
+        await query.message.reply_text(_about_bot_text(lang))
 
 
 def _trial_stats_upsell_text(lang: str) -> str:
@@ -913,6 +1016,13 @@ async def clear_daily_ai_signals_job():
 
 
 async def post_init(application):
+    await application.bot.set_my_commands([
+        BotCommand("start", "Start bot"),
+        BotCommand("menu", "Open main menu"),
+        BotCommand("help", "Help and main menu"),
+    ])
+    await application.bot.set_chat_menu_button(menu_button=MenuButtonCommands())
+
     scheduler = AsyncIOScheduler(timezone=ZoneInfo("Europe/Kiev"))
     scheduler.add_job(
         run_weekly_wrap_broadcast,
@@ -1531,9 +1641,10 @@ async def language_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     set_user_language(user_id, lang)
 
     await query.message.reply_text(
-        get_text(lang, "language_changed"),
-        reply_markup=main_menu_keyboard(lang, get_user_plan(user_id))
+        get_text(lang, "language_changed")
     )
+    if user_has_access(user_id):
+        await send_main_menu(query.message, user_id, lang)
 
 
 async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -2012,6 +2123,8 @@ def main():
     app.add_handler(onboarding_conv)
 
     app.add_handler(CommandHandler("commands", commands_list))
+    app.add_handler(CommandHandler("menu", menu_command))
+    app.add_handler(CommandHandler("help", menu_command))
     app.add_handler(CommandHandler("dellastbet", del_last_bet_command))
     app.add_handler(CommandHandler("addpromo", addpromo))
     app.add_handler(CommandHandler(["freeSignals", "freesignals"], add_free_signal_command))
@@ -2075,6 +2188,7 @@ def main():
         pattern="^(vip_buy_1m|vip_buy_3m_promo|vip_buy_6m_promo|basic_buy_1m|basic_buy_6m_promo)$",
     ))
     app.add_handler(CallbackQueryHandler(open_stars_menu, pattern="^(buy_stars|stars_.*)$"))
+    app.add_handler(CallbackQueryHandler(main_menu_callback_handler, pattern="^main_"))
     app.add_handler(CallbackQueryHandler(signals_callback_handler, pattern=r"^signals_"))
     app.add_handler(CallbackQueryHandler(cryptobot_payment_handler, pattern="^cb_pay_"))
     app.add_handler(CallbackQueryHandler(check_payment_status_handler, pattern="^check_payment_"))

@@ -134,6 +134,24 @@ async def open_signals_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def send_signals_menu(message, user_id: int):
+    user = get_user(user_id) or {}
+    lang = _normalize_lang(user.get("lang"))
+    sub_type = get_subscription_type(user_id)
+
+    if sub_type == "trial" and not is_subscribed_to_signal(user_id, "trial"):
+        subscribe_to_signal(user_id, "trial")
+    if sub_type in ("basic", "vip") and not is_subscribed_to_signal(user_id, "basic"):
+        subscribe_to_signal(user_id, "basic")
+    if sub_type == "vip" and not is_subscribed_to_signal(user_id, "vip"):
+        subscribe_to_signal(user_id, "vip")
+
+    await message.reply_text(
+        _main_signals_text(lang),
+        reply_markup=_signals_keyboard(),
+    )
+
+
 async def _send_basic_offer(message, lang: str):
     from keyboards import access_keyboard
 

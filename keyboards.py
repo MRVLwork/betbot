@@ -36,6 +36,21 @@ def main_menu_keyboard(lang: str = "ua", plan: str = "basic"):
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
 
 
+def main_inline_menu_keyboard(lang: str = "ua"):
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔥 AI-сигнали дня" if lang == "ua" else ("🔥 AI-сигналы дня" if lang == "ru" else "🔥 AI signals today"), callback_data="main_signals")],
+        [
+            InlineKeyboardButton("📊 Моя статистика" if lang == "ua" else ("📊 Моя статистика" if lang == "ru" else "📊 My stats"), callback_data="main_stats"),
+            InlineKeyboardButton("🤖 AI-аналіз PRO" if lang == "ua" else ("🤖 AI-анализ PRO" if lang == "ru" else "🤖 AI analysis PRO"), callback_data="main_ai_analysis"),
+        ],
+        [
+            InlineKeyboardButton("💎 Отримати VIP" if lang == "ua" else ("💎 Получить VIP" if lang == "ru" else "💎 Get VIP"), callback_data="main_vip"),
+            InlineKeyboardButton("📸 Додати ставку" if lang == "ua" else ("📸 Добавить ставку" if lang == "ru" else "📸 Add bet"), callback_data="main_add_bet"),
+        ],
+        [InlineKeyboardButton("ℹ Про бота" if lang == "ua" else ("ℹ О боте" if lang == "ru" else "ℹ About"), callback_data="main_about")],
+    ])
+
+
 def extra_menu_keyboard(lang: str = "ua"):
     if lang == "ru":
         keyboard = [

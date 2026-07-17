@@ -3,7 +3,7 @@ from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import ContextTypes, ConversationHandler
 
 from db import complete_onboarding, get_user, is_trial_available, save_onboarding_data, start_trial_mode
-from keyboards import main_menu_keyboard
+from keyboards import main_inline_menu_keyboard
 from handlers.admin_notify import notify_admin_activation
 from states import ONBOARDING_GOAL, ONBOARDING_SPORT
 
@@ -183,7 +183,7 @@ async def activate_trial_after_onboarding(update: Update, context: ContextTypes.
     user = get_user(user_id) or {}
     await message.reply_text(
         _first_bet_cta_text(lang),
-        reply_markup=main_menu_keyboard(lang, user.get("plan", "basic")),
+        reply_markup=main_inline_menu_keyboard(lang),
     )
     return ConversationHandler.END
 

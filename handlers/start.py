@@ -2,9 +2,11 @@
 from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler
 
-from keyboards import main_menu_keyboard, welcome_offer_keyboard, access_keyboard
+from keyboards import main_inline_menu_keyboard, welcome_offer_keyboard, access_keyboard
 from db import (
     create_user_if_not_exists,
+    get_coldmind_remaining,
+    get_subscription_type,
     get_user,
     is_onboarding_completed,
     user_has_access,
@@ -58,6 +60,65 @@ def _welcome_text(lang: str, promo_available: bool) -> str:
         "👇Обери дію:"
     )
 
+def _access_status_banner(lang: str, user_id: int) -> str:
+    sub_type = get_subscription_type(user_id)
+    if sub_type == "trial":
+        remaining, limit, _ = get_coldmind_remaining(user_id, "trial")
+        used = max(0, limit - remaining)
+        if lang == "ru":
+            return f"🎁 Пробный доступ: {used}/{limit} запрос сегодня\nПолный доступ в Basic и VIP"
+        if lang == "en":
+            return f"🎁 Trial access: {used}/{limit} request today\nFull access in Basic and VIP"
+        return f"🎁 Пробний доступ: {used}/{limit} запит сьогодні\nПовний доступ у Basic та VIP"
+
+    if sub_type == "vip":
+        return {"ua": "💎 VIP активний", "ru": "💎 VIP активен", "en": "💎 VIP active"}.get(lang, "💎 VIP active")
+    if sub_type == "basic":
+        return {"ua": "🔹 Basic активний", "ru": "🔹 Basic активен", "en": "🔹 Basic active"}.get(lang, "🔹 Basic active")
+    return {"ua": "⛔ Доступ не активний", "ru": "⛔ Доступ не активен", "en": "⛔ Access is not active"}.get(lang, "⛔ Access is not active")
+
+
+def _main_menu_text(lang: str, user_id: int) -> str:
+    status = _access_status_banner(lang, user_id)
+    if lang == "ru":
+        return (
+            f"{status}\n\n"
+            "Главное меню\n\n"
+            "🔥 AI-сигналы дня - готовые ставки и история\n"
+            "📊 Моя статистика - ROI, прибыль, серии\n"
+            "🤖 AI-анализ PRO - разбор матча по фото или тексту\n"
+            "📸 Добавить ставку - пришли скрин купона\n"
+            "💎 VIP - полный доступ и ColdMind"
+        )
+    if lang == "en":
+        return (
+            f"{status}\n\n"
+            "Main menu\n\n"
+            "🔥 AI signals today - ready picks and history\n"
+            "📊 My stats - ROI, profit, streaks\n"
+            "🤖 AI analysis PRO - match analysis from photo or text\n"
+            "📸 Add bet - send a bet slip screenshot\n"
+            "💎 VIP - full access and ColdMind"
+        )
+    return (
+        f"{status}\n\n"
+        "Головне меню\n\n"
+        "🔥 AI-сигнали дня - готові ставки та історія\n"
+        "📊 Моя статистика - ROI, прибуток, серії\n"
+        "🤖 AI-аналіз PRO - розбір матчу з фото або тексту\n"
+        "📸 Додати ставку - надішли скрін купона\n"
+        "💎 VIP - повний доступ і ColdMind"
+    )
+
+
+async def send_main_menu(message, user_id: int, lang: str | None = None):
+    user = get_user(user_id) or {}
+    normalized_lang = _normalize_lang(lang or user.get("lang", "en"))
+    await message.reply_text(
+        _main_menu_text(normalized_lang, user_id),
+        reply_markup=main_inline_menu_keyboard(normalized_lang),
+    )
+
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -83,6 +144,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def send_standard_start(update: Update, lang: str):
     user = update.effective_user
+    if user_has_access(user.id):
+        await send_main_menu(update.message, user.id, lang)
+        return
 
     if user_has_access(user.id):
         db_user = get_user(user.id) or {}
@@ -124,6 +188,10 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
             "Для отримання повного доступу до сигналів потрібна активна підписка."
         )
         await query.message.reply_text(ai_signals_text)
+        return ConversationHandler.END
+
+    if user_has_access(tg_user.id):
+        await send_main_menu(query.message, tg_user.id, lang)
         return ConversationHandler.END
 
     if user_has_access(tg_user.id):

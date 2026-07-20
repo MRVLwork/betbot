@@ -32,6 +32,7 @@ from db import (
     mark_first_bet_saved,
     mark_first_screenshot_sent,
     should_include_trial,
+    try_qualify_referral,
 )
 from keyboards import access_keyboard, main_menu_keyboard, welcome_offer_keyboard
 from languages import get_text
@@ -1168,6 +1169,22 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         first_bet_saved_now = False
         if result.get("bet_result") != "pending":
             first_bet_saved_now = mark_first_bet_saved(user_id)
+
+        referral_result = try_qualify_referral(user_id)
+        if referral_result.get("qualified"):
+            referrer_id = int(referral_result["referrer_id"])
+            bonus_days = int(referral_result.get("bonus_days") or 3)
+            try:
+                referrer = get_user(referrer_id) or {}
+                ref_lang = _normalize_lang(referrer.get("lang", "en"))
+                ref_text = {
+                    "ua": f"👥 Твій реферал активував бота. +{bonus_days} дні Basic зараховано.",
+                    "ru": f"👥 Твой реферал активировал бота. +{bonus_days} дня Basic зачислено.",
+                    "en": f"👥 Your referral activated the bot. +{bonus_days} Basic days added.",
+                }.get(ref_lang, f"👥 Your referral activated the bot. +{bonus_days} Basic days added.")
+                await context.bot.send_message(chat_id=referrer_id, text=ref_text)
+            except Exception as exc:
+                print(f"referral bonus notification failed: {exc}")
 
         await _send_coldmind_limit_warnings(
             update.message,

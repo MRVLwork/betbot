@@ -122,18 +122,26 @@ async def send_main_menu(message, user_id: int, lang: str | None = None):
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
+    existing_user = get_user(user.id)
     create_user_if_not_exists(user)
 
     if context.args:
         payload = context.args[0]
         if payload.startswith("ref_") and len(payload) > 4:
             source_key = payload[4:].lower()
-            clean_key = source_key.replace("_", "").replace("-", "")
-            if clean_key.isascii() and clean_key.isalnum():
-                from db import increment_referral_clicks, set_user_ref_source
+            if source_key.isdigit():
+                referrer_id = int(source_key)
+                if not existing_user and referrer_id != user.id:
+                    from db import register_user_referral
 
-                increment_referral_clicks(source_key)
-                set_user_ref_source(user.id, source_key)
+                    register_user_referral(referrer_id, user.id)
+            else:
+                clean_key = source_key.replace("_", "").replace("-", "")
+                if clean_key.isascii() and clean_key.isalnum():
+                    from db import increment_referral_clicks, set_user_ref_source
+
+                    increment_referral_clicks(source_key)
+                    set_user_ref_source(user.id, source_key)
 
     db_user = get_user(user.id)
     lang = _normalize_lang((db_user or {}).get("lang", "en"))

@@ -13,7 +13,10 @@ from db import (
     create_promo,
     get_all_promos,
     get_all_users,
+    get_pending_payout_requests,
     get_users_by_promo,
+    mark_payout_paid,
+    reject_payout_request,
     delete_user_by_id,
     delete_user_by_username,
     get_conn,
@@ -704,6 +707,65 @@ async def send_trial_broadcast(update, context):
 async def send_all_broadcast(update, context):
     await _handle_broadcast(update, context, "all")
 
+
+async def payouts_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update.effective_user.id):
+        return
+
+    rows = get_pending_payout_requests()
+    if not rows:
+        await update.message.reply_text("Pending payout-запитів немає.")
+        return
+
+    lines = ["💸 Pending payout-запити:\n"]
+    for row in rows:
+        username = f"@{row['username']}" if row.get("username") else (row.get("first_name") or "")
+        lines.append(
+            f"#{row['id']} | {row['user_id']} {username} | "
+            f"${float(row['amount_usd'] or 0):.2f} | {row['wallet_address']}"
+        )
+    await update.message.reply_text("\n".join(lines))
+
+
+async def payout_done(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update.effective_user.id):
+        return
+    if not context.args:
+        await update.message.reply_text("Формат: /payout_done <id>")
+        return
+    try:
+        payout_id = int(context.args[0])
+    except ValueError:
+        await update.message.reply_text("ID має бути числом.")
+        return
+
+    row = mark_payout_paid(payout_id)
+    if not row:
+        await update.message.reply_text("Pending payout не знайдено.")
+        return
+    await update.message.reply_text(f"✅ Payout #{payout_id} позначено paid.")
+
+
+async def payout_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update.effective_user.id):
+        return
+    if len(context.args) < 2:
+        await update.message.reply_text("Формат: /payout_reject <id> <причина>")
+        return
+    try:
+        payout_id = int(context.args[0])
+    except ValueError:
+        await update.message.reply_text("ID має бути числом.")
+        return
+    reason = " ".join(context.args[1:]).strip()
+
+    row = reject_payout_request(payout_id, reason)
+    if not row:
+        await update.message.reply_text("Pending payout не знайдено.")
+        return
+    await update.message.reply_text(f"↩️ Payout #{payout_id} відхилено, суму повернуто на баланс.")
+
+
 async def users_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     /users full users list:
@@ -749,6 +811,11 @@ async def users_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
         stars_total = int(user_row.get("stars_total") or 0)
         photos_total = int(user_row.get("photos_total") or 0)
         bets_total = int(user_row.get("bets_total") or 0)
+        referral_balance = float(user_row.get("referral_balance_usd") or 0)
+        referral_paid_total = float(user_row.get("referral_paid_total_usd") or 0)
+        referral_earned_total = referral_balance + referral_paid_total
+        referred_stars_total = int(user_row.get("referred_stars_total") or 0)
+        user_referrals_count = int(user_row.get("user_referrals_count") or 0)
         screenshot_status = "✅" if user_row.get("first_screenshot_sent_at") else "—"
         first_bet_status = "✅" if user_row.get("first_bet_saved_at") else "—"
 
@@ -818,7 +885,8 @@ async def users_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"{uid} | {user_name} | {subscription} | "
             f"{trial_status} | Скрін {screenshot_status} | Ставка {first_bet_status} | "
             f"📸 {photos_total}/{bets_total} | "
-            f"{spent_str} | {ref_str}"
+            f"{spent_str} | {ref_str} | "
+            f"Заробив ${referral_earned_total:.2f} | Витрати реф. {referred_stars_total}⭐ | Рефералів {user_referrals_count}"
         )
         lines.append(line)
 

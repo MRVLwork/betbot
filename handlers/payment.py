@@ -14,6 +14,7 @@ from db import (
     mark_payment_promo_sent,
     get_user,
     mark_promo_offer_used,
+    record_referral_earning,
     activate_vip_bet_day_access,
     activate_vip_signals_access,
     is_eligible_for_first_payment_promo,
@@ -74,6 +75,24 @@ def _cancel_payment_text(lang: str) -> str:
     if lang == "ru":
         return "❌ Оплата отменена. Теперь можешь отправлять скрины ставок."
     return "❌ Payment cancelled. You can now send bet screenshots."
+
+
+async def _notify_referral_earning(context: ContextTypes.DEFAULT_TYPE, earning: dict | None):
+    if not earning:
+        return
+    referrer_id = int(earning["referrer_id"])
+    earned = float(earning["earned_usd"])
+    referrer = get_user(referrer_id) or {}
+    lang = _normalize_lang(referrer.get("lang", "en"))
+    text = {
+        "ua": f"💰 Твій реферал оформив підписку. Нараховано ${earned:.2f}.",
+        "ru": f"💰 Твой реферал оформил подписку. Начислено ${earned:.2f}.",
+        "en": f"💰 Your referral bought a subscription. ${earned:.2f} credited.",
+    }.get(lang, f"💰 Your referral bought a subscription. ${earned:.2f} credited.")
+    try:
+        await context.bot.send_message(chat_id=referrer_id, text=text)
+    except Exception as exc:
+        print(f"referral earning notification failed: {exc}")
 
 
 def _payment_card_text(lang: str, plan_name: str, amount_usd: float, wallet: str, promo_hint: str) -> str:
@@ -361,6 +380,7 @@ async def admin_payment_reply_handler(update: Update, context: ContextTypes.DEFA
 
     target_user = get_user(payment["user_id"])
     target_lang = _normalize_lang(target_user["lang"] if target_user and target_user.get("lang") else "en")
+    should_record_referral_earning = (payment.get("status") or "") not in {"promo_sent", "paid"}
 
     await context.bot.send_message(
         chat_id=payment["user_id"],
@@ -368,6 +388,11 @@ async def admin_payment_reply_handler(update: Update, context: ContextTypes.DEFA
     )
 
     mark_payment_promo_sent(payment_id, update.message.text)
+    if should_record_referral_earning:
+        await _notify_referral_earning(
+            context,
+            record_referral_earning(payment["user_id"], float(payment.get("amount_usd") or 0), 0),
+        )
 
     plan_label = payment.get("plan_name") or payment.get("plan_key") or "USDT"
     await notify_admin_activation(context, payment["user_id"], plan_label, "USDT")
@@ -558,6 +583,10 @@ async def check_payment_status_handler(update: Update, context: ContextTypes.DEF
                 )
             plan_label = plan.get("plan_name_ua") or plan.get("plan_name_en") or plan_key
             await notify_admin_activation(context, user_id, plan_label, "USDT")
+            await _notify_referral_earning(
+                context,
+                record_referral_earning(user_id, float(plan.get("amount_usd") or 0), 0),
+            )
             success_texts = {
                 "ua": "✅ Оплата знайдена! Підписку активовано.",
                 "ru": "✅ Оплата найдена! Подписка активирована.",

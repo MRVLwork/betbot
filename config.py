@@ -32,6 +32,14 @@ def _int_env(name: str, default: int) -> int:
         return default
 
 
+def _float_env(name: str, default: float) -> float:
+    raw = (os.getenv(name, str(default)) or str(default)).strip()
+    try:
+        return float(raw)
+    except ValueError:
+        return default
+
+
 # Match analysis limits
 ANALYSIS_LIMIT_BASIC = _int_env("ANALYSIS_LIMIT_BASIC", 3)
 ANALYSIS_LIMIT_VIP = _int_env("ANALYSIS_LIMIT_VIP", 10)
@@ -41,6 +49,14 @@ ANALYSIS_LIMIT_TRIAL = _int_env("ANALYSIS_LIMIT_TRIAL", 3)
 COLDMIND_LIMIT_TRIAL_PER_DAY = _int_env("COLDMIND_LIMIT_TRIAL_PER_DAY", 1)
 COLDMIND_LIMIT_BASIC_PER_MONTH = _int_env("COLDMIND_LIMIT_BASIC_PER_MONTH", 90)
 COLDMIND_LIMIT_VIP_PER_MONTH = _int_env("COLDMIND_LIMIT_VIP_PER_MONTH", 150)
+
+# User referral program
+REFERRAL_PERCENT = _float_env("REFERRAL_PERCENT", 0.25)
+REFERRAL_WINDOW_DAYS = _int_env("REFERRAL_WINDOW_DAYS", 90)
+PAYOUT_MIN_USD = _float_env("PAYOUT_MIN_USD", 20.0)
+STARS_PER_USD = _float_env("STARS_PER_USD", 75.0)
+REFERRAL_BONUS_DAYS = _int_env("REFERRAL_BONUS_DAYS", 3)
+REFERRAL_DAILY_BONUS_LIMIT = _int_env("REFERRAL_DAILY_BONUS_LIMIT", 3)
 
 CRYPTOBOT_TOKEN = os.getenv("CRYPTOBOT_TOKEN", "").strip()
 CRYPTOBOT_API_URL = "https://pay.crypt.bot/api"

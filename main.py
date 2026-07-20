@@ -107,6 +107,9 @@ from handlers.admin import (
     stars_revenue,
     gen_ref,
     list_refs,
+    payout_done,
+    payout_reject,
+    payouts_list,
     ref_stats,
     update_menu_all,
     send_basic_broadcast,
@@ -132,6 +135,7 @@ from handlers.limits import (
     send_limits_prompt,
 )
 from handlers.profile import profile_callback_handler, show_profile
+from handlers.referral import handle_payout_wallet, referral_callback_handler
 from handlers.tools import (
     open_tools_menu,
     open_ai_signals_menu,
@@ -1712,6 +1716,10 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await handle_limit_value_input(update, context)
         return ConversationHandler.END
 
+    if context.user_data.get("awaiting_referral_payout_wallet"):
+        await handle_payout_wallet(update, context)
+        return ConversationHandler.END
+
     if context.user_data.pop("awaiting_settings_promo", None):
         await promo_input(update, context)
         return ConversationHandler.END
@@ -2140,6 +2148,9 @@ def main():
     app.add_handler(CommandHandler("deluser", delete_user))
     app.add_handler(CommandHandler("cleanup", cleanup))
     app.add_handler(CommandHandler("stars", stars_revenue))
+    app.add_handler(CommandHandler("payouts", payouts_list))
+    app.add_handler(CommandHandler("payout_done", payout_done))
+    app.add_handler(CommandHandler("payout_reject", payout_reject))
     app.add_handler(CommandHandler("genref", gen_ref))
     app.add_handler(CommandHandler("refs", list_refs))
     app.add_handler(CommandHandler("refstats", ref_stats))
@@ -2207,6 +2218,7 @@ def main():
     app.add_handler(CallbackQueryHandler(language_handler, pattern="^lang_"))
     app.add_handler(CallbackQueryHandler(settings_callback_handler, pattern="^settings_"))
     app.add_handler(CallbackQueryHandler(profile_callback_handler, pattern="^profile_"))
+    app.add_handler(CallbackQueryHandler(referral_callback_handler, pattern="^referral_"))
     app.add_handler(CallbackQueryHandler(limits_callback_handler, pattern="^limits_"))
     app.add_handler(CallbackQueryHandler(coach_end_callback, pattern="^coach_end$"))
     app.add_handler(CallbackQueryHandler(tilt_warning_callback_handler, pattern="^tilt_warning_"))

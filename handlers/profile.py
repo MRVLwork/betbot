@@ -17,6 +17,7 @@ from db import (
     should_include_trial,
     user_has_access,
 )
+from handlers.referral import show_referrals
 
 
 LEVEL_NAMES = {
@@ -248,6 +249,10 @@ async def profile_callback_handler(update: Update, context: ContextTypes.DEFAULT
         )
 
     elif query.data == "profile_referrals":
+        await show_referrals(update, context)
+        return
+
+    elif query.data == "profile_referrals_legacy":
         bot = context.bot
         bot_username = bot.username or "bet_tracker_stats_bot"
         ref_link = f"https://t.me/{bot_username}?start=ref_{user_id}"

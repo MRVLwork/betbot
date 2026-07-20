@@ -13,6 +13,11 @@ from config import (
     COLDMIND_LIMIT_BASIC_PER_MONTH,
     COLDMIND_LIMIT_TRIAL_PER_DAY,
     COLDMIND_LIMIT_VIP_PER_MONTH,
+    REFERRAL_BONUS_DAYS,
+    REFERRAL_DAILY_BONUS_LIMIT,
+    REFERRAL_PERCENT,
+    REFERRAL_WINDOW_DAYS,
+    STARS_PER_USD,
 )
 
 TRIAL_SCREEN_LIMIT = 5
@@ -380,6 +385,54 @@ def init_db():
         )
     """)
 
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS referrals (
+            referrer_id BIGINT NOT NULL,
+            referred_id BIGINT UNIQUE NOT NULL,
+            activated_at TEXT NOT NULL,
+            qualified_at TEXT,
+            bonus_granted INTEGER DEFAULT 0,
+            window_end TEXT NOT NULL,
+            PRIMARY KEY (referrer_id, referred_id)
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS referral_earnings (
+            id SERIAL PRIMARY KEY,
+            referrer_id BIGINT NOT NULL,
+            referred_id BIGINT NOT NULL,
+            amount_stars INTEGER DEFAULT 0,
+            amount_usd DOUBLE PRECISION NOT NULL DEFAULT 0,
+            earned_usd DOUBLE PRECISION NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS payout_requests (
+            id SERIAL PRIMARY KEY,
+            user_id BIGINT NOT NULL,
+            amount_usd DOUBLE PRECISION NOT NULL,
+            wallet_address TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            requested_at TEXT NOT NULL,
+            processed_at TEXT,
+            admin_note TEXT
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS referral_fraud_logs (
+            id SERIAL PRIMARY KEY,
+            referrer_id BIGINT,
+            referred_id BIGINT NOT NULL,
+            reason TEXT NOT NULL,
+            details TEXT,
+            created_at TEXT NOT NULL
+        )
+    """)
+
     conn.commit()
     conn.close()
 
@@ -427,6 +480,8 @@ def init_db():
     add_column_if_not_exists("users", "vip_pre_end_sent", "TEXT")
     add_column_if_not_exists("users", "vip_ended_sent", "TEXT")
     add_column_if_not_exists("users", "vip_winback_sent", "TEXT")
+    add_column_if_not_exists("users", "referral_balance_usd", "DOUBLE PRECISION DEFAULT 0")
+    add_column_if_not_exists("users", "referral_paid_total_usd", "DOUBLE PRECISION DEFAULT 0")
 
     add_column_if_not_exists("promo_codes", "plan_type", "TEXT DEFAULT 'basic'")
 
@@ -2034,6 +2089,416 @@ def clear_daily_ai_signal_lists():
         clear_signal_rows(signal_type)
 
 
+def register_user_referral(referrer_id: int, referred_id: int) -> bool:
+    if not referrer_id or not referred_id or int(referrer_id) == int(referred_id):
+        return False
+    if not get_user(referrer_id):
+        return False
+
+    now = datetime.now()
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("SELECT referred_id FROM referrals WHERE referred_id = ?", (referred_id,))
+    if cur.fetchone():
+        conn.close()
+        return False
+
+    cur.execute(
+        """
+        INSERT INTO referrals (
+            referrer_id, referred_id, activated_at, window_end, bonus_granted
+        )
+        VALUES (?, ?, ?, ?, 0)
+        ON CONFLICT (referred_id) DO NOTHING
+        """,
+        (
+            referrer_id,
+            referred_id,
+            now.isoformat(),
+            (now + timedelta(days=REFERRAL_WINDOW_DAYS)).isoformat(),
+        ),
+    )
+    inserted = cur.rowcount > 0
+    conn.commit()
+    conn.close()
+    return inserted
+
+
+def log_referral_fraud(referrer_id: int | None, referred_id: int, reason: str, details: str = ""):
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO referral_fraud_logs (
+            referrer_id, referred_id, reason, details, created_at
+        )
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (referrer_id, referred_id, reason, details, datetime.now().isoformat()),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_referral_by_referred(referred_id: int) -> dict | None:
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM referrals WHERE referred_id = ?", (referred_id,))
+    row = cur.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def count_referral_bonuses_today(referrer_id: int) -> int:
+    today = datetime.now().date().isoformat()
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT COUNT(*) AS count
+        FROM referrals
+        WHERE referrer_id = ?
+          AND bonus_granted = 1
+          AND qualified_at >= ?
+        """,
+        (referrer_id, today),
+    )
+    row = cur.fetchone()
+    conn.close()
+    return int(row["count"] if row else 0)
+
+
+def get_referral_parsed_bet_check(referred_id: int) -> dict:
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT COUNT(*) AS count
+        FROM bets
+        WHERE user_id = ?
+          AND parse_status = 'parsed'
+        """,
+        (referred_id,),
+    )
+    total_row = cur.fetchone()
+    total_count = int(total_row["count"] if total_row else 0)
+    cur.execute(
+        """
+        SELECT photo_file_id, MIN(created_at) AS first_created_at
+        FROM bets
+        WHERE user_id = ?
+          AND parse_status = 'parsed'
+          AND photo_file_id IS NOT NULL
+          AND photo_file_id <> ''
+        GROUP BY photo_file_id
+        ORDER BY first_created_at ASC
+        """,
+        (referred_id,),
+    )
+    rows = [dict(row) for row in cur.fetchall()]
+    conn.close()
+
+    unique_count = len(rows)
+    span_seconds = 0
+    if unique_count >= 3:
+        try:
+            first_dt = datetime.fromisoformat(rows[0]["first_created_at"])
+            last_dt = datetime.fromisoformat(rows[-1]["first_created_at"])
+            span_seconds = int((last_dt - first_dt).total_seconds())
+        except Exception:
+            span_seconds = 0
+    return {"total_count": total_count, "unique_count": unique_count, "span_seconds": span_seconds}
+
+
+def try_qualify_referral(referred_id: int) -> dict:
+    referral = get_referral_by_referred(referred_id)
+    if not referral or referral.get("qualified_at"):
+        return {"qualified": False, "reason": "no_pending_referral"}
+
+    referrer_id = int(referral["referrer_id"])
+    check = get_referral_parsed_bet_check(referred_id)
+    unique_count = int(check["unique_count"])
+    span_seconds = int(check["span_seconds"])
+
+    if unique_count < 3:
+        if int(check.get("total_count") or 0) >= 3:
+            log_referral_fraud(
+                referrer_id,
+                referred_id,
+                "duplicate_screenshots",
+                f"total_bets={check.get('total_count')}; unique_photo_file_ids={unique_count}",
+            )
+        return {"qualified": False, "reason": "not_enough_unique_bets", "unique_count": unique_count}
+
+    if span_seconds < 60:
+        log_referral_fraud(
+            referrer_id,
+            referred_id,
+            "too_fast_qualification",
+            f"unique_bets={unique_count}; span_seconds={span_seconds}",
+        )
+        return {"qualified": False, "reason": "too_fast", "unique_count": unique_count, "span_seconds": span_seconds}
+
+    if count_referral_bonuses_today(referrer_id) >= REFERRAL_DAILY_BONUS_LIMIT:
+        log_referral_fraud(
+            referrer_id,
+            referred_id,
+            "daily_bonus_limit_reached",
+            f"limit={REFERRAL_DAILY_BONUS_LIMIT}",
+        )
+        return {"qualified": False, "reason": "daily_limit_reached"}
+
+    now = datetime.now().isoformat()
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        UPDATE referrals
+        SET qualified_at = ?,
+            bonus_granted = 1
+        WHERE referred_id = ?
+          AND qualified_at IS NULL
+          AND COALESCE(bonus_granted, 0) = 0
+        """,
+        (now, referred_id),
+    )
+    updated = cur.rowcount > 0
+    conn.commit()
+    conn.close()
+    if not updated:
+        return {"qualified": False, "reason": "already_processed"}
+
+    referrer_sub = get_subscription_type(referrer_id)
+    bonus_plan = "vip" if referrer_sub == "vip" else "basic"
+    activate_user_access(referrer_id, REFERRAL_BONUS_DAYS, bonus_plan, "referral_bonus")
+    return {
+        "qualified": True,
+        "referrer_id": referrer_id,
+        "bonus_days": REFERRAL_BONUS_DAYS,
+        "bonus_plan": bonus_plan,
+    }
+
+
+def record_referral_earning(
+    referred_id: int,
+    amount_usd: float,
+    amount_stars: int = 0,
+) -> dict | None:
+    referral = get_referral_by_referred(referred_id)
+    if not referral:
+        return None
+
+    try:
+        window_end = datetime.fromisoformat(referral["window_end"])
+    except Exception:
+        return None
+    if datetime.now() > window_end:
+        return None
+
+    referrer_id = int(referral["referrer_id"])
+    amount_usd = round(float(amount_usd or 0), 2)
+    earned_usd = round(amount_usd * REFERRAL_PERCENT, 2)
+    if earned_usd <= 0:
+        return None
+
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO referral_earnings (
+            referrer_id, referred_id, amount_stars, amount_usd, earned_usd, created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (referrer_id, referred_id, int(amount_stars or 0), amount_usd, earned_usd, datetime.now().isoformat()),
+    )
+    cur.execute(
+        """
+        UPDATE users
+        SET referral_balance_usd = COALESCE(referral_balance_usd, 0) + ?
+        WHERE user_id = ?
+        """,
+        (earned_usd, referrer_id),
+    )
+    conn.commit()
+    conn.close()
+    return {"referrer_id": referrer_id, "earned_usd": earned_usd, "amount_usd": amount_usd}
+
+
+def record_referral_earning_from_stars(referred_id: int, amount_stars: int) -> dict | None:
+    amount_usd = float(amount_stars or 0) / STARS_PER_USD if STARS_PER_USD else 0
+    return record_referral_earning(referred_id, amount_usd=amount_usd, amount_stars=amount_stars)
+
+
+def get_referral_dashboard(user_id: int) -> dict:
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT
+            COALESCE(u.referral_balance_usd, 0) AS balance,
+            COALESCE(u.referral_paid_total_usd, 0) AS paid_total,
+            COALESCE((SELECT COUNT(*) FROM referrals WHERE referrer_id = u.user_id), 0) AS total_referrals,
+            COALESCE((
+                SELECT COUNT(DISTINCT referred_id)
+                FROM referral_earnings
+                WHERE referrer_id = u.user_id
+            ), 0) AS paid_referrals,
+            COALESCE((
+                SELECT SUM(earned_usd)
+                FROM referral_earnings
+                WHERE referrer_id = u.user_id
+            ), 0) AS earned_total
+        FROM users u
+        WHERE u.user_id = ?
+        """,
+        (user_id,),
+    )
+    row = cur.fetchone()
+    conn.close()
+    return dict(row) if row else {
+        "balance": 0,
+        "paid_total": 0,
+        "total_referrals": 0,
+        "paid_referrals": 0,
+        "earned_total": 0,
+    }
+
+
+def get_pending_payout_request(user_id: int) -> dict | None:
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT *
+        FROM payout_requests
+        WHERE user_id = ? AND status = 'pending'
+        ORDER BY id DESC
+        LIMIT 1
+        """,
+        (user_id,),
+    )
+    row = cur.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def create_payout_request(user_id: int, amount_usd: float, wallet_address: str) -> int | None:
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        UPDATE users
+        SET referral_balance_usd = COALESCE(referral_balance_usd, 0) - ?
+        WHERE user_id = ?
+          AND COALESCE(referral_balance_usd, 0) >= ?
+        """,
+        (amount_usd, user_id, amount_usd),
+    )
+    if cur.rowcount <= 0:
+        conn.rollback()
+        conn.close()
+        return None
+
+    cur.execute(
+        """
+        INSERT INTO payout_requests (
+            user_id, amount_usd, wallet_address, status, requested_at
+        )
+        VALUES (?, ?, ?, 'pending', ?)
+        RETURNING id
+        """,
+        (user_id, amount_usd, wallet_address, datetime.now().isoformat()),
+    )
+    row = cur.fetchone()
+    conn.commit()
+    conn.close()
+    return int(row["id"]) if row else None
+
+
+def get_pending_payout_requests() -> list[dict]:
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT p.*, u.username, u.first_name
+        FROM payout_requests p
+        LEFT JOIN users u ON u.user_id = p.user_id
+        WHERE p.status = 'pending'
+        ORDER BY p.requested_at ASC
+        """
+    )
+    rows = cur.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def mark_payout_paid(payout_id: int, admin_note: str = "") -> dict | None:
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM payout_requests WHERE id = ? AND status = 'pending'", (payout_id,))
+    row = cur.fetchone()
+    if not row:
+        conn.close()
+        return None
+
+    cur.execute(
+        """
+        UPDATE payout_requests
+        SET status = 'paid',
+            processed_at = ?,
+            admin_note = ?
+        WHERE id = ? AND status = 'pending'
+        """,
+        (datetime.now().isoformat(), admin_note, payout_id),
+    )
+    cur.execute(
+        """
+        UPDATE users
+        SET referral_paid_total_usd = COALESCE(referral_paid_total_usd, 0) + ?
+        WHERE user_id = ?
+        """,
+        (float(row["amount_usd"] or 0), row["user_id"]),
+    )
+    conn.commit()
+    conn.close()
+    return dict(row)
+
+
+def reject_payout_request(payout_id: int, reason: str) -> dict | None:
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM payout_requests WHERE id = ? AND status = 'pending'", (payout_id,))
+    row = cur.fetchone()
+    if not row:
+        conn.close()
+        return None
+
+    amount = float(row["amount_usd"] or 0)
+    user_id = int(row["user_id"])
+    cur.execute(
+        """
+        UPDATE payout_requests
+        SET status = 'rejected',
+            processed_at = ?,
+            admin_note = ?
+        WHERE id = ? AND status = 'pending'
+        """,
+        (datetime.now().isoformat(), reason, payout_id),
+    )
+    cur.execute(
+        """
+        UPDATE users
+        SET referral_balance_usd = COALESCE(referral_balance_usd, 0) + ?
+        WHERE user_id = ?
+        """,
+        (amount, user_id),
+    )
+    conn.commit()
+    conn.close()
+    return dict(row)
+
+
 def activate_user_access(user_id: int, days: int, plan_type: str, source: str):
     conn = get_conn()
     cur = conn.cursor()
@@ -3261,6 +3726,18 @@ def get_users_with_full_info() -> list[dict]:
                 u.first_screenshot_sent_at,
                 u.first_bet_saved_at,
                 u.ref_source,
+                COALESCE(u.referral_balance_usd, 0) AS referral_balance_usd,
+                COALESCE(u.referral_paid_total_usd, 0) AS referral_paid_total_usd,
+                COALESCE((
+                    SELECT COUNT(*)
+                    FROM referrals
+                    WHERE referrer_id = u.user_id
+                ), 0) AS user_referrals_count,
+                COALESCE((
+                    SELECT SUM(amount_stars)
+                    FROM referral_earnings
+                    WHERE referrer_id = u.user_id
+                ), 0) AS referred_stars_total,
                 COALESCE((
                     SELECT SUM(amount_usd)
                     FROM payments

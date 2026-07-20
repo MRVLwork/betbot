@@ -14,6 +14,7 @@ from db import (
     clear_vip_week_promo,
     mark_vip_week_message_sent,
     mark_vip_week_promo_started,
+    record_referral_earning_from_stars,
     subscribe_to_signal,
 )
 from keyboards import stars_plans_keyboard
@@ -92,6 +93,24 @@ def _success_text(lang: str) -> str:
     if lang == "ru":
         return "✅ Оплата получена. Доступ активирован."
     return "✅ Payment received. Access activated."
+
+
+async def _notify_referral_earning(context: ContextTypes.DEFAULT_TYPE, earning: dict | None):
+    if not earning:
+        return
+    referrer_id = int(earning["referrer_id"])
+    earned = float(earning["earned_usd"])
+    referrer = get_user(referrer_id) or {}
+    lang = _normalize_lang(referrer.get("lang", "en"))
+    text = {
+        "ua": f"💰 Твій реферал оформив підписку. Нараховано ${earned:.2f}.",
+        "ru": f"💰 Твой реферал оформил подписку. Начислено ${earned:.2f}.",
+        "en": f"💰 Your referral bought a subscription. ${earned:.2f} credited.",
+    }.get(lang, f"💰 Your referral bought a subscription. ${earned:.2f} credited.")
+    try:
+        await context.bot.send_message(chat_id=referrer_id, text=text)
+    except Exception as exc:
+        print(f"referral earning notification failed: {exc}")
 
 
 async def open_stars_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -173,6 +192,10 @@ async def successful_payment_handler(update: Update, context: ContextTypes.DEFAU
         amount_xtr=plan["amount_xtr"],
         telegram_charge_id=payment.telegram_payment_charge_id,
         provider_charge_id=payment.provider_payment_charge_id,
+    )
+    await _notify_referral_earning(
+        context,
+        record_referral_earning_from_stars(user_id, int(plan["amount_xtr"] or 0)),
     )
 
     if plan_key == "stars_vip_bet_day_month":

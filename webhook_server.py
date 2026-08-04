@@ -8,6 +8,7 @@ from db import (
     activate_vip_signals_access,
     get_user,
     is_eligible_for_first_payment_promo,
+    record_cryptobot_payment_once,
     subscribe_to_signal,
 )
 from services.cryptobot_service import parse_webhook_payload, verify_webhook_signature
@@ -51,8 +52,11 @@ async def handle_cryptobot_webhook(request: web.Request):
         user_id = payload["user_id"]
         plan_key = payload["plan_key"]
         amount = payload["amount"]
+        invoice_id = payload.get("invoice_id")
 
         plan_config = {
+            "tracker_1m_usd": {"plan_type": "tracker", "duration_days": 30, "min_amount": 6.9},
+            "tracker_6m_usd": {"plan_type": "tracker", "duration_days": 180, "min_amount": 29.9},
             "usdt_basic_month": {"plan_type": "basic", "duration_days": 30, "min_amount": 6.9},
             "usdt_vip_month": {"plan_type": "vip", "duration_days": 30, "min_amount": 19.0},
             "usdt_basic_6m_promo": {"plan_type": "basic", "duration_days": 180, "min_amount": 29.9, "first_payment_only": True},
@@ -73,6 +77,12 @@ async def handle_cryptobot_webhook(request: web.Request):
             logger.warning("First-payment promo denied for user %s plan %s", user_id, plan_key)
             return web.Response(status=400, text="Promo unavailable")
 
+        plan = USDT_PLANS.get(plan_key) or {}
+        plan_record = {**plan_config, **plan}
+        if not record_cryptobot_payment_once(user_id, plan_key, plan_record, invoice_id):
+            logger.info("CryptoBot invoice %s already processed for user %s", invoice_id, user_id)
+            return web.Response(status=200, text="Already processed")
+
         if plan_config["plan_type"] == "vip_signals":
             activate_vip_signals_access(user_id=user_id, days=plan_config["duration_days"])
             subscribe_to_signal(user_id, "vip", duration_days=plan_config["duration_days"])
@@ -83,7 +93,6 @@ async def handle_cryptobot_webhook(request: web.Request):
                 plan_type=plan_config["plan_type"],
                 source="cryptobot",
             )
-        plan = USDT_PLANS.get(plan_key) or {}
         plan_label = plan.get("plan_name_ua") or plan.get("plan_name_en") or plan_key
         await notify_admin_activation_with_bot(_bot, user_id, plan_label, "USDT")
 
@@ -97,21 +106,21 @@ async def handle_cryptobot_webhook(request: web.Request):
                     f"✅ Оплата підтверджена!\n\n"
                     f"Твоя підписка активована.\n"
                     f"План: {plan_config['plan_type'].upper()}\n"
-                    f"Термін: 30 днів\n\n"
+                    f"Термін: {plan_config['duration_days']} днів\n\n"
                     f"Дякуємо! Починай відстежувати ставки 🎯"
                 ),
                 "ru": (
                     f"✅ Оплата подтверждена!\n\n"
                     f"Твоя подписка активирована.\n"
                     f"План: {plan_config['plan_type'].upper()}\n"
-                    f"Срок: 30 дней\n\n"
+                    f"Срок: {plan_config['duration_days']} дней\n\n"
                     f"Спасибо! Начинай отслеживать ставки 🎯"
                 ),
                 "en": (
                     f"✅ Payment confirmed!\n\n"
                     f"Your subscription is now active.\n"
                     f"Plan: {plan_config['plan_type'].upper()}\n"
-                    f"Duration: 30 days\n\n"
+                    f"Duration: {plan_config['duration_days']} days\n\n"
                     f"Thank you! Start tracking your bets 🎯"
                 ),
             }

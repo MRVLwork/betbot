@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from telegram import Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
 from db import (
@@ -41,6 +41,25 @@ def _normalize_lang(lang: str) -> str:
     return "en"
 
 
+def _tracker_signals_no_access_text(lang: str) -> str:
+    if lang == "ru":
+        return "💎 Доступно в VIP.\n\nBet Tracker остаётся журналом ставок, статистикой и дисциплиной."
+    if lang == "en":
+        return "💎 Available in VIP.\n\nBet Tracker stays focused on bet logging, stats and discipline."
+    return "💎 Доступно у VIP.\n\nBet Tracker залишається журналом ставок, статистикою та дисципліною."
+
+
+def _vip_button_keyboard(lang: str) -> InlineKeyboardMarkup:
+    labels = {
+        "ua": "💎 Отримати VIP",
+        "ru": "💎 Получить VIP",
+        "en": "💎 Get VIP",
+    }
+    return InlineKeyboardMarkup([[
+        InlineKeyboardButton(labels.get(lang, labels["en"]), callback_data="vip_buy_1m")
+    ]])
+
+
 def _analysis_limit_reached_text(lang: str, limit: int) -> str:
     texts = {
         "ua": (
@@ -79,6 +98,13 @@ async def open_ai_signals_menu(update: Update, context: ContextTypes.DEFAULT_TYP
     user_id = update.effective_user.id
     user = get_user(user_id) or {}
     lang = _normalize_lang(user.get("lang", "en"))
+    if get_subscription_type(user_id) == "tracker":
+        await update.message.reply_text(
+            _tracker_signals_no_access_text(lang),
+            reply_markup=_vip_button_keyboard(lang),
+        )
+        return
+
     vip_access = has_vip_signals_access(user_id)
 
     texts = {
@@ -124,6 +150,12 @@ async def tools_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
         return
 
     if query.data in ("tool_ai_signals", "signal_back"):
+        if get_subscription_type(user_id) == "tracker":
+            await query.message.reply_text(
+                _tracker_signals_no_access_text(lang),
+                reply_markup=_vip_button_keyboard(lang),
+            )
+            return
         texts = {
             "ua": "🔥 AI Прогнози дня\n\nОбери тип прогнозів:",
             "ru": "🔥 AI Прогнозы дня\n\nВыбери тип прогнозов:",
@@ -136,6 +168,12 @@ async def tools_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
         return
 
     if query.data in ("signal_trial", "signal_basic", "signal_vip"):
+        if get_subscription_type(user_id) == "tracker":
+            await query.message.reply_text(
+                _tracker_signals_no_access_text(lang),
+                reply_markup=_vip_button_keyboard(lang),
+            )
+            return
         signal_type = query.data.replace("signal_", "")
 
         if signal_type == "basic" and not has_access:
@@ -189,6 +227,13 @@ async def tools_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
             "en": f"✅ {signal_type.upper()} predictions subscription activated.",
         }
         await query.message.reply_text(success.get(lang, success["en"]))
+        return
+
+    if query.data in ("tool_bet_day", "betday_basic", "betday_vip", "betday_basic_subscribe", "betday_vip_subscribe") and get_subscription_type(user_id) == "tracker":
+        await query.message.reply_text(
+            _tracker_signals_no_access_text(lang),
+            reply_markup=_vip_button_keyboard(lang),
+        )
         return
 
     if query.data == "tool_bet_day":
@@ -360,6 +405,12 @@ async def tools_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
 
     if query.data == "tool_ai":
         sub_type = get_subscription_type(user_id)
+        if sub_type == "tracker":
+            await query.message.reply_text(
+                _tracker_signals_no_access_text(lang),
+                reply_markup=_vip_button_keyboard(lang),
+            )
+            return
         if sub_type not in ("trial", "basic", "vip"):
             await query.message.reply_text(get_text(lang, "ai_analysis_no_access"), reply_markup=access_keyboard(lang))
             return
@@ -735,6 +786,13 @@ async def handle_ai_analysis_input(update: Update, context: ContextTypes.DEFAULT
         return
 
     sub_type = get_subscription_type(user_id)
+    if sub_type == "tracker":
+        context.user_data.pop("awaiting_ai_match_analysis", None)
+        await await_target.reply_text(
+            _tracker_signals_no_access_text(lang),
+            reply_markup=_vip_button_keyboard(lang),
+        )
+        return
     if sub_type not in ("trial", "basic", "vip"):
         context.user_data.pop("awaiting_ai_match_analysis", None)
         await await_target.reply_text(get_text(lang, "ai_analysis_no_access"), reply_markup=access_keyboard(lang))

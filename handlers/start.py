@@ -2,7 +2,13 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes, ConversationHandler
 
-from keyboards import main_inline_menu_keyboard, welcome_offer_keyboard, access_keyboard
+from keyboards import (
+    main_inline_menu_keyboard,
+    tracker_menu_keyboard,
+    tracker_offer_keyboard,
+    welcome_offer_keyboard,
+    access_keyboard,
+)
 from db import (
     create_user_if_not_exists,
     get_coldmind_remaining,
@@ -73,34 +79,49 @@ def _bet_tracker_intro_text(lang: str) -> str:
     lang = _normalize_lang(lang)
     texts = {
         "ua": (
-            "📊 Bet Tracker\n\n"
-            "Надсилаєш скрін купона  бот автоматично розпізнає ставку, коефіцієнт і суму.\n\n"
-            "Далі все рахується без ручних таблиць:\n"
-            "ROI, Win Rate, прибуток, серії та історія ставок.\n\n"
-            "AI показує, які типи ставок зливають банк, а які реально працюють.\n"
-            "Емоційний трекер разом із ColdMind помічає тільт і допомагає тримати дисципліну.\n\n"
-            "Tracker is included in Trial and every plan"
+            "📊 Bet Tracker  твій журнал ставок на автопілоті\n\n"
+            "📸 Надішли скрін купона  бот сам розпізнає і запише ставку\n"
+            "📈 ROI, Win Rate, прибуток і серії рахуються автоматично\n"
+            "🎯 Бот показує, які типи ставок зливають твій банк\n"
+            "🧊 ColdMind  емоційний трекер і тренер дисципліни\n\n"
+            "💵 Підписка:\n"
+            "🔹 1 місяць  $7 або 500⭐\n"
+            "🔥 6 місяців  $30 або 2100⭐ (-30%, економія $12)\n\n"
+            "👇 Обери варіант:"
         ),
         "ru": (
-            "📊 Bet Tracker\n\n"
-            "Отправляешь скрин купона  бот автоматически распознаёт ставку, коэффициент и сумму.\n\n"
-            "Дальше всё считается без ручных таблиц:\n"
-            "ROI, Win Rate, прибыль, серии и история ставок.\n\n"
-            "AI показывает, какие типы ставок сливают банк, а какие реально работают.\n"
-            "Эмоциональный трекер вместе с ColdMind замечает тильт и помогает держать дисциплину.\n\n"
-            "Tracker is included in Trial and every plan"
+            "📊 Bet Tracker  твой журнал ставок на автопилоте\n\n"
+            "📸 Пришли скрин купона  бот сам распознает и запишет ставку\n"
+            "📈 ROI, Win Rate, прибыль и серии считаются автоматически\n"
+            "🎯 Бот показывает, какие типы ставок сливают твой банк\n"
+            "🧊 ColdMind  эмоциональный трекер и тренер дисциплины\n\n"
+            "💵 Подписка:\n"
+            "🔹 1 месяц  $7 или 500⭐\n"
+            "🔥 6 месяцев  $30 или 2100⭐ (-30%, экономия $12)\n\n"
+            "👇 Выбери вариант:"
         ),
         "en": (
-            "📊 Bet Tracker\n\n"
-            "Send a bet slip screenshot  the bot automatically reads the pick, odds and stake.\n\n"
-            "Then everything is counted without spreadsheets:\n"
-            "ROI, Win Rate, profit, streaks and bet history.\n\n"
-            "AI shows which bet types leak money and which ones actually work.\n"
-            "The emotion tracker and ColdMind spot tilt and help you stay disciplined.\n\n"
-            "Tracker is included in Trial and every plan"
+            "📊 Bet Tracker  your bet journal on autopilot\n\n"
+            "📸 Send a bet slip screenshot  the bot reads and logs the bet\n"
+            "📈 ROI, Win Rate, profit and streaks are counted automatically\n"
+            "🎯 The bot shows which bet types drain your bankroll\n"
+            "🧊 ColdMind  emotion tracker and discipline coach\n\n"
+            "💵 Subscription:\n"
+            "🔹 1 month  $7 or 500⭐\n"
+            "🔥 6 months  $30 or 2100⭐ (-30%, save $12)\n\n"
+            "👇 Choose an option:"
         ),
     }
     return texts[lang]
+
+
+def _tracker_menu_text(lang: str) -> str:
+    lang = _normalize_lang(lang)
+    if lang == "ru":
+        return "📊 Bet Tracker активен.\n\nВыбери действие:"
+    if lang == "en":
+        return "📊 Bet Tracker is active.\n\nChoose an action:"
+    return "📊 Bet Tracker активний.\n\nОбери дію:"
 
 
 def _education_intro_text(lang: str) -> str:
@@ -137,6 +158,8 @@ def _access_status_banner(lang: str, user_id: int) -> str:
 
     if sub_type == "vip":
         return {"ua": "💎 VIP активний", "ru": "💎 VIP активен", "en": "💎 VIP active"}.get(lang, "💎 VIP active")
+    if sub_type == "tracker":
+        return {"ua": "📊 Bet Tracker активний", "ru": "📊 Bet Tracker активен", "en": "📊 Bet Tracker active"}.get(lang, "📊 Bet Tracker active")
     if sub_type == "basic":
         return {"ua": "🔹 Basic активний", "ru": "🔹 Basic активен", "en": "🔹 Basic active"}.get(lang, "🔹 Basic active")
     return {"ua": "⛔ Доступ не активний", "ru": "⛔ Доступ не активен", "en": "⛔ Access is not active"}.get(lang, "⛔ Access is not active")
@@ -178,6 +201,12 @@ def _main_menu_text(lang: str, user_id: int) -> str:
 async def send_main_menu(message, user_id: int, lang: str | None = None):
     user = get_user(user_id) or {}
     normalized_lang = _normalize_lang(lang or user.get("lang", "en"))
+    if get_subscription_type(user_id) == "tracker":
+        await message.reply_text(
+            _tracker_menu_text(normalized_lang),
+            reply_markup=tracker_menu_keyboard(normalized_lang),
+        )
+        return
     await message.reply_text(
         _main_menu_text(normalized_lang, user_id),
         reply_markup=main_inline_menu_keyboard(normalized_lang),
@@ -262,9 +291,16 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
         return ConversationHandler.END
 
     if query.data == "bet_tracker_intro":
+        if get_subscription_type(tg_user.id) in {"tracker", "basic", "vip"}:
+            await query.message.reply_text(
+                _tracker_menu_text(lang),
+                reply_markup=tracker_menu_keyboard(lang),
+            )
+            return ConversationHandler.END
+
         await query.message.reply_text(
             _bet_tracker_intro_text(lang),
-            reply_markup=_activate_trial_keyboard(lang),
+            reply_markup=tracker_offer_keyboard(lang),
         )
         return ConversationHandler.END
 

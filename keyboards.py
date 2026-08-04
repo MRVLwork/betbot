@@ -50,6 +50,9 @@ def welcome_offer_keyboard(lang: str):
 
 
 def main_menu_keyboard(lang: str = "ua", plan: str = "basic"):
+    if (plan or "").lower() == "tracker":
+        return tracker_menu_keyboard(lang)
+
     if lang == "ru":
         keyboard = [
             [KeyboardButton("🔥 AI-сигналы")],
@@ -74,6 +77,29 @@ def main_menu_keyboard(lang: str = "ua", plan: str = "basic"):
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
 
 
+def tracker_menu_keyboard(lang: str = "ua"):
+    lang = (lang or "ua").lower()
+    if lang.startswith("ru"):
+        keyboard = [
+            [KeyboardButton("📸 Добавить ставку"), KeyboardButton("📊 Моя статистика")],
+            [KeyboardButton("🧊 ColdMind AI Agent"), KeyboardButton(" Ещё")],
+            [KeyboardButton("💎 Получить VIP")],
+        ]
+    elif lang.startswith("en"):
+        keyboard = [
+            [KeyboardButton("📸 Add bet"), KeyboardButton("📊 My stats")],
+            [KeyboardButton("🧊 ColdMind AI Agent"), KeyboardButton(" More")],
+            [KeyboardButton("💎 Get VIP")],
+        ]
+    else:
+        keyboard = [
+            [KeyboardButton("📸 Додати ставку"), KeyboardButton("📊 Моя статистика")],
+            [KeyboardButton("🧊 ColdMind AI Agent"), KeyboardButton(" Ще")],
+            [KeyboardButton("💎 Отримати VIP")],
+        ]
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
+
+
 def main_inline_menu_keyboard(lang: str = "ua"):
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("🔥 AI-сигнали дня" if lang == "ua" else ("🔥 AI-сигналы дня" if lang == "ru" else "🔥 AI signals today"), callback_data="main_signals")],
@@ -87,6 +113,44 @@ def main_inline_menu_keyboard(lang: str = "ua"):
         ],
         [InlineKeyboardButton("ℹ Про бота" if lang == "ua" else ("ℹ О боте" if lang == "ru" else "ℹ About"), callback_data="main_about")],
     ])
+
+
+def tracker_offer_keyboard(lang: str = "ua") -> InlineKeyboardMarkup:
+    lang = (lang or "ua").lower()
+    if lang.startswith("ru"):
+        rows = [
+            [
+                InlineKeyboardButton("1 мес  500⭐", callback_data="tracker_1m_stars"),
+                InlineKeyboardButton("1 мес  $7", callback_data="tracker_1m_usd"),
+            ],
+            [
+                InlineKeyboardButton("6 мес  2100⭐ (-30%)", callback_data="tracker_6m_stars"),
+                InlineKeyboardButton("6 мес  $30 (-30%)", callback_data="tracker_6m_usd"),
+            ],
+        ]
+    elif lang.startswith("en"):
+        rows = [
+            [
+                InlineKeyboardButton("1 mo  500⭐", callback_data="tracker_1m_stars"),
+                InlineKeyboardButton("1 mo  $7", callback_data="tracker_1m_usd"),
+            ],
+            [
+                InlineKeyboardButton("6 mo  2100⭐ (-30%)", callback_data="tracker_6m_stars"),
+                InlineKeyboardButton("6 mo  $30 (-30%)", callback_data="tracker_6m_usd"),
+            ],
+        ]
+    else:
+        rows = [
+            [
+                InlineKeyboardButton("1 міс  500⭐", callback_data="tracker_1m_stars"),
+                InlineKeyboardButton("1 міс  $7", callback_data="tracker_1m_usd"),
+            ],
+            [
+                InlineKeyboardButton("6 міс  2100⭐ (-30%)", callback_data="tracker_6m_stars"),
+                InlineKeyboardButton("6 міс  $30 (-30%)", callback_data="tracker_6m_usd"),
+            ],
+        ]
+    return InlineKeyboardMarkup(rows)
 
 
 def extra_menu_keyboard(lang: str = "ua"):

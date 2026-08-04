@@ -109,6 +109,25 @@ def _signals_keyboard() -> InlineKeyboardMarkup:
     ])
 
 
+def _tracker_signals_no_access_text(lang: str) -> str:
+    if lang == "ru":
+        return "💎 Доступно в VIP.\n\nBet Tracker остаётся журналом ставок, статистикой и дисциплиной."
+    if lang == "en":
+        return "💎 Available in VIP.\n\nBet Tracker stays focused on bet logging, stats and discipline."
+    return "💎 Доступно у VIP.\n\nBet Tracker залишається журналом ставок, статистикою та дисципліною."
+
+
+def _vip_button_keyboard(lang: str) -> InlineKeyboardMarkup:
+    labels = {
+        "ua": "💎 Отримати VIP",
+        "ru": "💎 Получить VIP",
+        "en": "💎 Get VIP",
+    }
+    return InlineKeyboardMarkup([[
+        InlineKeyboardButton(labels.get(lang, labels["en"]), callback_data="vip_buy_1m")
+    ]])
+
+
 async def open_signals_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Show AI signals tab with free picks and paid-level buttons."""
     if not update.message:
@@ -118,6 +137,13 @@ async def open_signals_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = get_user(user_id) or {}
     lang = _normalize_lang(user.get("lang"))
     sub_type = get_subscription_type(user_id)
+
+    if sub_type == "tracker":
+        await update.message.reply_text(
+            _tracker_signals_no_access_text(lang),
+            reply_markup=_vip_button_keyboard(lang),
+        )
+        return
 
     if sub_type == "trial" and not is_subscribed_to_signal(user_id, "trial"):
         subscribe_to_signal(user_id, "trial")
@@ -138,6 +164,13 @@ async def send_signals_menu(message, user_id: int):
     user = get_user(user_id) or {}
     lang = _normalize_lang(user.get("lang"))
     sub_type = get_subscription_type(user_id)
+
+    if sub_type == "tracker":
+        await message.reply_text(
+            _tracker_signals_no_access_text(lang),
+            reply_markup=_vip_button_keyboard(lang),
+        )
+        return
 
     if sub_type == "trial" and not is_subscribed_to_signal(user_id, "trial"):
         subscribe_to_signal(user_id, "trial")
@@ -240,6 +273,13 @@ async def signals_callback_handler(update: Update, context: ContextTypes.DEFAULT
     lang = _normalize_lang(user.get("lang"))
     sub_type = get_subscription_type(user_id)
     data = query.data
+
+    if sub_type == "tracker":
+        await query.message.reply_text(
+            _tracker_signals_no_access_text(lang),
+            reply_markup=_vip_button_keyboard(lang),
+        )
+        return
 
     if data in ("signals_basic_daily", "signals_basic_info"):
         if sub_type in ("basic", "vip"):

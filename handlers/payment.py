@@ -14,6 +14,7 @@ from db import (
     mark_payment_promo_sent,
     get_user,
     mark_promo_offer_used,
+    record_cryptobot_payment_once,
     record_referral_earning,
     activate_vip_bet_day_access,
     activate_vip_signals_access,
@@ -568,9 +569,18 @@ async def check_payment_status_handler(update: Update, context: ContextTypes.DEF
             await query.message.reply_text(_promo_already_used_text(lang))
             return
 
-        should_activate = bool(plan and (plan["plan_type"] == "vip_signals" or not user_has_access(user_id)))
+        should_activate = bool(plan and (plan["plan_type"] in {"tracker", "vip_signals"} or not user_has_access(user_id)))
 
         if should_activate:
+            if not record_cryptobot_payment_once(user_id, plan_key, plan, invoice_id):
+                already_texts = {
+                    "ua": "✅ Цю оплату вже зараховано.",
+                    "ru": "✅ Эта оплата уже зачтена.",
+                    "en": "✅ This payment has already been applied.",
+                }
+                await query.message.reply_text(already_texts.get(lang, already_texts["en"]))
+                return
+
             if plan["plan_type"] == "vip_signals":
                 activate_vip_signals_access(user_id=user_id, days=plan["duration_days"])
                 subscribe_to_signal(user_id, "vip", duration_days=plan["duration_days"])

@@ -3,6 +3,31 @@ from config import TRC20_WALLET
 
 
 USDT_PLANS = {
+    "tracker_1m_usd": {
+        "plan_name_ua": "Bet Tracker 1 місяць",
+        "plan_name_ru": "Bet Tracker 1 месяц",
+        "plan_name_en": "Bet Tracker 1 month",
+        "plan_type": "tracker",
+        "duration_days": 30,
+        "amount_usd": 7.0,
+        "full_amount_usd": 7.0,
+        "is_promo": False,
+        "first_payment_only": False,
+        "wallet_address": TRC20_WALLET,
+    },
+    "tracker_6m_usd": {
+        "plan_name_ua": "Bet Tracker 6 місяців (-30%)",
+        "plan_name_ru": "Bet Tracker 6 месяцев (-30%)",
+        "plan_name_en": "Bet Tracker 6 months (-30%)",
+        "plan_type": "tracker",
+        "duration_days": 180,
+        "amount_usd": 30.0,
+        "full_amount_usd": 42.0,
+        "is_promo": True,
+        "first_payment_only": False,
+        "discount_percent": 30,
+        "wallet_address": TRC20_WALLET,
+    },
     "usdt_basic_month": {
         "plan_name_ua": "Basic 1 місяць",
         "plan_name_ru": "Basic 1 месяц",

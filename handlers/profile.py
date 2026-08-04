@@ -133,6 +133,8 @@ async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sub_type = get_subscription_type(user_id)
     if sub_type == "vip":
         plan_label = "VIP ⭐"
+    elif sub_type == "tracker":
+        plan_label = "Bet Tracker 📊"
     elif sub_type == "basic":
         plan_label = "Basic 🔹"
     elif sub_type == "trial":

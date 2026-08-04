@@ -197,6 +197,25 @@ def _add_bet_hint_text(lang: str) -> str:
     return "📸 Надішли скрін купона або текст ставки. Я розпізнаю ставку й додам її в трекер."
 
 
+def _tracker_vip_only_text(lang: str) -> str:
+    if lang == "ru":
+        return "💎 Эта функция доступна в VIP.\n\nBet Tracker даёт журнал ставок, статистику и ColdMind."
+    if lang == "en":
+        return "💎 This feature is available in VIP.\n\nBet Tracker includes bet logging, stats and ColdMind."
+    return "💎 Ця функція доступна у VIP.\n\nBet Tracker дає журнал ставок, статистику та ColdMind."
+
+
+def _vip_button_keyboard(lang: str) -> InlineKeyboardMarkup:
+    labels = {
+        "ua": "💎 Отримати VIP",
+        "ru": "💎 Получить VIP",
+        "en": "💎 Get VIP",
+    }
+    return InlineKeyboardMarkup([[
+        InlineKeyboardButton(labels.get(lang, labels["en"]), callback_data="vip_buy_1m")
+    ]])
+
+
 def _about_bot_text(lang: str) -> str:
     if lang == "ru":
         return (
@@ -255,6 +274,12 @@ async def main_menu_callback_handler(update: Update, context: ContextTypes.DEFAU
         return
 
     if data == "main_ai_analysis":
+        if get_subscription_type(user_id) == "tracker":
+            await query.message.reply_text(
+                _tracker_vip_only_text(lang),
+                reply_markup=_vip_button_keyboard(lang),
+            )
+            return
         if not user_has_access(user_id):
             await query.message.reply_text(access_expired_text(lang), reply_markup=extend_signals_keyboard(lang))
             return
@@ -1853,6 +1878,13 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif text in ("🧊 ColdMind AI Agent",):
         await open_coach(update, context)
     elif text in ("🧠 AI-розбір", "🧠 AI-разбор", "🧠 AI analysis"):
+        if get_subscription_type(user_id) == "tracker":
+            await update.message.reply_text(
+                _tracker_vip_only_text(lang),
+                reply_markup=_vip_button_keyboard(lang),
+            )
+            return ConversationHandler.END
+
         if not user_has_access(user_id):
             await update.message.reply_text(access_expired_text(lang), reply_markup=extend_signals_keyboard(lang))
             return ConversationHandler.END
@@ -2250,10 +2282,10 @@ def main():
         plan_payment_choice,
         pattern="^(vip_buy_1m|vip_buy_3m_promo|vip_buy_6m_promo|basic_buy_1m|basic_buy_6m_promo)$",
     ))
-    app.add_handler(CallbackQueryHandler(open_stars_menu, pattern="^(buy_stars|stars_.*|signals_week)$"))
+    app.add_handler(CallbackQueryHandler(open_stars_menu, pattern="^(buy_stars|stars_.*|signals_week|tracker_1m_stars|tracker_6m_stars)$"))
     app.add_handler(CallbackQueryHandler(main_menu_callback_handler, pattern="^main_"))
     app.add_handler(CallbackQueryHandler(signals_callback_handler, pattern=r"^signals_"))
-    app.add_handler(CallbackQueryHandler(cryptobot_payment_handler, pattern="^cb_pay_"))
+    app.add_handler(CallbackQueryHandler(cryptobot_payment_handler, pattern="^(cb_pay_|tracker_1m_usd|tracker_6m_usd)"))
     app.add_handler(CallbackQueryHandler(check_payment_status_handler, pattern="^check_payment_"))
     app.add_handler(PreCheckoutQueryHandler(precheckout_handler))
     app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_handler))

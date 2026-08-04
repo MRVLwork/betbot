@@ -137,6 +137,8 @@ def _resolve_coldmind_plan(user_id: int, user: dict) -> str:
         return "vip"
     if has_vip_signals_access(user_id):
         return "vip"
+    if sub_type == "tracker":
+        return "tracker"
     if sub_type in {"basic", "vip"}:
         return sub_type
     return "none"

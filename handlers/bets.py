@@ -767,7 +767,7 @@ async def emotion_callback_handler(update: Update, context: ContextTypes.DEFAULT
     lang = _normalize_lang(user["lang"] if user and user.get("lang") else "en")
     lang = context.user_data.get("bet_lang", lang)
     sub_type = get_subscription_type(user_id)
-    has_access = sub_type in ("basic", "vip")
+    has_access = sub_type in ("tracker", "basic", "vip")
     in_trial = sub_type == "trial"
 
     bet_id = context.user_data.get("last_bet_id")
@@ -1088,7 +1088,7 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     plan = ((user.get("plan") if user else None) or "basic").lower()
 
     sub_type = get_subscription_type(user_id)
-    has_access = sub_type in ("basic", "vip")
+    has_access = sub_type in ("tracker", "basic", "vip")
     in_trial = sub_type == "trial"
     trial_started = get_trial_start(user_id) is not None
     is_trial_exhausted = (sub_type == "none") and trial_started and not has_access

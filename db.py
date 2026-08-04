@@ -1776,6 +1776,7 @@ def get_subscription_type(user_id: int) -> str:
     Returns the user's subscription type:
     - "vip" active VIP subscription
     - "basic" active Basic subscription
+    - "tracker" active tracker subscription
     - "trial" active trial access
     - "none" no access
     """
@@ -1788,6 +1789,8 @@ def get_subscription_type(user_id: int) -> str:
 
     if has_access and plan == "vip":
         return "vip"
+    if has_access and plan == "tracker":
+        return "tracker"
     if has_access:
         return "basic"
 
@@ -1879,7 +1882,7 @@ def _normalize_coldmind_plan(plan: str | None) -> str:
         return "trial"
     if plan in {"vip", "vip_signals", "stars_vip", "stars_vip_month", "stars_vip_week_199", "stars_vip_signals_10d", "usdt_vip", "usdt_vip_month", "usdt_vip_signals_10d"}:
         return "vip"
-    if plan in {"basic", "stars_basic", "stars_basic_month", "usdt_basic", "usdt_basic_month"}:
+    if plan in {"basic", "stars_basic", "stars_basic_month", "usdt_basic", "usdt_basic_month", "tracker", "stars_tracker", "tracker_1m_stars", "tracker_6m_stars", "tracker_1m_usd", "tracker_6m_usd"}:
         return "basic"
     return "none"
 
@@ -2740,6 +2743,8 @@ def _resolve_user_sub_type(row: dict) -> str:
 
     if has_active_access and plan == "vip":
         return "vip"
+    if has_active_access and plan == "tracker":
+        return "tracker"
     if has_active_access and plan == "basic":
         return "basic"
     if had_any_paid_access:
@@ -2928,6 +2933,61 @@ def mark_payment_promo_sent(payment_id: int, promo_text: str):
 
     conn.commit()
     conn.close()
+
+
+def record_cryptobot_payment_once(user_id: int, plan_key: str, plan: dict, invoice_id) -> bool:
+    tx_hash = f"cryptobot:{invoice_id}"
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT id
+        FROM payments
+        WHERE tx_hash = ?
+          AND status = 'paid'
+        LIMIT 1
+        """,
+        (tx_hash,),
+    )
+    if cur.fetchone():
+        conn.close()
+        return False
+
+    now = datetime.now().isoformat()
+    cur.execute(
+        """
+        INSERT INTO payments (
+            user_id,
+            plan_key,
+            plan_name,
+            plan_type,
+            duration_days,
+            amount_usd,
+            wallet_address,
+            status,
+            tx_hash,
+            created_at,
+            paid_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'paid', ?, ?, ?)
+        """,
+        (
+            user_id,
+            plan_key,
+            plan.get("plan_name_en") or plan.get("plan_name_ua") or plan_key,
+            plan.get("plan_type"),
+            int(plan.get("duration_days") or 0),
+            float(plan.get("amount_usd") or 0),
+            plan.get("wallet_address") or "",
+            tx_hash,
+            now,
+            now,
+        ),
+    )
+    conn.commit()
+    conn.close()
+    return True
 
 
 def save_star_payment(user_id: int, plan_key: str, plan_type: str, title: str,

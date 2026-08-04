@@ -451,7 +451,7 @@ async def ai_coach_reply(user_id: int, user_message: str, lang: str, plan: str) 
     lang = (lang or "en").lower()
     plan = (plan or "basic").lower()
 
-    if plan not in {"trial", "basic", "vip"} and not is_vip(plan):
+    if plan not in {"trial", "tracker", "basic", "vip"} and not is_vip(plan):
         return _coach_no_access_text(lang)
 
     if not OPENAI_API_KEY or not async_client:

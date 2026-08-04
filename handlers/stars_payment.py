@@ -18,7 +18,7 @@ from db import (
     record_referral_earning_from_stars,
     subscribe_to_signal,
 )
-from keyboards import stars_plans_keyboard
+from keyboards import stars_plans_keyboard, tracker_menu_keyboard
 from services.stars_service import get_stars_plan
 from handlers.admin_notify import notify_admin_activation
 
@@ -99,6 +99,14 @@ def _success_text(lang: str) -> str:
     if lang == "ru":
         return "✅ Оплата получена. Доступ активирован."
     return "✅ Payment received. Access activated."
+
+
+def _tracker_success_text(lang: str) -> str:
+    if lang == "ua":
+        return "✅ Bet Tracker активовано.\n\nТепер можеш додавати ставки й дивитися статистику."
+    if lang == "ru":
+        return "✅ Bet Tracker активирован.\n\nТеперь можешь добавлять ставки и смотреть статистику."
+    return "✅ Bet Tracker activated.\n\nYou can now add bets and view your stats."
 
 
 async def _notify_referral_earning(context: ContextTypes.DEFAULT_TYPE, earning: dict | None):
@@ -231,6 +239,13 @@ async def successful_payment_handler(update: Update, context: ContextTypes.DEFAU
 
     user = get_user(user_id)
     lang = _normalize_lang(user["lang"] if user and user.get("lang") else "en")
+
+    if plan.get("plan_type") == "tracker":
+        await update.message.reply_text(
+            _tracker_success_text(lang),
+            reply_markup=tracker_menu_keyboard(lang),
+        )
+        return
 
     await update.message.reply_text(_success_text(lang))
 

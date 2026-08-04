@@ -41,6 +41,7 @@ from db import (
     get_users_for_delayed_offer,
     get_users_for_limits_prompt,
     get_users_for_trial_reminders,
+    get_users_for_signals_week_expiry_reminder,
     get_vip_week_promo_users,
     get_subscription_type,
     has_user_ever_paid,
@@ -49,6 +50,7 @@ from db import (
     mark_special_offer_shown,
     mark_trial_reminder_2days_sent,
     mark_trial_reminder_24h_sent,
+    mark_signals_week_expiry_reminder_sent,
     mark_vip_week_message_sent,
     should_include_trial,
 )
@@ -64,6 +66,8 @@ from keyboards import (
     language_keyboard,
     main_menu_keyboard,
     access_keyboard,
+    access_expired_text,
+    extend_signals_keyboard,
     vip_subscription_keyboard,
     settings_keyboard,
     extra_menu_keyboard,
@@ -252,7 +256,7 @@ async def main_menu_callback_handler(update: Update, context: ContextTypes.DEFAU
 
     if data == "main_ai_analysis":
         if not user_has_access(user_id):
-            await query.message.reply_text(get_text(lang, "ai_analysis_no_access"), reply_markup=access_keyboard(lang))
+            await query.message.reply_text(access_expired_text(lang), reply_markup=extend_signals_keyboard(lang))
             return
         context.user_data["awaiting_ai_match_analysis"] = True
         await query.message.reply_text(get_text(lang, "ai_analysis_send_prompt"))
@@ -333,7 +337,7 @@ def _trial_stats_upsell_text(lang: str) -> str:
             "💰 Bet smarter, earn more\n\n"
             "What you see NOW (Trial):\n"
             "\u2022 Basic stats (ROI, winrate)\n"
-            "\u2022 5 screenshots per day  3 days\n"
+            "\u2022 5 screenshots per day  7 days\n"
             "\u2022 Emotion tracker\n\n"
             "What you get in Basic - $7/mo:\n"
             "🔥 AI Predictions of the day - ready picks\n"
@@ -983,6 +987,27 @@ def _trial_reminder_24h_keyboard(lang: str) -> InlineKeyboardMarkup:
     ]])
 
 
+def _signals_week_expiry_reminder_text(lang: str) -> str:
+    lang = _normalize_lang_local(lang)
+    if lang == "ru":
+        return (
+            "⏳ Доступ завершится в течение 24 часов.\n\n"
+            "Неделя сигналов почти закончилась.\n"
+            "👇 Продли ещё на 7 дней за 79⭐."
+        )
+    if lang == "en":
+        return (
+            "⏳ Access ends within 24 hours.\n\n"
+            "Your signals week is almost over.\n"
+            "👇 Extend 7 more days for 79⭐."
+        )
+    return (
+        "⏳ Доступ завершиться протягом 24 годин.\n\n"
+        "Тиждень сигналів майже завершився.\n"
+        "👇 Продовж ще на 7 днів за 79⭐."
+    )
+
+
 async def send_trial_time_reminders(application):
     for user in get_users_for_trial_reminders():
         user_id = user["user_id"]
@@ -1009,6 +1034,23 @@ async def send_trial_time_reminders(application):
                 )
         except Exception as e:
             print(f"trial time reminder error for {user_id}: {e}")
+
+
+async def send_signals_week_expiry_reminders(application):
+    for user in get_users_for_signals_week_expiry_reminder():
+        user_id = int(user["user_id"])
+        lang = _normalize_lang_local(user.get("lang"))
+        expiry_iso = user.get("expiry_iso")
+        try:
+            if not expiry_iso or not mark_signals_week_expiry_reminder_sent(user_id, expiry_iso):
+                continue
+            await application.bot.send_message(
+                chat_id=user_id,
+                text=_signals_week_expiry_reminder_text(lang),
+                reply_markup=extend_signals_keyboard(lang),
+            )
+        except Exception as e:
+            print(f"signals week expiry reminder error for {user_id}: {e}")
 
 
 async def clear_daily_ai_signals_job():
@@ -1110,6 +1152,16 @@ async def post_init(application):
         trigger="interval",
         minutes=30,
         id="trial_time_reminders",
+        args=[application],
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        send_signals_week_expiry_reminders,
+        trigger="cron",
+        hour=19,
+        minute=0,
+        timezone="Europe/Kiev",
+        id="signals_week_expiry_reminders",
         args=[application],
         replace_existing=True,
     )
@@ -1272,7 +1324,7 @@ async def stats_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
     lang = get_user_lang(user_id)
 
     if not can_view_basic_stats(user_id):
-        await query.message.reply_text(get_text(lang, "no_access"))
+        await query.message.reply_text(access_expired_text(lang), reply_markup=extend_signals_keyboard(lang))
         return
 
     start_dt, end_dt, period_name = resolve_stats_period(query.data, lang)
@@ -1758,7 +1810,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "📊 Quick stats",
     ):
         if not can_view_basic_stats(user_id):
-            await update.message.reply_text(get_text(lang, "no_active_access_start"))
+            await update.message.reply_text(access_expired_text(lang), reply_markup=extend_signals_keyboard(lang))
             return
 
         is_vip = is_user_vip(user_id)
@@ -1786,7 +1838,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return ConversationHandler.END
 
         if not has_access:
-            await update.message.reply_text(get_text(lang, "no_active_access_start"))
+            await update.message.reply_text(access_expired_text(lang), reply_markup=extend_signals_keyboard(lang))
             return ConversationHandler.END
 
         is_vip = is_user_vip(user_id)
@@ -1802,7 +1854,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await open_coach(update, context)
     elif text in ("🧠 AI-розбір", "🧠 AI-разбор", "🧠 AI analysis"):
         if not user_has_access(user_id):
-            await update.message.reply_text(get_text(lang, "ai_analysis_no_access"), reply_markup=access_keyboard(lang))
+            await update.message.reply_text(access_expired_text(lang), reply_markup=extend_signals_keyboard(lang))
             return ConversationHandler.END
 
         context.user_data["awaiting_ai_match_analysis"] = True
@@ -2176,7 +2228,7 @@ def main():
     )
     app.add_handler(payment_conv)
 
-    app.add_handler(CallbackQueryHandler(start_offer_buttons, pattern="^(pay_now|ai_signals_intro)$"))
+    app.add_handler(CallbackQueryHandler(start_offer_buttons, pattern="^(pay_now|ai_signals_intro|bet_tracker_intro|education_intro)$"))
     app.add_handler(MessageHandler(
         filters.Regex(r"^🔥 (AI-сигнали|AI-сигналы|AI Signals|AI Прогнози дня|AI Прогнозы дня|AI Predictions)$"),
         open_signals_menu,
@@ -2198,7 +2250,7 @@ def main():
         plan_payment_choice,
         pattern="^(vip_buy_1m|vip_buy_3m_promo|vip_buy_6m_promo|basic_buy_1m|basic_buy_6m_promo)$",
     ))
-    app.add_handler(CallbackQueryHandler(open_stars_menu, pattern="^(buy_stars|stars_.*)$"))
+    app.add_handler(CallbackQueryHandler(open_stars_menu, pattern="^(buy_stars|stars_.*|signals_week)$"))
     app.add_handler(CallbackQueryHandler(main_menu_callback_handler, pattern="^main_"))
     app.add_handler(CallbackQueryHandler(signals_callback_handler, pattern=r"^signals_"))
     app.add_handler(CallbackQueryHandler(cryptobot_payment_handler, pattern="^cb_pay_"))

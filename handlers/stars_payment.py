@@ -4,6 +4,7 @@ from telegram.ext import ContextTypes
 
 from db import (
     activate_user_access,
+    activate_signals_week_access,
     save_star_payment,
     get_user,
     mark_promo_offer_used,
@@ -65,6 +66,7 @@ def _plan_title(plan: dict, lang: str) -> str:
 
 def _normalize_plan_key(plan_key: str) -> str:
     aliases = {
+        "extend_signals_7d": "signals_week",
         "vip_buy_1m": "stars_vip_1m",
         "vip_buy_3m": "stars_vip_3m_promo",
         "vip_buy_6m": "stars_vip_6m_promo",
@@ -77,6 +79,10 @@ def _normalize_plan_key(plan_key: str) -> str:
 
 
 def _description(plan: dict, title: str, lang: str) -> str:
+    description = plan.get(f"description_{lang}") or plan.get("description_en")
+    if description:
+        return description
+
     amount_xtr = plan["amount_xtr"]
     if plan.get("is_promo") and plan["full_price_xtr"] > amount_xtr:
         if lang == "ua":
@@ -162,7 +168,7 @@ async def open_stars_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id=user_id,
         title=title,
         description=description,
-        payload=plan_key,
+        payload=plan.get("payload") or plan_key,
         provider_token="",
         currency="XTR",
         prices=[LabeledPrice(label=title, amount=amount_xtr)],
@@ -198,7 +204,9 @@ async def successful_payment_handler(update: Update, context: ContextTypes.DEFAU
         record_referral_earning_from_stars(user_id, int(plan["amount_xtr"] or 0)),
     )
 
-    if plan_key == "stars_vip_bet_day_month":
+    if plan_key == "signals_week":
+        activate_signals_week_access(user_id=user_id, days=plan["duration_days"])
+    elif plan_key == "stars_vip_bet_day_month":
         activate_vip_bet_day_access(user_id=user_id, days=plan["duration_days"])
     elif plan_key == "stars_vip_signals_10d":
         activate_vip_signals_access(user_id=user_id, days=plan["duration_days"])

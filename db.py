@@ -2,6 +2,7 @@
 import os
 from datetime import datetime, timedelta
 import json
+from zoneinfo import ZoneInfo
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -20,9 +21,27 @@ from config import (
     STARS_PER_USD,
 )
 
+BOT_TIMEZONE = ZoneInfo("Europe/Kiev")
 TRIAL_SCREEN_LIMIT = 5
-TRIAL_DURATION_HOURS = 120
+TRIAL_DURATION_HOURS = 168
 LEVEL_THRESHOLDS = (0, 500, 1500, 3000, 6000)
+
+
+def _now_local() -> datetime:
+    """Kyiv-local naive datetime, matching the project's existing ISO storage style."""
+    return datetime.now(BOT_TIMEZONE).replace(tzinfo=None)
+
+
+def _parse_iso_datetime(value) -> datetime | None:
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value))
+        if parsed.tzinfo is not None:
+            return parsed.astimezone(BOT_TIMEZONE).replace(tzinfo=None)
+        return parsed
+    except Exception:
+        return None
 
 XP_TABLE = {
     "add_bet": 10,
@@ -482,6 +501,9 @@ def init_db():
     add_column_if_not_exists("users", "vip_winback_sent", "TEXT")
     add_column_if_not_exists("users", "referral_balance_usd", "DOUBLE PRECISION DEFAULT 0")
     add_column_if_not_exists("users", "referral_paid_total_usd", "DOUBLE PRECISION DEFAULT 0")
+    add_column_if_not_exists("users", "signals_week_expires_at", "TEXT")
+    add_column_if_not_exists("users", "signals_week_last_reminder_sent_at", "TEXT")
+    add_column_if_not_exists("users", "signals_week_reminder_for_expiry", "TEXT")
 
     add_column_if_not_exists("promo_codes", "plan_type", "TEXT DEFAULT 'basic'")
 
@@ -1675,15 +1697,78 @@ def user_has_access(user_id: int) -> bool:
 
     if not user:
         return False
-    if not user["is_active"]:
-        return False
-    if not user["access_until"]:
+    if int(user.get("is_active") or 0) != 1:
         return False
 
-    try:
-        return datetime.fromisoformat(user["access_until"]) > datetime.now()
-    except Exception:
-        return False
+    now = _now_local()
+    for field in ("access_until", "signals_week_expires_at"):
+        expires = _parse_iso_datetime(user.get(field))
+        if expires and expires > now:
+            return True
+    return False
+
+
+def get_current_access_expiry(user_id: int) -> datetime | None:
+    user = get_user(user_id)
+    if not user:
+        return None
+
+    now = _now_local()
+    candidates = []
+    for field in ("access_until", "signals_week_expires_at"):
+        expires = _parse_iso_datetime(user.get(field))
+        if expires and expires > now:
+            candidates.append(expires)
+
+    if int(user.get("trial_completed") or 0) != 1:
+        trial_expires = _parse_iso_datetime(user.get("trial_expires_at"))
+        if not trial_expires and user.get("trial_started_at"):
+            trial_started = _parse_iso_datetime(user.get("trial_started_at"))
+            if trial_started:
+                trial_expires = trial_started + timedelta(hours=TRIAL_DURATION_HOURS)
+        if trial_expires and trial_expires > now:
+            candidates.append(trial_expires)
+
+    return max(candidates) if candidates else None
+
+
+def activate_signals_week_access(user_id: int, days: int = 7) -> str:
+    conn = get_conn()
+    cur = conn.cursor()
+    user = get_user(user_id) or {}
+    now = _now_local()
+    current_expiry = get_current_access_expiry(user_id)
+    base_time = current_expiry if current_expiry and current_expiry > now else now
+    new_until = base_time + timedelta(days=days)
+
+    current_plan = (user.get("plan") or "basic").strip().lower()
+    plan_type = current_plan if current_plan in {"basic", "vip"} and user_has_access(user_id) else "basic"
+
+    cur.execute("""
+        UPDATE users
+        SET is_active = 1,
+            access_until = ?,
+            signals_week_expires_at = ?,
+            signals_week_last_reminder_sent_at = NULL,
+            signals_week_reminder_for_expiry = NULL,
+            activated_by = ?,
+            activated_at = ?,
+            plan = ?,
+            daily_usage_reset_at = ?
+        WHERE user_id = ?
+    """, (
+        new_until.isoformat(),
+        new_until.isoformat(),
+        "stars:signals_week",
+        now.isoformat(),
+        plan_type,
+        now.isoformat(),
+        user_id,
+    ))
+
+    conn.commit()
+    conn.close()
+    return new_until.isoformat()
 
 
 def get_subscription_type(user_id: int) -> str:
@@ -2991,8 +3076,9 @@ def count_user_photos_between(user_id: int, start_dt: datetime, end_dt: datetime
 def start_trial_mode(user_id: int):
     conn = get_conn()
     cur = conn.cursor()
-    trial_start = datetime.now().isoformat()
-    trial_expires = (datetime.now() + timedelta(hours=TRIAL_DURATION_HOURS)).isoformat()
+    now = _now_local()
+    trial_start = now.isoformat()
+    trial_expires = (now + timedelta(hours=TRIAL_DURATION_HOURS)).isoformat()
 
     cur.execute("""
         UPDATE users
@@ -3028,13 +3114,13 @@ def is_trial_available(user_id: int) -> bool:
             return False
         try:
             expires = datetime.fromisoformat(trial_started) + timedelta(hours=TRIAL_DURATION_HOURS)
-            return datetime.now() < expires
+            return _now_local() < expires
         except Exception:
             return False
 
     try:
         expires = datetime.fromisoformat(trial_expires_at)
-        return datetime.now() < expires
+        return _now_local() < expires
     except Exception:
         return False
 
@@ -3090,7 +3176,7 @@ def get_trial_remaining(user_id: int) -> int:
 
     from math import ceil
 
-    remaining_seconds = (expires - datetime.now()).total_seconds()
+    remaining_seconds = (expires - _now_local()).total_seconds()
     return max(ceil(remaining_seconds / 86400), 0)
 
 
@@ -3111,7 +3197,7 @@ def get_trial_start(user_id: int):
 
 def get_trial_day(user_id: int) -> int:
     """
-    Returns the current trial day (1-5).
+    Returns the current trial day (1-7).
     Day 1 is the first day after activation.
     Returns 0 when trial is not activated.
     """
@@ -3123,8 +3209,8 @@ def get_trial_day(user_id: int) -> int:
         return 0
     try:
         start = datetime.fromisoformat(trial_started)
-        delta = (datetime.now() - start).days + 1
-        return min(delta, 5)
+        delta = (_now_local() - start).days + 1
+        return min(delta, 7)
     except Exception:
         return 0
 
@@ -3137,7 +3223,7 @@ def mark_trial_reminder_2days_sent(user_id: int) -> bool:
         SET trial_reminder_2days_sent_at = ?
         WHERE user_id = ?
           AND trial_reminder_2days_sent_at IS NULL
-    """, (datetime.now().isoformat(), user_id))
+    """, (_now_local().isoformat(), user_id))
     updated = cur.rowcount > 0
     conn.commit()
     conn.close()
@@ -3152,7 +3238,7 @@ def mark_trial_reminder_24h_sent(user_id: int) -> bool:
         SET trial_reminder_24h_sent_at = ?
         WHERE user_id = ?
           AND trial_reminder_24h_sent_at IS NULL
-    """, (datetime.now().isoformat(), user_id))
+    """, (_now_local().isoformat(), user_id))
     updated = cur.rowcount > 0
     conn.commit()
     conn.close()
@@ -3162,12 +3248,12 @@ def mark_trial_reminder_24h_sent(user_id: int) -> bool:
 def get_users_for_trial_reminders() -> list[dict]:
     conn = get_conn()
     cur = conn.cursor()
-    now = datetime.now()
+    now = _now_local()
     now_iso = now.isoformat()
 
-    # Trial is 120 hours. Show "2 days left" after 72h, and "24 hours left" after 96h.
-    threshold_2days = (now - timedelta(hours=72)).isoformat()
-    threshold_24h = (now - timedelta(hours=96)).isoformat()
+    # Trial is 168 hours. Show "2 days left" after 120h, and "24 hours left" after 144h.
+    threshold_2days = (now - timedelta(hours=120)).isoformat()
+    threshold_24h = (now - timedelta(hours=144)).isoformat()
 
     cur.execute("""
         SELECT
@@ -3206,6 +3292,92 @@ def get_users_for_trial_reminders() -> list[dict]:
     return [row for row in rows if row.get("reminder_type")]
 
 
+def get_users_for_signals_week_expiry_reminder() -> list[dict]:
+    conn = get_conn()
+    cur = conn.cursor()
+    now = _now_local()
+    soon = now + timedelta(hours=24)
+
+    cur.execute("""
+        SELECT user_id,
+               lang,
+               trial_started_at,
+               trial_completed,
+               trial_expires_at,
+               access_until,
+               activated_by,
+               signals_week_expires_at,
+               signals_week_reminder_for_expiry
+        FROM users
+        WHERE (
+            (trial_started_at IS NOT NULL AND COALESCE(trial_completed, 0) = 0)
+            OR signals_week_expires_at IS NOT NULL
+            OR activated_by = 'stars:signals_week'
+        )
+    """)
+    rows = [dict(row) for row in cur.fetchall()]
+    conn.close()
+
+    result = []
+    for row in rows:
+        paid_access_expiry = _parse_iso_datetime(row.get("access_until"))
+        if (
+            paid_access_expiry
+            and paid_access_expiry > now
+            and row.get("activated_by") != "stars:signals_week"
+        ):
+            continue
+
+        expiries = []
+        if int(row.get("trial_completed") or 0) != 1:
+            trial_expiry = _parse_iso_datetime(row.get("trial_expires_at"))
+            if not trial_expiry and row.get("trial_started_at"):
+                trial_started = _parse_iso_datetime(row.get("trial_started_at"))
+                if trial_started:
+                    trial_expiry = trial_started + timedelta(hours=TRIAL_DURATION_HOURS)
+            if trial_expiry:
+                expiries.append(("trial", trial_expiry))
+
+        signals_expiry = _parse_iso_datetime(row.get("signals_week_expires_at"))
+        if signals_expiry:
+            expiries.append(("signals", signals_expiry))
+
+        if row.get("activated_by") == "stars:signals_week":
+            access_expiry = _parse_iso_datetime(row.get("access_until"))
+            if access_expiry:
+                expiries.append(("signals", access_expiry))
+
+        if not expiries:
+            continue
+
+        kind, expiry = max(expiries, key=lambda item: item[1])
+        expiry_iso = expiry.isoformat()
+        if now < expiry <= soon and row.get("signals_week_reminder_for_expiry") != expiry_iso:
+            result.append({
+                "user_id": row["user_id"],
+                "lang": row.get("lang") or "ua",
+                "expiry_iso": expiry_iso,
+                "kind": kind,
+            })
+    return result
+
+
+def mark_signals_week_expiry_reminder_sent(user_id: int, expiry_iso: str) -> bool:
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("""
+        UPDATE users
+        SET signals_week_last_reminder_sent_at = ?,
+            signals_week_reminder_for_expiry = ?
+        WHERE user_id = ?
+          AND COALESCE(signals_week_reminder_for_expiry, '') <> ?
+    """, (_now_local().isoformat(), expiry_iso, user_id, expiry_iso))
+    updated = cur.rowcount > 0
+    conn.commit()
+    conn.close()
+    return updated
+
+
 def get_trial_users_for_notification(day: int) -> list[dict]:
     """
     Returns active trial users for a specific trial day.
@@ -3231,7 +3403,7 @@ def get_trial_users_for_notification(day: int) -> list[dict]:
             started = datetime.fromisoformat(
                 row["trial_started_at"]
             )
-            current_day = (datetime.now() - started).days + 1
+            current_day = (_now_local() - started).days + 1
 
             if current_day == day:
                 if is_trial_available(row["user_id"]):
@@ -3265,7 +3437,7 @@ def get_expired_trial_users() -> list[dict]:
     conn.close()
 
     result = []
-    now = datetime.now()
+    now = _now_local()
     for row in rows:
         try:
             expires = datetime.fromisoformat(
@@ -3292,8 +3464,9 @@ def increment_trial_usage(user_id: int):
         conn.close()
         return
 
-    now_iso = datetime.now().isoformat()
-    trial_expires = (datetime.now() + timedelta(hours=TRIAL_DURATION_HOURS)).isoformat()
+    now = _now_local()
+    now_iso = now.isoformat()
+    trial_expires = (now + timedelta(hours=TRIAL_DURATION_HOURS)).isoformat()
 
     if not user.get("trial_started_at"):
         cur.execute("""

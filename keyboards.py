@@ -2,12 +2,50 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 
 
+def extend_signals_button_text(lang: str) -> str:
+    lang = (lang or "ua").lower()
+    if lang.startswith("ru"):
+        return "🔄 Продлить ещё на 7 дней  79⭐"
+    if lang.startswith("en"):
+        return "🔄 Extend 7 more days  79⭐"
+    return "🔄 Продовжити ще 7 днів  79⭐"
+
+
+def extend_signals_keyboard(lang: str):
+    return InlineKeyboardMarkup([[
+        InlineKeyboardButton(extend_signals_button_text(lang), callback_data="signals_week")
+    ]])
+
+
+def access_expired_text(lang: str) -> str:
+    lang = (lang or "ua").lower()
+    if lang.startswith("ru"):
+        return "⛔ Неделя сигналов завершилась.\n\n👇 Продли доступ ещё на 7 дней."
+    if lang.startswith("en"):
+        return "⛔ Your signals week has ended.\n\n👇 Extend access for 7 more days."
+    return "⛔ Тиждень сигналів завершився.\n\n👇 Продовж доступ ще на 7 днів."
+
+
 def welcome_offer_keyboard(lang: str):
-    keyboard = [
-        [InlineKeyboardButton("🎁 Почати безкоштовно", callback_data="try_trial")],
-        [InlineKeyboardButton("🔥 AI-сигнали", callback_data="ai_signals_intro")],
-        [InlineKeyboardButton("💎 Купити підписку", callback_data="pay_now")],
-    ]
+    lang = (lang or "ua").lower()
+    if lang.startswith("ru"):
+        keyboard = [
+            [InlineKeyboardButton("🎁 Trial бесплатно", callback_data="try_trial")],
+            [InlineKeyboardButton("📊 Bet Tracker", callback_data="bet_tracker_intro")],
+            [InlineKeyboardButton("🎓 Обучение", callback_data="education_intro")],
+        ]
+    elif lang.startswith("en"):
+        keyboard = [
+            [InlineKeyboardButton("🎁 Free Trial", callback_data="try_trial")],
+            [InlineKeyboardButton("📊 Bet Tracker", callback_data="bet_tracker_intro")],
+            [InlineKeyboardButton("🎓 Learning", callback_data="education_intro")],
+        ]
+    else:
+        keyboard = [
+            [InlineKeyboardButton("🎁 Trial безкоштовно", callback_data="try_trial")],
+            [InlineKeyboardButton("📊 Bet Tracker", callback_data="bet_tracker_intro")],
+            [InlineKeyboardButton("🎓 Навчання", callback_data="education_intro")],
+        ]
     return InlineKeyboardMarkup(keyboard)
 
 
@@ -204,6 +242,7 @@ def access_keyboard(lang: str):
             [InlineKeyboardButton("⭐ Купити через Stars", callback_data="buy_stars")],
             [InlineKeyboardButton("💸 Оплатити USDT", callback_data="buy_usdt")],
         ]
+    keyboard.insert(0, [InlineKeyboardButton(extend_signals_button_text(lang), callback_data="signals_week")])
     return InlineKeyboardMarkup(keyboard)
 
 

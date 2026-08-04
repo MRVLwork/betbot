@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from telegram import Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes, ConversationHandler
 
 from keyboards import main_inline_menu_keyboard, welcome_offer_keyboard, access_keyboard
@@ -24,41 +24,105 @@ def _normalize_lang(lang: str) -> str:
         return "ru"
     return "en"
 
-"""
 def _welcome_text(lang: str, promo_available: bool) -> str:
-    return (
-        "💰 Заробляй на ставках розумніше\n"
-        "Bet Tracker об'єднує AI-аналітику та професійний облік ставок в одному місці.\n\n"
-        "Що ти отримаєш:\n"
-        "🔥 AI-сигнали дня \n" "Перспективні ставки, відібрані AI.\n"
-        "📊 Повний контроль результатів ROI, Win Rate, прибуток та історія ставок.\n"
-        "🎯 Пошук помилок Дізнайся, які ставки зливають твій банк.\n"
-        "🤖 AI-аналітика Персональні висновки та рекомендації щодо твоєї гри.\n"
-        "🏆 Менше емоцій  більше дисципліни Приймай рішення на основі статистики, а не відчуттів.\n\n"
-        "🎁 Новим користувачам доступно:\n"
-        "Безкоштовний trail\n"
-        "👇 Обери дію:"
-    )
-"""
-def _welcome_text(lang: str, promo_available: bool) -> str:
-    return (
-        "💰Заробляй на ставках розумніше\n"
-        "Bet Tracker об'єднує AI-аналітику та професійний облік ставок в одному місці.\n"
-        "📌Що ти отримаєш:\n"
-        "🔥AI-сигнали дня\n"
-        "Перспективні ставки, відібрані AI.\n"
-        "📊Повний контроль результатів\n"
-        "ROI, Win Rate, прибуток та історія ставок.\n"
-        "🎯Пошук помилок\n"
-        "Дізнайся, які ставки зливають твій банк.\n"
-        "🤖AI-аналітика\n"
-        "Персональні висновки та рекомендації щодо твоєї гри.\n"
-        "🏆Менше емоцій — більше дисципліни\n"
-        "Приймай рішення на основі статистики, а не відчуттів.\n\n"
-        "Для нових користувачів:\n"
-        "✅Безкоштовний trail та 🎁спец. пропозиції\n"
-        "👇Обери дію:"
-    )
+    lang = _normalize_lang(lang)
+    texts = {
+        "ua": (
+            "🎯 Більшість зливають банк не через погані ставки, а через відсутність системи.\n\n"
+            "Bet Tracker  це AI-сигнали + повний облік твоєї гри в одному боті:\n\n"
+            "🔥 1 сигнал щодня  відібраний AI, з обґрунтуванням\n"
+            "📊 Трекер включено  ROI, Win Rate та історія рахуються автоматично\n"
+            "🧊 ColdMind  тренер, який тримає тебе в дисципліні проти тільту\n\n"
+            "Перший тиждень  безкоштовно. Без карти, без зобов'язань.\n\n"
+            "👇 Обери дію:"
+        ),
+        "ru": (
+            "🎯 Большинство сливают банк не из-за плохих ставок, а из-за отсутствия системы.\n\n"
+            "Bet Tracker  это AI-сигналы + полный учёт твоей игры в одном боте:\n\n"
+            "🔥 1 сигнал каждый день  отобран AI, с обоснованием\n"
+            "📊 Трекер включён  ROI, Win Rate и история считаются автоматически\n"
+            "🧊 ColdMind  тренер, который держит тебя в дисциплине против тильта\n\n"
+            "Первая неделя  бесплатно. Без карты, без обязательств.\n\n"
+            "👇 Выбери действие:"
+        ),
+        "en": (
+            "🎯 Most bettors don't lose because of bad picks  they lose because they have no system.\n\n"
+            "Bet Tracker = AI signals + full tracking of your game in one bot:\n\n"
+            "🔥 1 signal daily  picked by AI, with reasoning\n"
+            "📊 Tracker included  ROI, Win Rate and history counted automatically\n"
+            "🧊 ColdMind  a discipline coach that keeps you off tilt\n\n"
+            "First week is free. No card, no strings attached.\n\n"
+            "👇 Choose an action:"
+        ),
+    }
+    return texts[lang]
+
+
+def _activate_trial_keyboard(lang: str) -> InlineKeyboardMarkup:
+    labels = {
+        "ua": "🎁 Активувати Trial",
+        "ru": "🎁 Активировать Trial",
+        "en": "🎁 Activate Trial",
+    }
+    return InlineKeyboardMarkup([[
+        InlineKeyboardButton(labels.get(_normalize_lang(lang), labels["en"]), callback_data="try_trial")
+    ]])
+
+
+def _bet_tracker_intro_text(lang: str) -> str:
+    lang = _normalize_lang(lang)
+    texts = {
+        "ua": (
+            "📊 Bet Tracker\n\n"
+            "Надсилаєш скрін купона  бот автоматично розпізнає ставку, коефіцієнт і суму.\n\n"
+            "Далі все рахується без ручних таблиць:\n"
+            "ROI, Win Rate, прибуток, серії та історія ставок.\n\n"
+            "AI показує, які типи ставок зливають банк, а які реально працюють.\n"
+            "Емоційний трекер разом із ColdMind помічає тільт і допомагає тримати дисципліну.\n\n"
+            "Tracker is included in Trial and every plan"
+        ),
+        "ru": (
+            "📊 Bet Tracker\n\n"
+            "Отправляешь скрин купона  бот автоматически распознаёт ставку, коэффициент и сумму.\n\n"
+            "Дальше всё считается без ручных таблиц:\n"
+            "ROI, Win Rate, прибыль, серии и история ставок.\n\n"
+            "AI показывает, какие типы ставок сливают банк, а какие реально работают.\n"
+            "Эмоциональный трекер вместе с ColdMind замечает тильт и помогает держать дисциплину.\n\n"
+            "Tracker is included in Trial and every plan"
+        ),
+        "en": (
+            "📊 Bet Tracker\n\n"
+            "Send a bet slip screenshot  the bot automatically reads the pick, odds and stake.\n\n"
+            "Then everything is counted without spreadsheets:\n"
+            "ROI, Win Rate, profit, streaks and bet history.\n\n"
+            "AI shows which bet types leak money and which ones actually work.\n"
+            "The emotion tracker and ColdMind spot tilt and help you stay disciplined.\n\n"
+            "Tracker is included in Trial and every plan"
+        ),
+    }
+    return texts[lang]
+
+
+def _education_intro_text(lang: str) -> str:
+    lang = _normalize_lang(lang)
+    texts = {
+        "ua": (
+            "🎓 Навчання з ColdMind\n\n"
+            "Буде структуроване навчання: основи беттингу, патерни, психологія, дисципліна банку та стратегії.\n\n"
+            "Перший модуль скоро. Активуй Trial, щоб бути серед перших, хто отримає доступ."
+        ),
+        "ru": (
+            "🎓 Обучение с ColdMind\n\n"
+            "Будет структурированное обучение: основы беттинга, паттерны, психология, дисциплина банка и стратегии.\n\n"
+            "Первый модуль скоро. Активируй Trial, чтобы быть среди первых, кто получит доступ."
+        ),
+        "en": (
+            "🎓 Learning with ColdMind\n\n"
+            "Structured learning is coming: betting fundamentals, patterns, psychology, bankroll discipline and strategies.\n\n"
+            "The first module is coming soon. Activate Trial to be among the first to get access."
+        ),
+    }
+    return texts[lang]
 
 def _access_status_banner(lang: str, user_id: int) -> str:
     sub_type = get_subscription_type(user_id)
@@ -175,7 +239,6 @@ async def send_standard_start(update: Update, lang: str):
     await update.message.reply_text(
         _welcome_text(lang, promo_available),
         reply_markup=welcome_offer_keyboard(lang),
-        parse_mode="Markdown",
     )
 
 
@@ -196,6 +259,20 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
             "Для отримання повного доступу до сигналів потрібна активна підписка."
         )
         await query.message.reply_text(ai_signals_text)
+        return ConversationHandler.END
+
+    if query.data == "bet_tracker_intro":
+        await query.message.reply_text(
+            _bet_tracker_intro_text(lang),
+            reply_markup=_activate_trial_keyboard(lang),
+        )
+        return ConversationHandler.END
+
+    if query.data == "education_intro":
+        await query.message.reply_text(
+            _education_intro_text(lang),
+            reply_markup=_activate_trial_keyboard(lang),
+        )
         return ConversationHandler.END
 
     if user_has_access(tg_user.id):

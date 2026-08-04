@@ -1,5 +1,22 @@
 # -*- coding: utf-8 -*-
 STARS_PLANS = {
+    "signals_week": {
+        "title": "Signals 7 days",
+        "title_ua": "Сигнали 7 днів",
+        "title_ru": "Сигналы 7 дней",
+        "title_en": "Signals 7 days",
+        "description_ua": "Продовження доступу до сигналів і трекера на 7 днів.",
+        "description_ru": "Продление доступа к сигналам и трекеру на 7 дней.",
+        "description_en": "Extend access to signals and tracker for 7 days.",
+        "payload": "extend_signals_7d",
+        "plan_type": "signals",
+        "duration_days": 7,
+        "stars": 79,
+        "amount_xtr": 79,
+        "is_promo": False,
+        "first_payment_only": False,
+        "full_price_xtr": 79,
+    },
     "stars_basic_month": {
         "title_ua": "Basic 1 місяць",
         "title_ru": "Basic 1 месяц",

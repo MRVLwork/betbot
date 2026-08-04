@@ -34,7 +34,7 @@ from db import (
     should_include_trial,
     try_qualify_referral,
 )
-from keyboards import access_keyboard, main_menu_keyboard, welcome_offer_keyboard
+from keyboards import access_expired_text, access_keyboard, extend_signals_keyboard, main_menu_keyboard, welcome_offer_keyboard
 from languages import get_text
 from services.ai_service import analyze_basic_bet_screenshot
 from handlers.tools import handle_ai_analysis_input
@@ -1095,8 +1095,8 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if is_trial_exhausted:
         await update.message.reply_text(
-            _daily_limit_reached_text(lang, "trial", TRIAL_SCREEN_LIMIT),
-            reply_markup=access_keyboard(lang)
+            access_expired_text(lang),
+            reply_markup=extend_signals_keyboard(lang)
         )
         return
 
@@ -1108,7 +1108,7 @@ async def process_bet_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if lang == "ru" else
             "⛔ You do not have active access.\n\nPress \"Try\" first or buy a subscription."
         )
-        await update.message.reply_text(no_access_text, reply_markup=welcome_offer_keyboard(lang))
+        await update.message.reply_text(access_expired_text(lang), reply_markup=extend_signals_keyboard(lang))
         return
 
     if has_access or in_trial:

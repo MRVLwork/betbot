@@ -20,6 +20,7 @@ from db import (
     delete_user_by_id,
     delete_user_by_username,
     get_conn,
+    TRIAL_DURATION_HOURS,
 )
 from keyboards import main_menu_keyboard
 from services.promo_service import generate_promo_code
@@ -833,7 +834,7 @@ async def users_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 if trial_expires_at:
                     trial_expires = datetime.fromisoformat(trial_expires_at)
                 else:
-                    trial_expires = datetime.fromisoformat(trial_started) + timedelta(hours=120)
+                    trial_expires = datetime.fromisoformat(trial_started) + timedelta(hours=TRIAL_DURATION_HOURS)
                 trial_active = trial_expires > now
             except Exception:
                 trial_active = False

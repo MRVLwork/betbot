@@ -282,12 +282,12 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
     lang = _normalize_lang((user or {}).get("lang", "en"))
 
     if query.data == "ai_signals_intro":
-        ai_signals_text = (
-            "🔥 AI-сигнали дня\n\n"
-            "AI аналізує спортивні події та відбирає найперспективніші можливості.\n\n"
-            "Для отримання повного доступу до сигналів потрібна активна підписка."
-        )
-        await query.message.reply_text(ai_signals_text)
+        texts = {
+            "ua": "􀀀 AI Сигнали\n\nСкоро тут буде опис.",
+            "ru": "􀀀 AI Сигналы\n\nСкоро здесь будет описание.",
+            "en": "􀀀 AI Signals\n\nDescription coming soon.",
+        }
+        await query.message.reply_text(texts.get(lang, texts["ua"]))
         return ConversationHandler.END
 
     if query.data == "bet_tracker_intro":

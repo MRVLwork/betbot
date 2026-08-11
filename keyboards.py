@@ -30,21 +30,24 @@ def welcome_offer_keyboard(lang: str):
     lang = (lang or "ua").lower()
     if lang.startswith("ru"):
         keyboard = [
-            [InlineKeyboardButton("🎁 Trial бесплатно", callback_data="try_trial")],
-            [InlineKeyboardButton("📊 Bet Tracker", callback_data="bet_tracker_intro")],
-            [InlineKeyboardButton("🎓 Обучение", callback_data="education_intro")],
+            [InlineKeyboardButton("􀀀 Trial бесплатно", callback_data="try_trial")],
+            [InlineKeyboardButton("􀀀 Bet Tracker", callback_data="bet_tracker_intro")],
+            [InlineKeyboardButton("􀀀 AI Сигналы", callback_data="ai_signals_intro")],
+            [InlineKeyboardButton("􀀀 Обучение", callback_data="education_intro")],
         ]
     elif lang.startswith("en"):
         keyboard = [
-            [InlineKeyboardButton("🎁 Free Trial", callback_data="try_trial")],
-            [InlineKeyboardButton("📊 Bet Tracker", callback_data="bet_tracker_intro")],
-            [InlineKeyboardButton("🎓 Learning", callback_data="education_intro")],
+            [InlineKeyboardButton("􀀀 Free Trial", callback_data="try_trial")],
+            [InlineKeyboardButton("􀀀 Bet Tracker", callback_data="bet_tracker_intro")],
+            [InlineKeyboardButton("􀀀 AI Signals", callback_data="ai_signals_intro")],
+            [InlineKeyboardButton("􀀀 Learning", callback_data="education_intro")],
         ]
     else:
         keyboard = [
-            [InlineKeyboardButton("🎁 Trial безкоштовно", callback_data="try_trial")],
-            [InlineKeyboardButton("📊 Bet Tracker", callback_data="bet_tracker_intro")],
-            [InlineKeyboardButton("🎓 Навчання", callback_data="education_intro")],
+            [InlineKeyboardButton("􀀀 Trial безкоштовно", callback_data="try_trial")],
+            [InlineKeyboardButton("􀀀 Bet Tracker", callback_data="bet_tracker_intro")],
+            [InlineKeyboardButton("􀀀 AI Сигнали", callback_data="ai_signals_intro")],
+            [InlineKeyboardButton("􀀀 Навчання", callback_data="education_intro")],
         ]
     return InlineKeyboardMarkup(keyboard)
 

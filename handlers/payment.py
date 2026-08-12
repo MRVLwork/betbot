@@ -195,6 +195,17 @@ def _already_sent_to_admin_text(lang: str) -> str:
 
 
 def _admin_caption_text(payment: dict) -> str:
+    if payment.get("plan_type") in {"signals_vip", "signals_elite"}:
+        channel_name = "VIP" if payment.get("plan_type") == "signals_vip" else "ELITE"
+        return (
+            f"💸 New USDT request\n\n"
+            f"user_id: {payment['user_id']}\n"
+            f"Plan: {payment['plan_name']}\n"
+            f"Amount: {payment['amount_usd']}$\n"
+            f"payment_id: {payment['id']}\n\n"
+            f"ДОДАТИ В {channel_name} КАНАЛ СИГНАЛІВ після перевірки оплати.\n"
+            f"Reply to confirm."
+        )
     return (
         f"💸 New USDT request\n\n"
         f"user_id: {payment['user_id']}\n"
@@ -213,12 +224,28 @@ def _request_sent_text(lang: str) -> str:
     return "✅ The request has been sent to the admin. Wait for the promo code."
 
 
+def _signals_channel_request_sent_text(lang: str) -> str:
+    if lang == "ua":
+        return "✅ Заявку відправлено адміну. Після перевірки оплати тебе додадуть у закритий канал."
+    if lang == "ru":
+        return "✅ Заявка отправлена админу. После проверки оплаты тебя добавят в закрытый канал."
+    return "✅ The request has been sent to the admin. After payment review, you will be added to the private channel."
+
+
 def _promo_to_user_text(lang: str, promo: str) -> str:
     if lang == "ua":
         return f"🎁 Твій промокод: {promo}"
     if lang == "ru":
         return f"🎁 Твой промокод: {promo}"
     return f"🎁 Your promo code: {promo}"
+
+
+def _signals_channel_success_text(lang: str, channel_name: str) -> str:
+    if lang == "ua":
+        return f"􀀀 Оплата успішна!\n\nСкоро адмін додасть тебе в закритий {channel_name} канал сигналів."
+    if lang == "ru":
+        return f"􀀀 Оплата успешна!\n\nСкоро админ добавит тебя в закрытый {channel_name} канал сигналов."
+    return f"􀀀 Payment successful!\n\nAdmin will add you to the private {channel_name} signals channel soon."
 
 
 async def payment_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -349,7 +376,10 @@ async def payment_sent(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     set_payment_admin_message(payment["id"], sent.message_id)
 
-    await query.message.reply_text(_request_sent_text(lang))
+    if payment.get("plan_type") in {"signals_vip", "signals_elite"}:
+        await query.message.reply_text(_signals_channel_request_sent_text(lang))
+    else:
+        await query.message.reply_text(_request_sent_text(lang))
     return ConversationHandler.END
 
 
@@ -382,6 +412,30 @@ async def admin_payment_reply_handler(update: Update, context: ContextTypes.DEFA
     target_user = get_user(payment["user_id"])
     target_lang = _normalize_lang(target_user["lang"] if target_user and target_user.get("lang") else "en")
     should_record_referral_earning = (payment.get("status") or "") not in {"promo_sent", "paid"}
+
+    if payment.get("plan_type") in {"signals_vip", "signals_elite"}:
+        mark_payment_promo_sent(payment_id, update.message.text)
+        if should_record_referral_earning:
+            await _notify_referral_earning(
+                context,
+                record_referral_earning(payment["user_id"], float(payment.get("amount_usd") or 0), 0),
+            )
+
+        channel_name = "VIP" if payment.get("plan_type") == "signals_vip" else "ELITE"
+        await notify_admin_activation(
+            context,
+            payment["user_id"],
+            f"{channel_name} Сигнали (додати в канал!)",
+            "USDT",
+        )
+        try:
+            await context.bot.send_message(
+                chat_id=payment["user_id"],
+                text=_signals_channel_success_text(target_lang, channel_name),
+            )
+        except Exception:
+            pass
+        return
 
     await context.bot.send_message(
         chat_id=payment["user_id"],
@@ -567,6 +621,30 @@ async def check_payment_status_handler(update: Update, context: ContextTypes.DEF
             and not user_has_access(user_id)
         ):
             await query.message.reply_text(_promo_already_used_text(lang))
+            return
+
+        if plan.get("plan_type") in {"signals_vip", "signals_elite"}:
+            if not record_cryptobot_payment_once(user_id, plan_key, plan, invoice_id):
+                already_texts = {
+                    "ua": "✅ Цю оплату вже зараховано.",
+                    "ru": "✅ Эта оплата уже зачтена.",
+                    "en": "✅ This payment has already been applied.",
+                }
+                await query.message.reply_text(already_texts.get(lang, already_texts["en"]))
+                return
+
+            channel_name = "VIP" if plan["plan_type"] == "signals_vip" else "ELITE"
+            await notify_admin_activation(
+                context,
+                user_id,
+                f"{channel_name} Сигнали (додати в канал!)",
+                "USDT",
+            )
+            await _notify_referral_earning(
+                context,
+                record_referral_earning(user_id, float(plan.get("amount_usd") or 0), 0),
+            )
+            await query.message.reply_text(_signals_channel_success_text(lang, channel_name))
             return
 
         should_activate = bool(plan and (plan["plan_type"] in {"tracker", "vip_signals"} or not user_has_access(user_id)))

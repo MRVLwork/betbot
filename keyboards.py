@@ -465,6 +465,39 @@ def vip_signals_payment_keyboard(lang: str = "ua"):
     return InlineKeyboardMarkup(keyboard)
 
 
+def ai_signals_plans_keyboard(lang: str = "ua"):
+    lang = (lang or "ua").lower()
+    if lang.startswith("ru"):
+        keyboard = [
+            [InlineKeyboardButton("􀀀 VIP  $20 / 30 дней", callback_data="signals_plan_vip")],
+            [InlineKeyboardButton("􀀀 ELITE  $50 / 30 дней", callback_data="signals_plan_elite")],
+        ]
+    elif lang.startswith("en"):
+        keyboard = [
+            [InlineKeyboardButton("􀀀 VIP  $20 / 30 days", callback_data="signals_plan_vip")],
+            [InlineKeyboardButton("􀀀 ELITE  $50 / 30 days", callback_data="signals_plan_elite")],
+        ]
+    else:
+        keyboard = [
+            [InlineKeyboardButton("􀀀 VIP  $20 / 30 днів", callback_data="signals_plan_vip")],
+            [InlineKeyboardButton("􀀀 ELITE  $50 / 30 днів", callback_data="signals_plan_elite")],
+        ]
+    return InlineKeyboardMarkup(keyboard)
+
+
+def signals_payment_method_keyboard(plan: str, lang: str = "ua"):
+    """plan = 'vip' або 'elite'. Вибір Stars/USDT."""
+    stars_cb = f"stars_signals_{plan}"
+    usdt_cb = f"usdt_signals_{plan}"
+    stars_amount = "1500" if plan == "vip" else "3750"
+    usd_amount = "20" if plan == "vip" else "50"
+    rows = [
+        [InlineKeyboardButton(f"􀀀 Stars  {stars_amount}", callback_data=stars_cb)],
+        [InlineKeyboardButton(f"􀀀 USDT  ${usd_amount}", callback_data=usdt_cb)],
+    ]
+    return InlineKeyboardMarkup(rows)
+
+
 def settings_keyboard(lang: str = "ua"):
     """Settings menu."""
     if lang == "ru":

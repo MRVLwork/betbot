@@ -308,6 +308,45 @@ async def main_menu_callback_handler(update: Update, context: ContextTypes.DEFAU
         await query.message.reply_text(_about_bot_text(lang))
 
 
+async def signals_plan_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    user = get_user(update.effective_user.id) or {}
+    lang = _normalize_lang_local(user.get("lang"))
+    plan = "vip" if query.data == "signals_plan_vip" else "elite"
+    plan_label = "VIP" if plan == "vip" else "ELITE"
+    usd = "20" if plan == "vip" else "50"
+    stars = "1500" if plan == "vip" else "3750"
+
+    if lang == "ru":
+        text = (
+            f"􀀀 *{plan_label} Сигналы*\n\n"
+            f"Цена: ${usd} или {stars} 􀀀\n\n"
+            "􀀀 Выбери способ оплаты:"
+        )
+    elif lang == "en":
+        text = (
+            f"􀀀 *{plan_label} Signals*\n\n"
+            f"Price: ${usd} or {stars} 􀀀\n\n"
+            "􀀀 Choose payment method:"
+        )
+    else:
+        text = (
+            f"􀀀 *{plan_label} Сигнали*\n\n"
+            f"Ціна: ${usd} або {stars} 􀀀\n\n"
+            "􀀀 Обери спосіб оплати:"
+        )
+
+    from keyboards import signals_payment_method_keyboard
+
+    await query.message.reply_text(
+        text,
+        parse_mode="Markdown",
+        reply_markup=signals_payment_method_keyboard(plan, lang),
+    )
+
+
 def _trial_stats_upsell_text(lang: str) -> str:
     lang = (lang or "en").lower()
     if lang.startswith("uk"):
@@ -2284,6 +2323,7 @@ def main():
     ))
     app.add_handler(CallbackQueryHandler(open_stars_menu, pattern="^(buy_stars|stars_.*|signals_week|tracker_1m_stars|tracker_6m_stars)$"))
     app.add_handler(CallbackQueryHandler(main_menu_callback_handler, pattern="^main_"))
+    app.add_handler(CallbackQueryHandler(signals_plan_choice, pattern="^signals_plan_(vip|elite)$"))
     app.add_handler(CallbackQueryHandler(signals_callback_handler, pattern=r"^signals_"))
     app.add_handler(CallbackQueryHandler(cryptobot_payment_handler, pattern="^(cb_pay_|tracker_1m_usd|tracker_6m_usd)"))
     app.add_handler(CallbackQueryHandler(check_payment_status_handler, pattern="^check_payment_"))

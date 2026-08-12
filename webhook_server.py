@@ -57,6 +57,8 @@ async def handle_cryptobot_webhook(request: web.Request):
         plan_config = {
             "tracker_1m_usd": {"plan_type": "tracker", "duration_days": 30, "min_amount": 6.9},
             "tracker_6m_usd": {"plan_type": "tracker", "duration_days": 180, "min_amount": 29.9},
+            "usdt_signals_vip": {"plan_type": "signals_vip", "duration_days": 30, "min_amount": 19.0},
+            "usdt_signals_elite": {"plan_type": "signals_elite", "duration_days": 30, "min_amount": 49.0},
             "usdt_basic_month": {"plan_type": "basic", "duration_days": 30, "min_amount": 6.9},
             "usdt_vip_month": {"plan_type": "vip", "duration_days": 30, "min_amount": 19.0},
             "usdt_basic_6m_promo": {"plan_type": "basic", "duration_days": 180, "min_amount": 29.9, "first_payment_only": True},
@@ -82,6 +84,30 @@ async def handle_cryptobot_webhook(request: web.Request):
         if not record_cryptobot_payment_once(user_id, plan_key, plan_record, invoice_id):
             logger.info("CryptoBot invoice %s already processed for user %s", invoice_id, user_id)
             return web.Response(status=200, text="Already processed")
+
+        if plan_config["plan_type"] in {"signals_vip", "signals_elite"}:
+            channel_name = "VIP" if plan_config["plan_type"] == "signals_vip" else "ELITE"
+            await notify_admin_activation_with_bot(
+                _bot,
+                user_id,
+                f"{channel_name} Сигнали (додати в канал!)",
+                "USDT",
+            )
+            if _bot:
+                user = get_user(user_id)
+                lang = (user or {}).get("lang", "ua")
+                if str(lang).lower().startswith("ru"):
+                    text = f"􀀀 Оплата успешна!\n\nСкоро админ добавит тебя в закрытый {channel_name} канал сигналов."
+                elif str(lang).lower().startswith("en"):
+                    text = f"􀀀 Payment successful!\n\nAdmin will add you to the private {channel_name} signals channel soon."
+                else:
+                    text = f"􀀀 Оплата успішна!\n\nСкоро адмін додасть тебе в закритий {channel_name} канал сигналів."
+                try:
+                    await _bot.send_message(chat_id=user_id, text=text)
+                except Exception as exc:
+                    logger.error("Failed to notify signals channel user %s: %s", user_id, exc)
+            logger.info("Recorded %s channel payment for user %s", channel_name, user_id)
+            return web.Response(status=200, text="OK")
 
         if plan_config["plan_type"] == "vip_signals":
             activate_vip_signals_access(user_id=user_id, days=plan_config["duration_days"])

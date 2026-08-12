@@ -282,12 +282,40 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
     lang = _normalize_lang((user or {}).get("lang", "en"))
 
     if query.data == "ai_signals_intro":
-        texts = {
-            "ua": "􀀀 AI Сигнали\n\nСкоро тут буде опис.",
-            "ru": "􀀀 AI Сигналы\n\nСкоро здесь будет описание.",
-            "en": "􀀀 AI Signals\n\nDescription coming soon.",
-        }
-        await query.message.reply_text(texts.get(lang, texts["ua"]))
+        from keyboards import ai_signals_plans_keyboard
+
+        if lang == "ru":
+            ai_signals_text = (
+                "􀀀 *AI Сигналы*\n\n"
+                "Готовые ставки от AI-агента в закрытом канале.\n\n"
+                "􀀀 *VIP*  ежедневные сигналы с обоснованием\n"
+                "􀀀 *ELITE*  премиум-сигналы + приоритетный разбор\n\n"
+                "После оплаты ты получишь доступ в закрытый канал.\n\n"
+                "􀀀 Выбери план:"
+            )
+        elif lang == "en":
+            ai_signals_text = (
+                "􀀀 *AI Signals*\n\n"
+                "Ready-to-bet picks from AI agent in a private channel.\n\n"
+                "􀀀 *VIP*  daily signals with reasoning\n"
+                "􀀀 *ELITE*  premium signals + priority analysis\n\n"
+                "After payment you'll get access to the private channel.\n\n"
+                "􀀀 Choose your plan:"
+            )
+        else:
+            ai_signals_text = (
+                "􀀀 *AI Сигнали*\n\n"
+                "Готові ставки від AI-агента у закритому каналі.\n\n"
+                "􀀀 *VIP*  щоденні сигнали з обґрунтуванням\n"
+                "􀀀 *ELITE*  преміум-сигнали + пріоритетний розбір\n\n"
+                "Після оплати ти отримаєш доступ у закритий канал.\n\n"
+                "􀀀 Обери план:"
+            )
+        await query.message.reply_text(
+            ai_signals_text,
+            parse_mode="Markdown",
+            reply_markup=ai_signals_plans_keyboard(lang),
+        )
         return ConversationHandler.END
 
     if query.data == "bet_tracker_intro":

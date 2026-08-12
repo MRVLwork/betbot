@@ -109,6 +109,14 @@ def _tracker_success_text(lang: str) -> str:
     return "✅ Bet Tracker activated.\n\nYou can now add bets and view your stats."
 
 
+def _signals_channel_success_text(lang: str, channel_name: str) -> str:
+    if lang == "ua":
+        return f"􀀀 Оплата успішна!\n\nСкоро адмін додасть тебе в закритий {channel_name} канал сигналів."
+    if lang == "ru":
+        return f"􀀀 Оплата успешна!\n\nСкоро админ добавит тебя в закрытый {channel_name} канал сигналов."
+    return f"􀀀 Payment successful!\n\nAdmin will add you to the private {channel_name} signals channel soon."
+
+
 async def _notify_referral_earning(context: ContextTypes.DEFAULT_TYPE, earning: dict | None):
     if not earning:
         return
@@ -212,6 +220,20 @@ async def successful_payment_handler(update: Update, context: ContextTypes.DEFAU
         record_referral_earning_from_stars(user_id, int(plan["amount_xtr"] or 0)),
     )
 
+    user = get_user(user_id)
+    lang = _normalize_lang(user["lang"] if user and user.get("lang") else "en")
+
+    if plan.get("plan_type") in {"signals_vip", "signals_elite"}:
+        channel_name = "VIP" if plan["plan_type"] == "signals_vip" else "ELITE"
+        await notify_admin_activation(
+            context,
+            user_id,
+            f"{channel_name} Сигнали (додати в канал!)",
+            "Stars",
+        )
+        await update.message.reply_text(_signals_channel_success_text(lang, channel_name))
+        return
+
     if plan_key == "signals_week":
         activate_signals_week_access(user_id=user_id, days=plan["duration_days"])
     elif plan_key == "stars_vip_bet_day_month":
@@ -236,9 +258,6 @@ async def successful_payment_handler(update: Update, context: ContextTypes.DEFAU
 
     plan_label = plan.get("title_ua") or plan.get("title_en") or plan_key
     await notify_admin_activation(context, user_id, plan_label, "Stars")
-
-    user = get_user(user_id)
-    lang = _normalize_lang(user["lang"] if user and user.get("lang") else "en")
 
     if plan.get("plan_type") == "tracker":
         await update.message.reply_text(

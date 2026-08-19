@@ -19,6 +19,18 @@ def _activation_text(user_id: int, plan_label: str, payment_method: str = "") ->
     )
 
 
+def _course_purchase_text(user_id: int, tariff: str, amount: str, payment_method: str = "") -> str:
+    user_info = _escape_markdown(get_user_display_info(user_id))
+    return (
+        "􀀀 *КУПІВЛЯ КУРСУ*\n\n"
+        f"👤 Користувач: {user_info}\n"
+        f"🆔 user_id: `{user_id}`\n"
+        f"📦 Тариф: {_escape_markdown(tariff)}\n"
+        f"💰 Сума: {_escape_markdown(amount)}\n"
+        f"💳 Спосіб: {_escape_markdown(payment_method)}"
+    )
+
+
 async def notify_admin_activation(context, user_id: int, plan_label: str, payment_method: str = ""):
     """
     Надсилає адміну сповіщення про активацію підписки.
@@ -38,6 +50,20 @@ async def notify_admin_activation(context, user_id: int, plan_label: str, paymen
         print(f"notify_admin_activation error: {e}")
 
 
+async def notify_admin_course_purchase(context, user_id: int, tariff: str, amount: str, payment_method: str = ""):
+    if not ADMIN_ID:
+        return
+
+    try:
+        await context.bot.send_message(
+            chat_id=ADMIN_ID,
+            text=_course_purchase_text(user_id, tariff, amount, payment_method),
+            parse_mode="Markdown",
+        )
+    except Exception as e:
+        print(f"notify_admin_course_purchase error: {e}")
+
+
 async def notify_admin_activation_with_bot(bot, user_id: int, plan_label: str, payment_method: str = ""):
     """Webhook-friendly variant when there is no telegram.ext context."""
     if not ADMIN_ID or not bot:
@@ -51,3 +77,17 @@ async def notify_admin_activation_with_bot(bot, user_id: int, plan_label: str, p
         )
     except Exception as e:
         print(f"notify_admin_activation_with_bot error: {e}")
+
+
+async def notify_admin_course_purchase_with_bot(bot, user_id: int, tariff: str, amount: str, payment_method: str = ""):
+    if not ADMIN_ID or not bot:
+        return
+
+    try:
+        await bot.send_message(
+            chat_id=ADMIN_ID,
+            text=_course_purchase_text(user_id, tariff, amount, payment_method),
+            parse_mode="Markdown",
+        )
+    except Exception as e:
+        print(f"notify_admin_course_purchase_with_bot error: {e}")

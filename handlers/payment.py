@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from datetime import datetime
+
 from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler
 
@@ -13,6 +15,7 @@ from db import (
     get_payment_by_id,
     mark_payment_promo_sent,
     get_user,
+    grant_course_access,
     mark_promo_offer_used,
     record_cryptobot_payment_once,
     record_referral_earning,
@@ -26,7 +29,7 @@ from keyboards import cryptobot_plans_keyboard, main_menu_keyboard, payment_chec
 from services.cryptobot_service import create_invoice, get_invoice_status
 from services.payment_service import USDT_PLANS, get_usdt_plan
 from states import WAITING_PAYMENT_SCREEN
-from handlers.admin_notify import notify_admin_activation
+from handlers.admin_notify import notify_admin_activation, notify_admin_course_purchase
 
 
 def _normalize_lang(lang: str) -> str:
@@ -124,6 +127,9 @@ def _payment_card_text(lang: str, plan_name: str, amount_usd: float, wallet: str
 
 def _normalize_usdt_plan_key(plan_key: str) -> str:
     usdt_callback_map = {
+        "course_pay_crypto_solo": "course_solo",
+        "course_pay_crypto_tracker": "course_tracker",
+        "course_pay_crypto_vip": "course_vip",
         "usdt_basic_1m": "usdt_basic_month",
         "usdt_basic_6m_promo": "usdt_basic_6m_promo",
         "usdt_vip_1m": "usdt_vip_month",
@@ -246,6 +252,49 @@ def _signals_channel_success_text(lang: str, channel_name: str) -> str:
     if lang == "ru":
         return f"􀀀 Оплата успешна!\n\nСкоро админ добавит тебя в закрытый {channel_name} канал сигналов."
     return f"􀀀 Payment successful!\n\nAdmin will add you to the private {channel_name} signals channel soon."
+
+
+def _course_bundle(plan_type: str) -> str:
+    return plan_type.replace("course_", "")
+
+
+def _course_amount_label(plan_key: str, method: str) -> str:
+    amount_by_plan = {
+        "course_solo": {"Stars": "1500􀀀", "USDT": "$20"},
+        "course_tracker": {"Stars": "1575􀀀", "USDT": "$21"},
+        "course_vip": {"Stars": "1875􀀀", "USDT": "$25"},
+    }
+    return amount_by_plan.get(plan_key, {}).get(method, "")
+
+
+def _course_success_text(plan_key: str) -> str:
+    extra = ""
+    if plan_key == "course_tracker":
+        extra = "\nBasic активовано на 30 днів."
+    elif plan_key == "course_vip":
+        extra = "\nVIP активовано на 30 днів."
+    return (
+        "􀀀 Оплата пройшла! Доступ до курсу ColdMind відкрито назавжди.\n"
+        "􀀀 Модуль 1 вже чекає: тисни Навчання в меню."
+        f"{extra}"
+    )
+
+
+def _course_invoice_recent(context: ContextTypes.DEFAULT_TYPE, callback_data: str) -> bool:
+    now = datetime.now()
+    last = context.user_data.get("_last_course_invoice")
+    if isinstance(last, dict) and last.get("callback_data") == callback_data:
+        try:
+            last_at = datetime.fromisoformat(last.get("created_at") or "")
+            if (now - last_at).total_seconds() < 5:
+                return True
+        except Exception:
+            pass
+    context.user_data["_last_course_invoice"] = {
+        "callback_data": callback_data,
+        "created_at": now.isoformat(),
+    }
+    return False
 
 
 async def payment_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -491,6 +540,9 @@ async def cryptobot_payment_handler(update: Update, context: ContextTypes.DEFAUL
     Triggered by callback like cb_pay_usdt_basic_month.
     """
     query = update.callback_query
+    if query.data.startswith("course_pay_crypto_") and _course_invoice_recent(context, query.data):
+        await query.answer("Рахунок уже створено. Перевір останнє повідомлення.", show_alert=False)
+        return
     await query.answer()
 
     user_id = update.effective_user.id
@@ -621,6 +673,47 @@ async def check_payment_status_handler(update: Update, context: ContextTypes.DEF
             and not user_has_access(user_id)
         ):
             await query.message.reply_text(_promo_already_used_text(lang))
+            return
+
+        if plan.get("plan_type") in {"course_solo", "course_tracker", "course_vip"}:
+            if not record_cryptobot_payment_once(user_id, plan_key, plan, invoice_id):
+                already_texts = {
+                    "ua": "✅ Цю оплату вже зараховано.",
+                    "ru": "✅ Эта оплата уже зачтена.",
+                    "en": "✅ This payment has already been applied.",
+                }
+                await query.message.reply_text(already_texts.get(lang, already_texts["en"]))
+                return
+
+            bundle = _course_bundle(plan["plan_type"])
+            grant_course_access(user_id, bundle)
+            if plan["plan_type"] == "course_tracker":
+                activate_user_access(
+                    user_id=user_id,
+                    days=30,
+                    plan_type="basic",
+                    source="cryptobot_course",
+                )
+            elif plan["plan_type"] == "course_vip":
+                activate_user_access(
+                    user_id=user_id,
+                    days=30,
+                    plan_type="vip",
+                    source="cryptobot_course",
+                )
+
+            await notify_admin_course_purchase(
+                context,
+                user_id,
+                bundle,
+                _course_amount_label(plan_key, "USDT"),
+                "USDT",
+            )
+            await _notify_referral_earning(
+                context,
+                record_referral_earning(user_id, float(plan.get("amount_usd") or 0), 0),
+            )
+            await query.message.reply_text(_course_success_text(plan_key))
             return
 
         if plan.get("plan_type") in {"signals_vip", "signals_elite"}:

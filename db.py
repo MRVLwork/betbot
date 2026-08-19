@@ -313,6 +313,14 @@ def init_db():
     """)
 
     cur.execute("""
+        CREATE TABLE IF NOT EXISTS course_access (
+            user_id BIGINT PRIMARY KEY,
+            purchased_at TIMESTAMP DEFAULT NOW(),
+            plan VARCHAR(20)
+        )
+    """)
+
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS referral_sources (
             source_key TEXT PRIMARY KEY,
             description TEXT,
@@ -586,6 +594,33 @@ def get_user(user_id: int):
 
     conn.close()
     return row
+
+
+def has_course_access(user_id: int) -> bool:
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("SELECT user_id FROM course_access WHERE user_id = ? LIMIT 1", (user_id,))
+    exists = cur.fetchone() is not None
+    conn.close()
+    return exists
+
+
+def grant_course_access(user_id: int, plan: str) -> bool:
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO course_access (user_id, plan)
+        VALUES (?, ?)
+        ON CONFLICT (user_id) DO NOTHING
+        RETURNING user_id
+        """,
+        (user_id, plan),
+    )
+    inserted = cur.fetchone() is not None
+    conn.commit()
+    conn.close()
+    return inserted
 
 
 LIMIT_FIELDS = {

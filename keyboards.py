@@ -498,6 +498,33 @@ def signals_payment_method_keyboard(plan: str, lang: str = "ua"):
     return InlineKeyboardMarkup(rows)
 
 
+def course_offer_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("􀀀 Купити курс  $20 / 1500􀀀", callback_data="course_buy_solo")],
+        [InlineKeyboardButton("􀀀 Курс + Трекер  $21 / 1575􀀀", callback_data="course_buy_tracker")],
+        [InlineKeyboardButton("􀀀 Курс + VIP Сигнали  $25 / 1875􀀀", callback_data="course_buy_vip")],
+    ])
+
+
+def course_payment_keyboard(plan: str) -> InlineKeyboardMarkup:
+    stars_amount = {
+        "solo": "1500",
+        "tracker": "1575",
+        "vip": "1875",
+    }[plan]
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(f"􀀀 Оплатити {stars_amount}􀀀", callback_data=f"course_pay_stars_{plan}")],
+        [InlineKeyboardButton("􀀀 USDT через CryptoBot", callback_data=f"course_pay_crypto_{plan}")],
+        [InlineKeyboardButton(" Назад", callback_data="course_offer_back")],
+    ])
+
+
+def course_modules_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("􀀀 Модуль 1", callback_data="course_module_1")],
+    ])
+
+
 def settings_keyboard(lang: str = "ua"):
     """Settings menu."""
     if lang == "ru":

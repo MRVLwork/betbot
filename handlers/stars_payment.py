@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from datetime import datetime
+
 from telegram import LabeledPrice, Update
 from telegram.ext import ContextTypes
 
@@ -13,6 +15,7 @@ from db import (
     activate_vip_signals_access,
     is_vip_week_199_offer_available,
     clear_vip_week_promo,
+    grant_course_access,
     mark_vip_week_message_sent,
     mark_vip_week_promo_started,
     record_referral_earning_from_stars,
@@ -20,7 +23,7 @@ from db import (
 )
 from keyboards import stars_plans_keyboard, tracker_menu_keyboard
 from services.stars_service import get_stars_plan
-from handlers.admin_notify import notify_admin_activation
+from handlers.admin_notify import notify_admin_activation, notify_admin_course_purchase
 
 
 def _normalize_lang(lang: str) -> str:
@@ -67,6 +70,9 @@ def _plan_title(plan: dict, lang: str) -> str:
 def _normalize_plan_key(plan_key: str) -> str:
     aliases = {
         "extend_signals_7d": "signals_week",
+        "course_pay_stars_solo": "course_solo",
+        "course_pay_stars_tracker": "course_tracker",
+        "course_pay_stars_vip": "course_vip",
         "vip_buy_1m": "stars_vip_1m",
         "vip_buy_3m": "stars_vip_3m_promo",
         "vip_buy_6m": "stars_vip_6m_promo",
@@ -117,6 +123,49 @@ def _signals_channel_success_text(lang: str, channel_name: str) -> str:
     return f"􀀀 Payment successful!\n\nAdmin will add you to the private {channel_name} signals channel soon."
 
 
+def _course_bundle(plan_type: str) -> str:
+    return plan_type.replace("course_", "")
+
+
+def _course_amount_label(plan_key: str, method: str) -> str:
+    amount_by_plan = {
+        "course_solo": {"Stars": "1500􀀀", "USDT": "$20"},
+        "course_tracker": {"Stars": "1575􀀀", "USDT": "$21"},
+        "course_vip": {"Stars": "1875􀀀", "USDT": "$25"},
+    }
+    return amount_by_plan.get(plan_key, {}).get(method, "")
+
+
+def _course_success_text(plan_key: str) -> str:
+    extra = ""
+    if plan_key == "course_tracker":
+        extra = "\nBasic активовано на 30 днів."
+    elif plan_key == "course_vip":
+        extra = "\nVIP активовано на 30 днів."
+    return (
+        "􀀀 Оплата пройшла! Доступ до курсу ColdMind відкрито назавжди.\n"
+        "􀀀 Модуль 1 вже чекає: тисни Навчання в меню."
+        f"{extra}"
+    )
+
+
+def _course_invoice_recent(context: ContextTypes.DEFAULT_TYPE, callback_data: str) -> bool:
+    now = datetime.now()
+    last = context.user_data.get("_last_course_invoice")
+    if isinstance(last, dict) and last.get("callback_data") == callback_data:
+        try:
+            last_at = datetime.fromisoformat(last.get("created_at") or "")
+            if (now - last_at).total_seconds() < 5:
+                return True
+        except Exception:
+            pass
+    context.user_data["_last_course_invoice"] = {
+        "callback_data": callback_data,
+        "created_at": now.isoformat(),
+    }
+    return False
+
+
 async def _notify_referral_earning(context: ContextTypes.DEFAULT_TYPE, earning: dict | None):
     if not earning:
         return
@@ -137,6 +186,9 @@ async def _notify_referral_earning(context: ContextTypes.DEFAULT_TYPE, earning: 
 
 async def open_stars_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
+    if query.data.startswith("course_pay_stars_") and _course_invoice_recent(context, query.data):
+        await query.answer("Рахунок уже створено. Перевір останнє повідомлення.", show_alert=False)
+        return
     await query.answer()
 
     user_id = update.effective_user.id
@@ -222,6 +274,34 @@ async def successful_payment_handler(update: Update, context: ContextTypes.DEFAU
 
     user = get_user(user_id)
     lang = _normalize_lang(user["lang"] if user and user.get("lang") else "en")
+
+    if plan.get("plan_type") in {"course_solo", "course_tracker", "course_vip"}:
+        bundle = _course_bundle(plan["plan_type"])
+        grant_course_access(user_id, bundle)
+        if plan["plan_type"] == "course_tracker":
+            activate_user_access(
+                user_id=user_id,
+                days=30,
+                plan_type="basic",
+                source=f"stars:{plan_key}",
+            )
+        elif plan["plan_type"] == "course_vip":
+            activate_user_access(
+                user_id=user_id,
+                days=30,
+                plan_type="vip",
+                source=f"stars:{plan_key}",
+            )
+
+        await notify_admin_course_purchase(
+            context,
+            user_id,
+            bundle,
+            _course_amount_label(plan_key, "Stars"),
+            "Stars",
+        )
+        await update.message.reply_text(_course_success_text(plan_key))
+        return
 
     if plan.get("plan_type") in {"signals_vip", "signals_elite"}:
         channel_name = "VIP" if plan["plan_type"] == "signals_vip" else "ELITE"

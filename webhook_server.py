@@ -6,6 +6,7 @@ from config import WEBHOOK_SECRET
 from db import (
     activate_user_access,
     activate_vip_signals_access,
+    grant_course_access,
     get_user,
     is_eligible_for_first_payment_promo,
     record_cryptobot_payment_once,
@@ -13,11 +14,36 @@ from db import (
 )
 from services.cryptobot_service import parse_webhook_payload, verify_webhook_signature
 from services.payment_service import USDT_PLANS
-from handlers.admin_notify import notify_admin_activation_with_bot
+from handlers.admin_notify import notify_admin_activation_with_bot, notify_admin_course_purchase_with_bot
 
 
 logger = logging.getLogger(__name__)
 _bot = None
+
+
+def _course_bundle(plan_type: str) -> str:
+    return plan_type.replace("course_", "")
+
+
+def _course_amount_label(plan_key: str) -> str:
+    return {
+        "course_solo": "$20",
+        "course_tracker": "$21",
+        "course_vip": "$25",
+    }.get(plan_key, "")
+
+
+def _course_success_text(plan_key: str) -> str:
+    extra = ""
+    if plan_key == "course_tracker":
+        extra = "\nBasic активовано на 30 днів."
+    elif plan_key == "course_vip":
+        extra = "\nVIP активовано на 30 днів."
+    return (
+        "􀀀 Оплата пройшла! Доступ до курсу ColdMind відкрито назавжди.\n"
+        "􀀀 Модуль 1 вже чекає: тисни Навчання в меню."
+        f"{extra}"
+    )
 
 
 def set_bot(bot):
@@ -55,6 +81,9 @@ async def handle_cryptobot_webhook(request: web.Request):
         invoice_id = payload.get("invoice_id")
 
         plan_config = {
+            "course_solo": {"plan_type": "course_solo", "duration_days": 0, "min_amount": 19.0},
+            "course_tracker": {"plan_type": "course_tracker", "duration_days": 30, "min_amount": 20.0},
+            "course_vip": {"plan_type": "course_vip", "duration_days": 30, "min_amount": 24.0},
             "tracker_1m_usd": {"plan_type": "tracker", "duration_days": 30, "min_amount": 6.9},
             "tracker_6m_usd": {"plan_type": "tracker", "duration_days": 180, "min_amount": 29.9},
             "usdt_signals_vip": {"plan_type": "signals_vip", "duration_days": 30, "min_amount": 19.0},
@@ -84,6 +113,39 @@ async def handle_cryptobot_webhook(request: web.Request):
         if not record_cryptobot_payment_once(user_id, plan_key, plan_record, invoice_id):
             logger.info("CryptoBot invoice %s already processed for user %s", invoice_id, user_id)
             return web.Response(status=200, text="Already processed")
+
+        if plan_config["plan_type"] in {"course_solo", "course_tracker", "course_vip"}:
+            bundle = _course_bundle(plan_config["plan_type"])
+            grant_course_access(user_id, bundle)
+            if plan_config["plan_type"] == "course_tracker":
+                activate_user_access(
+                    user_id=user_id,
+                    days=30,
+                    plan_type="basic",
+                    source="cryptobot_course",
+                )
+            elif plan_config["plan_type"] == "course_vip":
+                activate_user_access(
+                    user_id=user_id,
+                    days=30,
+                    plan_type="vip",
+                    source="cryptobot_course",
+                )
+
+            await notify_admin_course_purchase_with_bot(
+                _bot,
+                user_id,
+                bundle,
+                _course_amount_label(plan_key),
+                "USDT",
+            )
+            if _bot:
+                try:
+                    await _bot.send_message(chat_id=user_id, text=_course_success_text(plan_key))
+                except Exception as exc:
+                    logger.error("Failed to notify course user %s: %s", user_id, exc)
+            logger.info("Recorded course %s payment for user %s", bundle, user_id)
+            return web.Response(status=200, text="OK")
 
         if plan_config["plan_type"] in {"signals_vip", "signals_elite"}:
             channel_name = "VIP" if plan_config["plan_type"] == "signals_vip" else "ELITE"

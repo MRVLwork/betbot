@@ -73,7 +73,7 @@ from keyboards import (
     extra_menu_keyboard,
 )
 from languages import get_text
-from handlers.start import send_main_menu, start, start_offer_buttons
+from handlers.start import send_course_entry, send_main_menu, start, start_offer_buttons
 from handlers.onboarding import (
     onboarding_goal,
     onboarding_sport,
@@ -1809,6 +1809,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🔑 Ввести промокод", "🔑 Enter promo code",
         "🔥 Streak",
         "🔥 AI-сигнали", "🔥 AI-сигналы", "🔥 AI Signals", "🔥 AI Прогнози дня", "🔥 AI Прогнозы дня", "🔥 AI Predictions",
+        "􀀀 Навчання", "􀀀 Обучение", "􀀀 Learning", "🎓 Навчання", "🎓 Обучение", "🎓 Learning", "Навчання", "Обучение", "Learning",
         "📸 Додати ставку", "📸 Добавить ставку", "📸 Add bet",
         "📊 Моя статистика", "📊 My stats",
         "🧠 AI-розбір", "🧠 AI-разбор", "🧠 AI analysis",
@@ -1850,6 +1851,8 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if text in ("🔥 AI-сигнали", "🔥 AI-сигналы", "🔥 AI Signals", "🔥 AI Прогнози дня", "🔥 AI Прогнозы дня", "🔥 AI Predictions"):
         await open_ai_signals_menu(update, context)
+    elif text in ("􀀀 Навчання", "􀀀 Обучение", "􀀀 Learning", "🎓 Навчання", "🎓 Обучение", "🎓 Learning", "Навчання", "Обучение", "Learning"):
+        await send_course_entry(update.message, context, user_id, lang)
     elif text in ("📸 Додати ставку", "📸 Добавить ставку", "📸 Add bet"):
         info = {
             "ua": " Надішли скрін купона або текст ставки. Я розпізнаю її та додам у трекер.",
@@ -2299,7 +2302,10 @@ def main():
     )
     app.add_handler(payment_conv)
 
-    app.add_handler(CallbackQueryHandler(start_offer_buttons, pattern="^(pay_now|ai_signals_intro|bet_tracker_intro|education_intro)$"))
+    app.add_handler(CallbackQueryHandler(
+        start_offer_buttons,
+        pattern="^(pay_now|ai_signals_intro|bet_tracker_intro|education_intro|course_buy_solo|course_buy_tracker|course_buy_vip|course_offer_back|course_module_1)$",
+    ))
     app.add_handler(MessageHandler(
         filters.Regex(r"^🔥 (AI-сигнали|AI-сигналы|AI Signals|AI Прогнози дня|AI Прогнозы дня|AI Predictions)$"),
         open_signals_menu,
@@ -2321,11 +2327,11 @@ def main():
         plan_payment_choice,
         pattern="^(vip_buy_1m|vip_buy_3m_promo|vip_buy_6m_promo|basic_buy_1m|basic_buy_6m_promo)$",
     ))
-    app.add_handler(CallbackQueryHandler(open_stars_menu, pattern="^(buy_stars|stars_.*|signals_week|tracker_1m_stars|tracker_6m_stars)$"))
+    app.add_handler(CallbackQueryHandler(open_stars_menu, pattern="^(buy_stars|stars_.*|signals_week|tracker_1m_stars|tracker_6m_stars|course_pay_stars_(solo|tracker|vip))$"))
     app.add_handler(CallbackQueryHandler(main_menu_callback_handler, pattern="^main_"))
     app.add_handler(CallbackQueryHandler(signals_plan_choice, pattern="^signals_plan_(vip|elite)$"))
     app.add_handler(CallbackQueryHandler(signals_callback_handler, pattern=r"^signals_"))
-    app.add_handler(CallbackQueryHandler(cryptobot_payment_handler, pattern="^(cb_pay_|tracker_1m_usd|tracker_6m_usd)"))
+    app.add_handler(CallbackQueryHandler(cryptobot_payment_handler, pattern="^(cb_pay_|tracker_1m_usd|tracker_6m_usd|course_pay_crypto_(solo|tracker|vip))$"))
     app.add_handler(CallbackQueryHandler(check_payment_status_handler, pattern="^check_payment_"))
     app.add_handler(PreCheckoutQueryHandler(precheckout_handler))
     app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_handler))

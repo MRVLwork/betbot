@@ -3,6 +3,9 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes, ConversationHandler
 
 from keyboards import (
+    course_modules_keyboard,
+    course_offer_keyboard,
+    course_payment_keyboard,
     main_inline_menu_keyboard,
     tracker_menu_keyboard,
     tracker_offer_keyboard,
@@ -14,6 +17,7 @@ from db import (
     get_coldmind_remaining,
     get_subscription_type,
     get_user,
+    has_course_access,
     is_onboarding_completed,
     user_has_access,
     is_trial_available,
@@ -125,25 +129,74 @@ def _tracker_menu_text(lang: str) -> str:
 
 
 def _education_intro_text(lang: str) -> str:
-    lang = _normalize_lang(lang)
+    return (
+        "􀀀 <b>Курс ColdMind</b>\n"
+        "<b>Як перестати зливати і почати заробляти на ставках.</b>\n"
+        "Основні поняття беттингу, база знань, психологія, патерни і найпопулярніші стратегії, інструменти та\n"
+        "багато іншого, що дозволить створити власну систему і перетворити беттинг із хобі в прибуткову\n"
+        "справу.\n"
+        "􀀀 <b>Більше 7 модулів + бонус для всіх учасників.</b>\n\n"
+        "􀀀 <b>Частинка одного з модулів:</b>\n"
+        " <b>Хочеш результат швидко? Ось найшвидше, що існує в беттингу.</b>\n"
+        "Найшвидший спосіб змінити свій баланс  не знайти виграшну ставку. А <b>перестати робити одну\n"
+        "програшну.</b>\n"
+        "У твоїй історії ставок прямо зараз є категорія, яка стабільно з'їдає гроші: певний тип ставок, діапазон\n"
+        "кефів або \"улюблена\" ліга. Ти її не бачиш, бо дивишся на окремі матчі, а не на цифри.\n"
+        "Модуль 4 знаходить її за один вечір. Відрізав  і з наступного тижня ці гроші залишаються в банку.\n"
+        "Це не \"плюс колись на дистанції\". Це <b>мінус, який зупиняється одразу.</b>\n"
+        "Далі  протокол проти догону (одна зупинена сесія = <code>$50500</code> збережених) і\n"
+        "<b>CLV</b>: метрика, яка показує, чи є в тебе перевага, не чекаючи місяців результатів.\n\n"
+        "􀀀 <b>$20  назавжди.</b> Швидше за це в беттингу не працює нічого  а хто каже інакше, продає\n"
+        "тобі догон у красивій обгортці."
+    )
+
+
+def _clear_awaiting_states(context: ContextTypes.DEFAULT_TYPE):
+    for key in list(context.user_data.keys()):
+        if key.startswith("awaiting_"):
+            context.user_data.pop(key, None)
+
+
+def _course_active_text() -> str:
+    return "􀀀 Курс ColdMind  доступ активний. Обери модуль:"
+
+
+def _course_module_placeholder_text() -> str:
+    return "􀀀 Модуль 1 скоро буде доступний."
+
+
+def _course_plan_text(plan: str) -> str:
     texts = {
-        "ua": (
-            "🎓 Навчання з ColdMind\n\n"
-            "Буде структуроване навчання: основи беттингу, патерни, психологія, дисципліна банку та стратегії.\n\n"
-            "Перший модуль скоро. Активуй Trial, щоб бути серед перших, хто отримає доступ."
+        "solo": (
+            "􀀀 <b>Курс ColdMind  $20</b>\n"
+            "Доступ до всіх модулів курсу назавжди (7+ модулів + бонус)."
         ),
-        "ru": (
-            "🎓 Обучение с ColdMind\n\n"
-            "Будет структурированное обучение: основы беттинга, паттерны, психология, дисциплина банка и стратегии.\n\n"
-            "Первый модуль скоро. Активируй Trial, чтобы быть среди первых, кто получит доступ."
+        "tracker": (
+            "􀀀 <b>Курс + Трекер  $21</b>\n"
+            "Курс назавжди + 30 днів підписки Basic (повний трекер: ROI, Win Rate, історія, Підсумки тижня)."
         ),
-        "en": (
-            "🎓 Learning with ColdMind\n\n"
-            "Structured learning is coming: betting fundamentals, patterns, psychology, bankroll discipline and strategies.\n\n"
-            "The first module is coming soon. Activate Trial to be among the first to get access."
+        "vip": (
+            "􀀀 <b>Курс + VIP Сигнали  $25</b>\n"
+            "Курс назавжди + 30 днів VIP (AI-сигнали + всі функції трекера)."
         ),
     }
-    return texts[lang]
+    return texts[plan]
+
+
+async def send_course_entry(message, context: ContextTypes.DEFAULT_TYPE, user_id: int, lang: str = "ua", force_offer: bool = False):
+    _clear_awaiting_states(context)
+    if not force_offer and has_course_access(user_id):
+        await message.reply_text(
+            _course_active_text(),
+            reply_markup=course_modules_keyboard(),
+        )
+        return
+
+    await message.reply_text(
+        _education_intro_text(lang),
+        parse_mode="HTML",
+        reply_markup=course_offer_keyboard(),
+    )
 
 def _access_status_banner(lang: str, user_id: int) -> str:
     sub_type = get_subscription_type(user_id)
@@ -332,11 +385,30 @@ async def start_offer_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
         )
         return ConversationHandler.END
 
-    if query.data == "education_intro":
-        await query.message.reply_text(
-            _education_intro_text(lang),
-            reply_markup=_activate_trial_keyboard(lang),
+    if query.data in {"education_intro", "course_offer_back"}:
+        await send_course_entry(
+            query.message,
+            context,
+            tg_user.id,
+            lang,
+            force_offer=query.data == "course_offer_back",
         )
+        return ConversationHandler.END
+
+    if query.data in {"course_buy_solo", "course_buy_tracker", "course_buy_vip"}:
+        plan = query.data.replace("course_buy_", "")
+        await query.message.reply_text(
+            _course_plan_text(plan),
+            parse_mode="HTML",
+            reply_markup=course_payment_keyboard(plan),
+        )
+        return ConversationHandler.END
+
+    if query.data == "course_module_1":
+        if not has_course_access(tg_user.id):
+            await send_course_entry(query.message, context, tg_user.id, lang, force_offer=True)
+            return ConversationHandler.END
+        await query.message.reply_text(_course_module_placeholder_text())
         return ConversationHandler.END
 
     if user_has_access(tg_user.id):

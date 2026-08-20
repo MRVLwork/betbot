@@ -501,8 +501,8 @@ def signals_payment_method_keyboard(plan: str, lang: str = "ua"):
 def course_offer_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("􀀀 Купити курс  $20 / 1500􀀀", callback_data="course_buy_solo")],
-        [InlineKeyboardButton("􀀀 Курс + Трекер  $21 / 1575􀀀", callback_data="course_buy_tracker")],
-        [InlineKeyboardButton("􀀀 Курс + VIP Сигнали  $25 / 1875􀀀", callback_data="course_buy_vip")],
+        [InlineKeyboardButton("􀀀 Курс + Трекер  $21 (16%) / 1575􀀀", callback_data="course_buy_tracker")],
+        [InlineKeyboardButton("􀀀 Курс + VIP  $25 (37%) / 1875􀀀", callback_data="course_buy_vip")],
     ])
 
 

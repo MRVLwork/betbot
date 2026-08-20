@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
+import logging
 import os
+import time
 from datetime import datetime, timedelta
 import json
 from zoneinfo import ZoneInfo
@@ -21,7 +23,7 @@ from config import (
     STARS_PER_USD,
 )
 
-BOT_TIMEZONE = ZoneInfo("Europe/Kiev")
+BOT_TIMEZONE = ZoneInfo("Europe/Kyiv")
 TRIAL_SCREEN_LIMIT = 5
 TRIAL_DURATION_HOURS = 168
 LEVEL_THRESHOLDS = (0, 500, 1500, 3000, 6000)
@@ -199,6 +201,24 @@ class PostgresConnectionWrapper:
     def close(self):
         self.conn.close()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        try:
+            if exc_type is not None:
+                self.conn.rollback()
+        finally:
+            self.conn.close()
+        return False
+
+    def __del__(self):
+        try:
+            if not self.conn.closed:
+                self.conn.close()
+        except Exception:
+            pass
+
     def __getattr__(self, item):
         return getattr(self.conn, item)
 
@@ -208,8 +228,18 @@ def get_conn():
     if not database_url:
         raise RuntimeError("DATABASE_URL is not set")
 
-    raw_conn = psycopg2.connect(database_url)
-    return PostgresConnectionWrapper(raw_conn)
+    last_error = None
+    for attempt in range(1, 6):
+        try:
+            raw_conn = psycopg2.connect(database_url, connect_timeout=10)
+            return PostgresConnectionWrapper(raw_conn)
+        except (psycopg2.OperationalError, psycopg2.InterfaceError) as exc:
+            last_error = exc
+            logging.warning("DB connect attempt %d/5 failed: %s", attempt, exc)
+            if attempt < 5:
+                time.sleep(3)
+
+    raise last_error
 
 
 def add_column_if_not_exists(table_name: str, column_name: str, column_def: str):

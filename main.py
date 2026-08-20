@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
 import asyncio
+import html
+import logging
 import sys
 import io
 import threading
+import time
 from zoneinfo import ZoneInfo
 
 # Примусове UTF-8 для stdout
@@ -187,6 +190,30 @@ def _normalize_lang_local(lang: str | None) -> str:
     if lang.startswith("ru"):
         return "ru"
     return "en"
+
+
+def _reply_markup_labels(markup) -> set[str]:
+    labels = set()
+    for row in getattr(markup, "keyboard", []) or []:
+        for button in row:
+            if isinstance(button, str):
+                labels.add(button)
+                continue
+            text = getattr(button, "text", None)
+            if text:
+                labels.add(text)
+    return labels
+
+
+def _current_reply_menu_labels() -> set[str]:
+    labels = set()
+    for lang in ("ua", "ru", "en"):
+        labels.update(_reply_markup_labels(main_menu_keyboard(lang, "basic")))
+        labels.update(_reply_markup_labels(main_menu_keyboard(lang, "tracker")))
+        labels.update(_reply_markup_labels(extra_menu_keyboard(lang)))
+        labels.update(_reply_markup_labels(stats_submenu_keyboard(lang, is_trial=False)))
+        labels.update(_reply_markup_labels(stats_submenu_keyboard(lang, is_trial=True)))
+    return labels
 
 
 def _add_bet_hint_text(lang: str) -> str:
@@ -1774,6 +1801,11 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     lang = get_user_lang(user_id)
     text = update.message.text
+    reply_menu_labels = _current_reply_menu_labels()
+
+    if text in reply_menu_labels:
+        for key in [k for k in list(context.user_data.keys()) if k.startswith("awaiting_")]:
+            context.user_data.pop(key, None)
 
     if text in ("Назад", " Назад", " Back", "Back"):
         plan = get_user_plan(user_id)
@@ -1820,6 +1852,11 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🛠 Інструменти", "🛠 Инструменты", "🛠 Tools",
         " \u041d\u0430\u0437\u0430\u0434", " Back",
     }
+    ai_menu_labels.update(reply_menu_labels)
+
+    if text in ai_menu_labels:
+        for key in [k for k in list(context.user_data.keys()) if k.startswith("awaiting_")]:
+            context.user_data.pop(key, None)
 
     if context.user_data.get("awaiting_kelly_input"):
         await handle_kelly_input(update, context)
@@ -2228,11 +2265,55 @@ async def settings_callback_handler(update: Update, context: ContextTypes.DEFAUL
         }
         await query.message.reply_text(texts.get(lang, texts["ua"]))
 
+
+def init_database_with_retry(max_attempts: int = 10, delay_seconds: int = 5) -> None:
+    for attempt in range(1, max_attempts + 1):
+        try:
+            init_db()
+            init_bets_table()
+            return
+        except Exception as exc:
+            logging.warning(
+                "Database startup initialization failed (attempt %s/%s): %s",
+                attempt,
+                max_attempts,
+                exc,
+            )
+            if attempt == max_attempts:
+                raise
+            time.sleep(delay_seconds)
+
+
+async def global_error_handler(update, context: ContextTypes.DEFAULT_TYPE):
+    import traceback
+
+    error = context.error
+    tb = "".join(traceback.format_exception(None, error, error.__traceback__))
+    logging.error("Unhandled exception: %s", tb)
+
+    try:
+        if isinstance(update, Update) and update.effective_message:
+            await update.effective_message.reply_text(
+                "⚠️ Сталася помилка. Спробуй ще раз або натисни /start."
+            )
+    except Exception:
+        pass
+
+    try:
+        escaped_tb = html.escape(tb[-3500:])
+        await context.bot.send_message(
+            chat_id=ADMIN_ID,
+            text=f"🚨 ПОМИЛКА В БОТІ:\n<pre>{escaped_tb}</pre>",
+            parse_mode="HTML",
+        )
+    except Exception:
+        pass
+
+
 def main():
     if not BOT_TOKEN:        raise RuntimeError("\u041d\u0435 \u0437\u043d\u0430\u0439\u0434\u0435\u043d\u043e TELEGRAM_BOT_TOKEN \u0443 .env")
 
-    init_db()
-    init_bets_table()
+    init_database_with_retry()
 
     app = (
         ApplicationBuilder()
@@ -2241,6 +2322,7 @@ def main():
         .post_shutdown(post_shutdown)
         .build()
     )
+    app.add_error_handler(global_error_handler)
 
     onboarding_conv = ConversationHandler(
         entry_points=[
